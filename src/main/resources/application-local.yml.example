@@ -1,0 +1,8 @@
+# 사용법: 이 파일을 복사해 application-local.yml 로 저장한 뒤 실제 값을 입력하세요.
+# application-local.yml 은 .gitignore 에 등록되어 GitHub에 올라가지 않습니다.
+spring:
+  datasource:
+    # SID 방식: jdbc:oracle:thin:@<호스트>:<포트>:<SID>
+    url: jdbc:oracle:thin:@<HOST>:<PORT>:<SID>
+    username: <USERNAME>
+    password: <PASSWORD>
