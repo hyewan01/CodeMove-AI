@@ -27,8 +27,12 @@ public class AdminState {
 	private Map<Integer, String> reviewReplies = new LinkedHashMap<>();
 	private List<AdminMockData.Notification> notifications = new ArrayList<>(AdminMockData.notifications());
 	private boolean notificationsRead;
-	/** 자동 메시징 사용 (메시징 운영 설정) */
+	/** 자동 메시징 사용 (메시징 운영 설정, TBL_NOTIFICATION_SETTING) */
 	private boolean messagingEnabled = true;
+	private boolean quietHoursEnabled = true;
+	private String quietStart = "22:00";
+	private String quietEnd = "08:00";
+	private boolean smsFallbackEnabled = true;
 	private List<Routine> routines = new ArrayList<>(defaultRoutines());
 	/** 다음 화면에서 한 번 보여줄 루틴 토스트 */
 	private Toast pendingToast;

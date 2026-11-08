@@ -1,7 +1,6 @@
 package com.codemove.admin.web;
 
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -12,7 +11,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
 /**
@@ -26,12 +24,6 @@ public class AdminPageController {
 
 	/** 목록 한 페이지 행 수 (프로토타입 4건) */
 	private static final int PAGE_SIZE = 4;
-
-	/** 아직 옮기지 않은 화면: URL → (화면 이름, Screen ID) */
-	private static final Map<String, String[]> PENDING = Map.ofEntries(
-			Map.entry("/admin/notifications", new String[] { "알림 관리", "SCR-A-013" }),
-			Map.entry("/admin/notifications/history", new String[] { "알림 내역", "SCR-A-014" }),
-			Map.entry("/admin/notifications/messaging", new String[] { "메시징 운영 설정", "SCR-A-015" }));
 
 	/** 헤더 알림 패널을 열면 빨간 점 제거 */
 	@PostMapping("/notifications/panel-read")
@@ -184,16 +176,6 @@ public class AdminPageController {
 			}
 		}
 		return "redirect:/admin/reviews?reply=-1&rating=" + java.net.URLEncoder.encode(rating, java.nio.charset.StandardCharsets.UTF_8);
-	}
-
-	/* ---------- 아직 옮기지 않은 화면 ---------- */
-
-	@GetMapping({ "/notifications", "/notifications/history", "/notifications/messaging" })
-	public String pending(HttpServletRequest request, Model model) {
-		String[] page = PENDING.get(request.getRequestURI().substring(request.getContextPath().length()));
-		model.addAttribute("pageName", page[0]);
-		model.addAttribute("screenId", page[1]);
-		return "admin/pending";
 	}
 
 	/* ---------- 공통 ---------- */
