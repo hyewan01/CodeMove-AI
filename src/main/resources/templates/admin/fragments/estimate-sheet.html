@@ -16,7 +16,7 @@
 
 <!-- 금액 칸 -->
 <th:block th:fragment="money(editable, name, value)">
-	<input th:if="${editable}" th:name="${name}" th:value="${value}"
+	<input th:if="${editable}" th:name="${name}" th:value="${value}" data-money
 		   class="h-full w-full min-w-0 overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-right text-[1.25cqw] font-semibold outline-none focus:bg-white">
 	<span th:unless="${editable}" th:text="'₩ ' + ${value}"
 		  class="flex h-full min-w-0 flex-1 items-center justify-end overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-[1.25cqw] font-semibold"></span>
@@ -87,7 +87,7 @@
 			</div>
 		</div>
 	</section>
-	<div th:if="${editable}" class="mt-[1cqw] flex items-center justify-center gap-[1.2cqw]">
+	<div th:if="${editable}" class="mt-[1cqw] flex items-center justify-center gap-[1.2cqw]" data-pdf-hide>
 		<input type="hidden" name="itemRowCount" th:value="${doc.itemRowCount}" data-row-count>
 		<button aria-label="품목 행 삭제" class="grid h-[4cqw] w-[4cqw] place-items-center rounded-full border border-[#aeb5af] bg-white text-[2.3cqw] font-black disabled:opacity-40" type="button" data-row-step="-1">−</button>
 		<span class="text-[1.1cqw] font-bold text-[#737b75]" data-row-label th:text="${doc.itemRowCount} + '행'">8행</span>
@@ -169,14 +169,16 @@
 
 <!--
 	견적서 뷰어 (프로토타입 EstimateDocumentViewer): 다운로드 · 확대/축소 · 끌어서 이동
+	다운로드는 화면에 그려진 견적서(입력 중인 값 포함)를 A4 PDF로 저장합니다 (admin.js)
 	action: 오른쪽 위 버튼 영역 (없으면 ~{})
 -->
 <div th:fragment="viewer(doc, editable, showDownload, action)" class="overflow-hidden rounded-[18px] bg-[#dfe4df] shadow-[0_10px_30px_rgba(32,48,35,.15)]" data-doc-viewer>
 	<div class="grid grid-cols-[1fr_auto_1fr] items-center border-b border-[#dfe4df] bg-white px-3 py-2.5">
-		<a th:if="${showDownload}" class="flex h-8 w-fit items-center gap-1.5 rounded-lg bg-[#edf3ed] px-3 text-[10px] font-extrabold text-[#346538]"
-		   th:href="@{/assets/admin/estimate-form.pdf}" download="명품익스프레스_견적서.pdf">
-			<svg th:replace="~{admin/fragments/icon :: icon('document', 14, '')}"></svg> 다운
-		</a>
+		<button th:if="${showDownload}" type="button" class="flex h-8 w-fit items-center gap-1.5 rounded-lg bg-[#edf3ed] px-3 text-[10px] font-extrabold text-[#346538] disabled:opacity-60"
+				th:data-file-name="'명품익스프레스_견적서' + (${#strings.isEmpty(doc.customer)} ? '' : '_' + ${doc.customer}) + '.pdf'"
+				th:data-vendor="@{/vendor/}" data-doc-download>
+			<svg th:replace="~{admin/fragments/icon :: icon('document', 14, '')}"></svg> <span data-doc-download-label>다운</span>
+		</button>
 		<span th:unless="${showDownload}"></span>
 		<div class="flex items-center gap-1">
 			<button aria-label="축소" class="grid h-8 w-8 place-items-center rounded-lg bg-[#f1f3f1] text-lg font-bold text-[#465048]" type="button" data-zoom-step="-10">−</button>

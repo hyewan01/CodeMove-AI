@@ -220,6 +220,50 @@
 		});
 	});
 
+	/* ---------- 견적서 PDF 다운로드: 화면의 견적서를 원본 크기(1488px)로 복제해 이미지로 그린 뒤 A4 한 장에 담음 ---------- */
+	const loadScript = (src) => new Promise((resolve, reject) => {
+		if (document.querySelector(`script[src="${src}"]`)) return resolve();
+		const s = document.createElement('script');
+		s.src = src;
+		s.onload = resolve;
+		s.onerror = () => reject(new Error(`${src} 로드 실패`));
+		document.head.append(s);
+	});
+	$$('[data-doc-download]').forEach((btn) => btn.addEventListener('click', async () => {
+		const sheet = $('[data-estimate-sheet]', btn.closest('[data-doc-viewer]'));
+		const label = $('[data-doc-download-label]', btn);
+		const holder = document.createElement('div');
+		holder.style.cssText = 'position:fixed;left:-20000px;top:0;width:1488px;container-type:inline-size;background:#fff';
+		const clone = sheet.cloneNode(true);
+		/* 입력 중인 값은 속성이 아니라 DOM 값이라 복제되지 않음 → 값 옮기고(금액은 보기 화면처럼 ₩ 표시) 안내 문구·행 추가 버튼은 지움 */
+		const inputs = $$('input', sheet);
+		$$('input', clone).forEach((el, i) => {
+			const v = inputs[i].value;
+			el.setAttribute('value', el.hasAttribute('data-money') && v.trim() ? `₩ ${v}` : v);
+			el.removeAttribute('placeholder');
+		});
+		$$('[data-pdf-hide]', clone).forEach((el) => el.remove());
+		holder.append(clone);
+		btn.disabled = true;
+		label.textContent = '생성 중';
+		try {
+			await Promise.all([loadScript(`${btn.dataset.vendor}html-to-image.js`), loadScript(`${btn.dataset.vendor}jspdf.umd.min.js`)]);
+			document.body.append(holder);
+			await document.fonts.ready;
+			const image = await window.htmlToImage.toJpeg(clone, { quality: 0.92, pixelRatio: 2, backgroundColor: '#ffffff' });
+			const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+			pdf.addImage(image, 'JPEG', 0, 0, 210, 297);
+			pdf.save(btn.dataset.fileName);
+		} catch (err) {
+			console.error(err);
+			alert('견적서 PDF를 만들지 못했습니다. 잠시 후 다시 시도해 주세요.');
+		} finally {
+			holder.remove();
+			btn.disabled = false;
+			label.textContent = '다운';
+		}
+	}));
+
 	/* ---------- 수정 가능한 견적서: 옵션 ■□ 선택, 작업내용, 운반방법 전/후, 품목 행 추가·삭제 ---------- */
 	const ON = ['font-black', 'text-black'];
 	$$('[data-estimate-sheet]').forEach((sheet) => {

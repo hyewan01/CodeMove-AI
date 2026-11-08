@@ -8,6 +8,8 @@
   },
   "devDependencies": {
     "@tailwindcss/cli": "4.1.14",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^2.5.2",
     "tailwindcss": "4.1.14"
   }
 }
