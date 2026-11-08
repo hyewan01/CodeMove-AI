@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+	목록 페이지 번호 (프로토타입 목록 공통 페이지네이션)
+	baseUrl: 필터·검색 파라미터가 들어간 주소 (예: /admin/reservations?status=전체&q=) → 뒤에 &page=n 을 붙임
+-->
+<div th:fragment="pager(baseUrl)" th:if="${pageCount > 1}" class="flex flex-wrap justify-center gap-1 border-t border-[#edf0ed] p-4">
+	<a th:each="n : ${#numbers.sequence(1, pageCount)}" th:href="${baseUrl} + (${#strings.contains(baseUrl, '?')} ? '&' : '?') + 'page=' + ${n}"
+	   class="grid h-8 w-8 place-items-center rounded-lg text-[10px] font-bold"
+	   th:classappend="${page == n} ? 'bg-[#346538] text-white' : 'bg-[#f3f5f3] text-[#717972]'" th:text="${n}">1</a>
+</div>
+</body>
+</html>

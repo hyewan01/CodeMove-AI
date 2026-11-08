@@ -10,8 +10,10 @@
 		panel.hidden = false;
 		if (name === 'notifications') {
 			const dot = $('[data-unread-dot]');
-			if (dot) dot.hidden = true;
-			try { sessionStorage.setItem('admin-notifications-read', '1'); } catch (e) { /* 저장소 차단 시 무시 */ }
+			if (dot) {
+				dot.hidden = true;
+				fetch(dot.dataset.readUrl, { method: 'POST' }).catch(() => { /* 다음 화면에서 다시 표시될 뿐 */ });
+			}
 		}
 		if (name === 'search') $('[data-search-input]')?.focus();
 	};
@@ -29,12 +31,6 @@
 	});
 	$$('[data-panel] [data-close]').forEach((btn) =>
 		btn.addEventListener('click', () => closePanel(btn.closest('[data-panel]'))));
-	try {
-		if (sessionStorage.getItem('admin-notifications-read') === '1') {
-			const dot = $('[data-unread-dot]');
-			if (dot) dot.hidden = true;
-		}
-	} catch (e) { /* 저장소 차단 시 무시 */ }
 
 	/* ---------- 초성 검색 (프로토타입 getKoreanInitials) ---------- */
 	const INITIALS = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
@@ -126,6 +122,24 @@
 		link.addEventListener('pointerup', end);
 		link.addEventListener('pointercancel', () => { startX = null; link.style.transform = ''; link.style.opacity = ''; });
 	}
+
+	/* 서버에서 넘긴 루틴 토스트 (조건 발생 직후 화면) */
+	if (toast && toast.dataset.initialTitle) {
+		showToast(toast.dataset.initialTitle, toast.dataset.initialMessage, toast.dataset.initialHref);
+	}
+
+	/* ---------- 작은 팝오버 열고 닫기 : data-toggle="이름" ↔ data-toggle-target="이름" ---------- */
+	$$('[data-toggle]').forEach((btn) => btn.addEventListener('click', () => {
+		const target = $(`[data-toggle-target="${btn.dataset.toggle}"]`);
+		if (!target) return;
+		target.hidden = !target.hidden;
+		btn.setAttribute('aria-expanded', String(!target.hidden));
+		btn.classList.toggle('is-open', !target.hidden);
+		if (!target.hidden) $('input, textarea', target)?.focus();
+	}));
+
+	/* select 변경 시 바로 조회 : <select data-auto-submit> */
+	$$('select[data-auto-submit]').forEach((sel) => sel.addEventListener('change', () => sel.form.submit()));
 
 	window.AdminUI = { toast: showToast, openPanel };
 })();

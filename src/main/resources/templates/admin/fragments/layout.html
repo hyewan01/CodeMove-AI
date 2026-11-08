@@ -38,7 +38,8 @@
 					<button aria-label="최근 알림" class="relative grid h-10 w-10 place-items-center rounded-full text-[#465048] transition hover:bg-[#f2f5f2]"
 							data-open="notifications" type="button">
 						<svg th:replace="~{admin/fragments/icon :: icon('bell', 21, '')}"></svg>
-						<span class="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-[#d9824b]" data-unread-dot></span>
+						<span class="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-[#d9824b]" data-unread-dot
+							  th:if="${hasUnreadNotifications}" th:data-read-url="@{/admin/notifications/panel-read}"></span>
 					</button>
 				</div>
 			</header>
@@ -200,7 +201,8 @@
 		</div>
 
 		<!-- 자동 메시징 루틴 토스트 : AdminUI.toast(title, message, href) -->
-		<div class="absolute inset-x-0 top-0 z-[300] flex justify-center px-3 pt-3" data-toast hidden>
+		<div class="absolute inset-x-0 top-0 z-[300] flex justify-center px-3 pt-3" data-toast hidden
+			 th:attr="data-initial-title=${toast?.title}, data-initial-message=${toast?.message}, data-initial-href=${toast != null} ? @{${toast.href}} : null">
 			<a class="w-full max-w-[410px] cursor-pointer rounded-[20px] bg-white px-4 py-3.5 text-left shadow-[0_8px_32px_rgba(36,58,39,.22)] transition-transform"
 			   style="animation: slideDown 0.35s cubic-bezier(0.22,1,0.36,1)" href="#" data-toast-link>
 				<div class="flex items-center gap-3">
