@@ -29,8 +29,6 @@ public class AdminPageController {
 
 	/** 아직 옮기지 않은 화면: URL → (화면 이름, Screen ID) */
 	private static final Map<String, String[]> PENDING = Map.ofEntries(
-			Map.entry("/admin/estimates", new String[] { "견적 관리", "SCR-A-001" }),
-			Map.entry("/admin/estimates/new", new String[] { "견적서 등록", "SCR-A-003" }),
 			Map.entry("/admin/chat-management", new String[] { "채팅 관리", "SCR-A-005" }),
 			Map.entry("/admin/chats", new String[] { "채팅 목록", "SCR-A-006" }),
 			Map.entry("/admin/chat-management/operation", new String[] { "채팅 운영 설정", "SCR-A-008" }),
@@ -50,7 +48,8 @@ public class AdminPageController {
 	/** 홈 · 대시보드 (SCR-A-016) */
 	@GetMapping({ "", "/" })
 	public String home(HttpSession session, Model model) {
-		model.addAttribute("stats", AdminMockData.stats());
+		model.addAttribute("stats", AdminMockData.stats(AdminState.of(session).getEstimates().stream()
+				.filter(e -> "견적 검토".equals(e.getStatus())).count()));
 		model.addAttribute("recentReservations", AdminMockData.recentReservations(3));
 		return "admin/home";
 	}
@@ -194,7 +193,7 @@ public class AdminPageController {
 
 	/* ---------- 아직 옮기지 않은 화면 ---------- */
 
-	@GetMapping({ "/estimates", "/estimates/new", "/chat-management", "/chats", "/chat-management/operation",
+	@GetMapping({ "/chat-management", "/chats", "/chat-management/operation",
 			"/chat-management/entry", "/chat-management/answers", "/notifications", "/notifications/history",
 			"/notifications/messaging" })
 	public String pending(HttpServletRequest request, Model model) {

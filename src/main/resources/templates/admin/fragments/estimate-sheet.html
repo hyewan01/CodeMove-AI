@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+	견적서 / 계약서 양식 (프로토타입 EstimateTemplateSheet). 부모에 [container-type:inline-size] 필요 (cqw 단위)
+	editable=true 면 입력칸으로 그리고, 이름은 EstimateDoc 필드와 같음 (폼 바인딩)
+-->
+
+<!-- 값 칸: 입력 또는 표시 -->
+<th:block th:fragment="field(editable, name, value, extra)">
+	<input th:if="${editable}" th:name="${name}" th:value="${value}"
+		   class="h-full w-full min-w-0 overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-[1.25cqw] font-semibold outline-none focus:bg-white" th:classappend="${extra}">
+	<span th:unless="${editable}" th:text="${value}"
+		  class="flex h-full min-w-0 flex-1 items-center overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-[1.25cqw] font-semibold" th:classappend="${extra}"></span>
+</th:block>
+
+<!-- 금액 칸 -->
+<th:block th:fragment="money(editable, name, value)">
+	<input th:if="${editable}" th:name="${name}" th:value="${value}"
+		   class="h-full w-full min-w-0 overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-right text-[1.25cqw] font-semibold outline-none focus:bg-white">
+	<span th:unless="${editable}" th:text="'₩ ' + ${value}"
+		  class="flex h-full min-w-0 flex-1 items-center justify-end overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-[1.25cqw] font-semibold"></span>
+</th:block>
+
+<article th:fragment="sheet(doc, editable)" class="estimate-document-sheet aspect-[1488/2103] w-full overflow-hidden bg-white p-[4cqw] text-black" data-estimate-sheet>
+	<header class="grid grid-cols-[1.25fr_.9fr_1.7fr] gap-[2cqw]">
+		<div>
+			<h4 class="text-[3.7cqw] font-black tracking-[-.08em]">명품 익스프레스</h4>
+			<p class="mt-[.8cqw] text-[1.05cqw] leading-[1.7]">포장이사 전문업체 관허 2015-7호<br>(피해보상)보증보험 가입</p>
+		</div>
+		<div class="text-center">
+			<h5 class="text-[3cqw] font-black">견적서 / 계약서</h5>
+			<p class="mt-[.6cqw] text-[1.3cqw] font-bold">(ESTIMATE REPORT)</p>
+		</div>
+		<div class="border-l border-t border-black text-[1.2cqw]">
+			<div class="grid min-h-[3cqw] grid-cols-[13cqw_1fr] border-b border-r border-black" th:each="r : ${ { {'등록 번호', '398-51-00044'}, {'사무실전화', '062) 252-0303'}, {'대표자전화', '010-9445-8224'} } }">
+				<b class="grid place-items-center border-r border-black" th:text="${r[0]}"></b><span class="flex items-center px-[1cqw] font-bold" th:text="${r[1]}"></span>
+			</div>
+		</div>
+	</header>
+
+	<section class="mt-[3cqw] border-l border-t border-black bg-white">
+		<div class="grid grid-cols-[15cqw_22cqw_7cqw_23cqw_1fr] grid-rows-[2.6cqw_2.6cqw]">
+			<b class="row-span-2 grid place-items-center border-b border-r border-black text-[1.35cqw] tracking-[.25em]">업체명</b>
+			<label class="row-span-2 border-b border-r border-black"><th:block th:replace="~{admin/fragments/estimate-sheet :: field(${editable}, 'companyName', ${doc.companyName}, 'justify-center text-center font-black')}"/></label>
+			<b class="row-span-2 grid place-items-center border-b border-r border-black text-[1.2cqw]">담당자</b>
+			<label class="relative flex min-w-0 overflow-hidden border-b border-r border-black"><th:block th:replace="~{admin/fragments/estimate-sheet :: field(${editable}, 'customer', ${doc.customer}, 'justify-center pr-[3.5cqw] text-right')}"/><span class="pointer-events-none absolute right-[1cqw] top-[.65cqw] text-[1.1cqw] font-bold">(님)</span></label>
+			<label class="row-span-2 flex min-w-0 items-center gap-[1cqw] overflow-hidden border-b border-r border-black px-[1cqw] text-[1.2cqw] font-black"><span class="shrink-0">견적일:</span><th:block th:replace="~{admin/fragments/estimate-sheet :: field(${editable}, 'estimateDate', ${doc.estimateDate}, '')}"/></label>
+			<label class="relative flex min-w-0 overflow-hidden border-b border-r border-black pl-[5cqw]"><b class="pointer-events-none absolute left-[1cqw] top-[.6cqw] text-[1.1cqw]">TEL :</b><th:block th:replace="~{admin/fragments/estimate-sheet :: field(${editable}, 'phone', ${doc.phone}, '')}"/></label>
+		</div>
+		<div class="grid min-h-[4.6cqw] grid-cols-[15cqw_1fr_27cqw]">
+			<b class="grid place-items-center border-b border-r border-black text-[1.35cqw] tracking-[.25em]">출발지</b>
+			<label class="border-b border-r border-black"><th:block th:replace="~{admin/fragments/estimate-sheet :: field(${editable}, 'origin', ${doc.origin}, '')}"/></label>
+			<label class="flex min-w-0 items-center gap-[1cqw] overflow-hidden border-b border-r border-black px-[1cqw] text-[1.2cqw] font-black"><span class="shrink-0">작업일:</span><th:block th:replace="~{admin/fragments/estimate-sheet :: field(${editable}, 'moveDate', ${doc.moveDate}, '')}"/></label>
+		</div>
+		<div class="grid min-h-[4.6cqw] grid-cols-[15cqw_1fr_27cqw]">
+			<b class="grid place-items-center border-b border-r border-black text-[1.35cqw] tracking-[.25em]">도착지</b>
+			<label class="border-b border-r border-black"><th:block th:replace="~{admin/fragments/estimate-sheet :: field(${editable}, 'destination', ${doc.destination}, '')}"/></label>
+			<label class="flex min-w-0 items-center gap-[1cqw] overflow-hidden border-b border-r border-black px-[1cqw] text-[1.2cqw] font-black"><span class="shrink-0">운송일:</span><th:block th:replace="~{admin/fragments/estimate-sheet :: field(${editable}, 'transportDate', ${doc.transportDate}, '')}"/></label>
+		</div>
+	</section>
+
+	<section class="mt-[1.2cqw] border-l border-t border-black bg-white">
+		<div class="grid grid-cols-4 bg-[#eeeeee]">
+			<label class="h-[3.8cqw] border-b border-r border-black" th:each="g, it : ${doc.itemGroups}">
+				<input th:if="${editable}" th:aria-label="${it.count} + '번째 품목 그룹'" th:name="'itemGroups[' + ${it.index} + ']'" th:value="${g}"
+					   th:placeholder="${it.index < 2} ? null : '관리자 입력'"
+					   class="h-full w-full min-w-0 overflow-hidden whitespace-nowrap bg-transparent px-[.55cqw] text-center text-[1.25cqw] font-black outline-none focus:bg-white">
+				<span th:unless="${editable}" th:text="${g}" class="flex h-full min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap bg-[#eeeeee] px-[.55cqw] text-[1.25cqw] font-black"></span>
+			</label>
+		</div>
+		<div class="grid grid-cols-8 bg-[#f5f5f5]">
+			<th:block th:each="i : ${#numbers.sequence(1, 4)}"><b class="grid h-[3.4cqw] place-items-center border-b border-r border-black text-[1.2cqw]">품목</b><b class="grid h-[3.4cqw] place-items-center border-b border-r border-black text-[1.2cqw]">수량</b></th:block>
+		</div>
+		<div data-item-rows>
+			<div class="grid grid-cols-8 bg-white" th:each="row : ${#numbers.sequence(0, doc.itemRowCount - 1)}" data-item-row>
+				<th:block th:each="col : ${#numbers.sequence(0, 3)}" th:with="idx=${row * 4 + col}">
+					<input th:if="${editable}" th:aria-label="${row + 1} + '행 ' + ${col + 1} + '번째 품목'" th:name="'itemNames[' + ${idx} + ']'" th:value="${doc.itemName(idx)}"
+						   class="h-[3.1cqw] w-full min-w-0 overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-center text-[1.25cqw] font-semibold outline-none focus:bg-white">
+					<span th:unless="${editable}" th:utext="${#strings.isEmpty(doc.itemName(idx))} ? '&nbsp;' : ${#strings.escapeXml(doc.itemName(idx))}"
+						  class="flex h-[3.1cqw] min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-[1.25cqw] font-semibold"></span>
+					<input th:if="${editable}" th:aria-label="${row + 1} + '행 ' + ${col + 1} + '번째 수량'" th:name="'itemQuantities[' + ${idx} + ']'" th:value="${doc.itemQuantity(idx)}"
+						   class="h-[3.1cqw] w-full min-w-0 overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-center text-[1.25cqw] font-semibold outline-none focus:bg-white">
+					<span th:unless="${editable}" th:utext="${#strings.isEmpty(doc.itemQuantity(idx))} ? '&nbsp;' : ${#strings.escapeXml(doc.itemQuantity(idx))}"
+						  class="flex h-[3.1cqw] min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-[1.25cqw] font-semibold"></span>
+				</th:block>
+			</div>
+		</div>
+	</section>
+	<div th:if="${editable}" class="mt-[1cqw] flex items-center justify-center gap-[1.2cqw]">
+		<input type="hidden" name="itemRowCount" th:value="${doc.itemRowCount}" data-row-count>
+		<button aria-label="품목 행 삭제" class="grid h-[4cqw] w-[4cqw] place-items-center rounded-full border border-[#aeb5af] bg-white text-[2.3cqw] font-black disabled:opacity-40" type="button" data-row-step="-1">−</button>
+		<span class="text-[1.1cqw] font-bold text-[#737b75]" data-row-label th:text="${doc.itemRowCount} + '행'">8행</span>
+		<button aria-label="품목 행 추가" class="grid h-[4cqw] w-[4cqw] place-items-center rounded-full border border-[#aeb5af] bg-white text-[2.3cqw] font-black disabled:opacity-40" type="button" data-row-step="1">+</button>
+	</div>
+
+	<section class="mt-[1.1cqw] grid grid-cols-[1fr_1.1fr] gap-[.8cqw]">
+		<div class="grid grid-cols-[5.5cqw_1fr] border-l border-t border-black">
+			<strong class="grid place-items-center border-b border-r border-black px-[1cqw] text-center text-[1.4cqw] leading-[1.8]">옵<br>션<br>비<br>용</strong>
+			<div>
+				<div class="grid min-h-[2.75cqw] grid-cols-[10cqw_1fr_2.5cqw_10cqw] border-b border-r border-black text-[1.05cqw]" th:each="o, it : ${optionRows}"
+					 th:with="sel=${doc.optionSelections[it.index]}" data-option-row>
+					<b class="flex items-center px-[.8cqw]" th:text="'· ' + ${o[0]}">· 피아노</b>
+					<span class="flex items-center gap-[1.1cqw]">
+						<input th:if="${editable}" type="hidden" th:name="'optionSelections[' + ${it.index} + ']'" th:value="${sel}" data-option-value>
+						<button th:each="c : ${ {o[1], o[2]} }" type="button" th:disabled="${!editable}" th:data-choice="${c}"
+								class="flex items-center gap-[.35cqw]" th:classappend="${sel == c} ? 'font-black text-black' : 'text-[#69716b]'">
+							<span class="text-[1.25cqw]" th:text="${sel == c} ? '■' : '□'">□</span><th:block th:text="${c}"></th:block>
+						</button>
+					</span>
+					<span class="flex items-center justify-center">₩</span>
+					<input th:if="${editable}" th:aria-label="${o[0]} + ' 옵션 비용'" th:name="'optionCosts[' + ${it.index} + ']'" th:value="${doc.optionCosts[it.index]}"
+						   class="min-w-0 bg-white px-[.5cqw] text-right outline-none focus:bg-white">
+					<span th:unless="${editable}" class="flex items-center justify-end bg-white px-[.5cqw]" th:text="${doc.optionCosts[it.index]}"></span>
+				</div>
+			</div>
+		</div>
+		<div class="border-l border-t border-black">
+			<div class="grid min-h-[5.5cqw] grid-cols-[10cqw_1fr] border-b border-r border-black" data-single="workMethod">
+				<b class="grid place-items-center text-[1.3cqw]">작업내용</b>
+				<div class="flex items-center justify-center gap-[2.2cqw] px-[1cqw] text-[1.2cqw]">
+					<input th:if="${editable}" type="hidden" name="workMethod" th:value="${doc.workMethod}" data-single-value>
+					<button th:each="m : ${ {'포장', '일반', '보관'} }" type="button" th:disabled="${!editable}" th:data-choice="${m}"
+							class="flex items-center gap-[.6cqw]" th:classappend="${doc.workMethod == m} ? 'font-black text-black' : 'text-[#69716b]'">
+						<span class="text-[1.5cqw]" th:text="${doc.workMethod == m} ? '■' : '□'">□</span><th:block th:text="${m}"></th:block>
+					</button>
+				</div>
+			</div>
+			<div class="grid min-h-[4.7cqw] grid-cols-[10cqw_1fr] border-b border-r border-black">
+				<b class="grid place-items-center text-[1.3cqw]">운반방법</b>
+				<div class="flex items-center justify-center gap-[1.6cqw] px-[.6cqw] text-[1.05cqw]">
+					<span class="flex items-center gap-[.4cqw]" th:each="t : ${ { {'ladder', '사다리차', doc.ladder}, {'elevator', '승강기', doc.elevator}, {'stairs', '계단작업', doc.stairs} } }" data-transport>
+						<b th:text="${t[1]}">사다리차</b>
+						<input th:if="${editable}" type="hidden" th:name="${t[0]}" th:value="${t[2]}" data-transport-value>
+						<button th:each="v : ${ {'전', '후'} }" type="button" th:disabled="${!editable}" th:data-choice="${v}" th:text="${v}"
+								th:class="${t[2] == v} ? 'font-black text-black underline decoration-[.18cqw] underline-offset-[.3cqw]' : 'text-[#8a918c]'"></button>
+					</span>
+				</div>
+			</div>
+			<label class="grid min-h-[5.3cqw] grid-cols-[10cqw_1fr] border-b border-r border-black"><b class="grid place-items-center text-[1.3cqw]">이사물량</b><th:block th:replace="~{admin/fragments/estimate-sheet :: field(${editable}, 'volume', ${doc.volume}, '')}"/></label>
+			<label class="grid min-h-[6.1cqw] grid-cols-[10cqw_1fr] border-b border-r border-black"><b class="grid place-items-center text-[1.3cqw]">비고</b><th:block th:replace="~{admin/fragments/estimate-sheet :: field(${editable}, 'note', ${doc.note}, '')}"/></label>
+		</div>
+	</section>
+
+	<section class="mt-[.7cqw] grid grid-cols-2 border-l border-t border-black">
+		<div class="border-r border-black">
+			<h5 class="grid h-[2.8cqw] place-items-center border-b border-black text-[1.35cqw] font-black">A. 작업 비용</h5>
+			<label th:each="r : ${ { {'이사비용', 'movingCost', doc.movingCost}, {'사다리비용', 'extraCost', doc.extraCost}, {'총 비용', 'total', doc.total}, {'계약금10%', 'deposit', doc.deposit}, {'잔금', 'balance', doc.balance} } }"
+				   class="grid grid-cols-[23cqw_1fr] border-b border-black" th:classappend="${r[1] == 'deposit' or r[1] == 'balance'} ? 'min-h-[5.4cqw]' : 'min-h-[2.8cqw]'">
+				<b class="grid place-items-center border-r border-black text-[1.25cqw]" th:text="${r[0]}"></b><th:block th:replace="~{admin/fragments/estimate-sheet :: money(${editable}, ${r[1]}, ${r[2]})}"/>
+			</label>
+		</div>
+		<div class="border-r border-black">
+			<h5 class="grid h-[2.8cqw] place-items-center border-b border-black text-[1.35cqw] font-black">B. 별도 비용</h5>
+			<label th:each="r : ${ { {'출발지 사다리(　)층', 'departureLadder', doc.departureLadder}, {'도착지 사다리(　)층', 'destinationLadder', doc.destinationLadder}, {'사다리 소계', 'ladderSubtotal', doc.ladderSubtotal} } }"
+				   class="grid min-h-[2.8cqw] grid-cols-[25cqw_1fr] border-b border-black">
+				<b class="grid place-items-center border-r border-black text-[1.15cqw]" th:text="${r[0]}"></b><th:block th:replace="~{admin/fragments/estimate-sheet :: money(${editable}, ${r[1]}, ${r[2]})}"/>
+			</label>
+		</div>
+	</section>
+
+	<footer class="mt-[.8cqw] grid grid-cols-[12cqw_1fr_9cqw_1fr] border-l border-t border-black text-[1.2cqw]">
+		<b class="grid min-h-[5cqw] place-items-center border-b border-r border-black">견적 담당자</b>
+		<span class="flex items-center justify-between border-b border-r border-black px-[1.3cqw] font-black"><span>김선국</span><span>(서명)/H.P　010-9445-8224</span></span>
+		<b class="grid place-items-center border-b border-r border-black text-center">고객<br>확인</b>
+		<span class="flex items-end justify-end border-b border-r border-black p-[1cqw] font-black">(서명)</span>
+	</footer>
+</article>
+
+<!--
+	견적서 뷰어 (프로토타입 EstimateDocumentViewer): 다운로드 · 확대/축소 · 끌어서 이동
+	action: 오른쪽 위 버튼 영역 (없으면 ~{})
+-->
+<div th:fragment="viewer(doc, editable, showDownload, action)" class="overflow-hidden rounded-[18px] bg-[#dfe4df] shadow-[0_10px_30px_rgba(32,48,35,.15)]" data-doc-viewer>
+	<div class="grid grid-cols-[1fr_auto_1fr] items-center border-b border-[#dfe4df] bg-white px-3 py-2.5">
+		<a th:if="${showDownload}" class="flex h-8 w-fit items-center gap-1.5 rounded-lg bg-[#edf3ed] px-3 text-[10px] font-extrabold text-[#346538]"
+		   th:href="@{/assets/admin/estimate-form.pdf}" download="명품익스프레스_견적서.pdf">
+			<svg th:replace="~{admin/fragments/icon :: icon('document', 14, '')}"></svg> 다운
+		</a>
+		<span th:unless="${showDownload}"></span>
+		<div class="flex items-center gap-1">
+			<button aria-label="축소" class="grid h-8 w-8 place-items-center rounded-lg bg-[#f1f3f1] text-lg font-bold text-[#465048]" type="button" data-zoom-step="-10">−</button>
+			<button class="w-12 text-center text-[10px] font-extrabold text-[#59615b]" type="button" data-zoom-reset>100%</button>
+			<button aria-label="확대" class="grid h-8 w-8 place-items-center rounded-lg bg-[#f1f3f1] text-lg font-bold text-[#465048]" type="button" data-zoom-step="10">+</button>
+		</div>
+		<th:block th:replace="${action}"></th:block>
+	</div>
+	<div class="relative grid h-[calc(100dvh-260px)] min-h-[430px] cursor-grab place-items-center overflow-hidden bg-[#bfc5c0]" style="touch-action: none" data-doc-viewport>
+		<div class="aspect-[1488/2103] h-[calc(100%_-_24px)] max-w-[calc(100%_-_24px)] bg-white shadow-lg [container-type:inline-size]" data-doc-page>
+			<article th:replace="~{admin/fragments/estimate-sheet :: sheet(${doc}, ${editable})}"></article>
+		</div>
+	</div>
+</div>
+</body>
+</html>

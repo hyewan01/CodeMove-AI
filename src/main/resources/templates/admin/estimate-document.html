@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html th:replace="~{admin/fragments/layout :: layout('견적 상세', 'schedule', false, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 견적 상세 (일정 캘린더 > 예약/일정 상세 > [상세 보기]) -->
+<th:block th:fragment="content">
+<div class="absolute inset-x-0 bottom-[82px] top-[68px] z-[60] overflow-y-auto bg-[#e8ebe8] p-4">
+	<div class="mb-3 flex items-center justify-between">
+		<h3 class="text-[16px] font-extrabold">견적 상세</h3>
+		<a aria-label="견적 상세 닫기" class="grid h-9 w-9 place-items-center rounded-full bg-white" th:href="${back}">
+			<svg th:replace="~{admin/fragments/icon :: icon('x', 17, '')}"></svg>
+		</a>
+	</div>
+	<div th:replace="~{admin/fragments/estimate-sheet :: viewer(${doc}, false, true, ~{})}"></div>
+</div>
+</th:block>
+</body>
+</html>

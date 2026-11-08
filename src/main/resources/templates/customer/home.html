@@ -15,7 +15,7 @@
 			<div class="home-greeting" th:text="${cs.userName} + '님'">김무브님</div>
 
 			<!-- 예약 확정 -->
-			<div th:if="${cs.estimateStatus == 'confirmed'}" th:replace="~{customer/fragments/move :: bookingCard}"></div>
+			<th:block th:if="${cs.estimateStatus == 'confirmed'}"><div th:replace="~{customer/fragments/move :: bookingCard}"></div></th:block>
 
 			<!-- 견적 도착 -->
 			<a class="action home-estimate-status ready" th:href="@{/move}" th:if="${cs.estimateStatus == 'approved'}">

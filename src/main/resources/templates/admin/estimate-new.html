@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html th:replace="~{admin/fragments/layout :: layout('견적서 등록', '', false, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+	견적서 등록 (SCR-A-003 첨부·인식, SCR-A-004 수정·등록)
+	사진: 1 첨부 → 2 수정 → 3 미리보기 → 4 견적 등록 / PDF: 1 첨부 → 3 미리보기 → 4 견적 등록
+-->
+<th:block th:fragment="content">
+
+<!-- Step 1: 첨부 -->
+<div th:if="${step == 1}" class="px-4 pb-28 pt-6">
+	<div th:replace="~{admin/estimate-new :: steps(1, ${pdfMode})}"></div>
+	<h2 class="px-1 text-[24px] font-extrabold tracking-[-0.04em] text-[#346538]">견적서 등록</h2>
+	<form class="relative mt-5 overflow-hidden rounded-[22px] border border-[#e0e6e1] bg-white p-6 shadow-[0_5px_18px_rgba(36,58,39,.06)]"
+		  method="post" th:action="@{/admin/estimates/new/analyze}" data-upload>
+		<input type="hidden" name="kind" data-kind>
+		<input type="hidden" name="fileName" data-file-name-value>
+		<span class="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#79917c]">Step 1</span>
+		<button class="mt-5 block w-full text-center" type="button" data-toggle="chooser">
+			<span class="mx-auto flex w-fit items-center gap-3">
+				<span class="grid h-14 w-14 place-items-center rounded-2xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon('camera', 27, '')}"></svg></span>
+				<span class="grid h-14 w-14 place-items-center rounded-2xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon('document', 26, '')}"></svg></span>
+			</span>
+			<strong class="mx-auto mt-5 block max-w-[290px] text-[16px] leading-6 text-[#303832]">과거 수기 견적서를 촬영하거나 PDF 파일을 첨부하세요.</strong>
+			<span class="mt-2 block text-[10px] text-[#8f9691]">AI가 텍스트를 자동 인식하여 아래 필드에 입력합니다.</span>
+		</button>
+
+		<div class="mt-5 flex items-center gap-2 rounded-xl bg-[#f6f8f6] px-3 py-2.5 text-left" data-file-row hidden>
+			<svg th:replace="~{admin/fragments/icon :: icon('document', 17, 'text-[#346538]')}"></svg>
+			<span class="min-w-0 flex-1 truncate text-[10px] font-semibold text-[#59615b]" data-file-name></span>
+		</div>
+
+		<div class="mt-5 rounded-2xl border border-[#e1e6e1] bg-[#f8f9f8] p-3" data-photo-preview hidden>
+			<p class="mb-2 text-left text-[10px] font-extrabold text-[#4c554e]">촬영 이미지 미리보기</p>
+			<img alt="촬영한 수기 견적서 미리보기" class="h-44 w-full rounded-xl object-cover" data-photo-img>
+			<div class="mt-3 flex justify-end gap-2">
+				<button class="rounded-lg border border-[#d8ded9] bg-white px-3 py-2 text-[10px] font-bold text-[#707871]" type="button" data-retake>다시 촬영</button>
+				<button class="rounded-lg bg-[#346538] px-4 py-2 text-[10px] font-bold text-white" type="button" data-analyze>확인</button>
+			</div>
+		</div>
+
+		<div class="absolute bottom-3 right-3 h-14 w-12 rotate-3 overflow-hidden rounded-lg border-2 border-white bg-[#e9e3d7] shadow-[0_4px_12px_rgba(34,43,36,.2)]" data-thumb hidden>
+			<img alt="" class="h-full w-full object-cover" data-thumb-img hidden>
+			<span class="grid h-full w-full place-items-center text-[#6f776f]" data-thumb-doc><svg th:replace="~{admin/fragments/icon :: icon('document', 22, '')}"></svg></span>
+		</div>
+
+		<div class="absolute inset-0 z-10 flex items-end bg-[#1e2b20]/35 p-4 backdrop-blur-[2px]" data-toggle-target="chooser" hidden>
+			<div class="w-full rounded-[18px] bg-white p-4 shadow-xl">
+				<div class="mb-4 flex items-center justify-between">
+					<p class="text-[13px] font-extrabold text-[#303832]">첨부 방식 선택</p>
+					<button aria-label="첨부 방식 닫기" class="grid h-8 w-8 place-items-center rounded-full bg-[#f1f4f1] text-[#677068]" type="button" data-toggle="chooser">
+						<svg th:replace="~{admin/fragments/icon :: icon('x', 16, '')}"></svg></button>
+				</div>
+				<div class="grid grid-cols-2 gap-3">
+					<label class="flex cursor-pointer flex-col items-center gap-2 rounded-xl bg-[#edf3ed] p-4 text-[#346538]">
+						<input accept="image/*" capture="environment" class="sr-only" type="file" data-pick="photo">
+						<svg th:replace="~{admin/fragments/icon :: icon('camera', 25, '')}"></svg>
+						<span class="text-[10px] font-bold">사진 촬영</span>
+					</label>
+					<label class="flex cursor-pointer flex-col items-center gap-2 rounded-xl bg-[#edf3ed] p-4 text-[#346538]">
+						<input accept=".pdf,application/pdf" class="sr-only" type="file" data-pick="pdf">
+						<svg th:replace="~{admin/fragments/icon :: icon('document', 24, '')}"></svg>
+						<span class="text-[10px] font-bold">PDF 첨부</span>
+					</label>
+				</div>
+			</div>
+		</div>
+
+		<div class="absolute inset-0 z-20 grid place-items-center rounded-[22px] bg-white/92 backdrop-blur-sm" data-loading hidden>
+			<div class="text-center">
+				<span class="mx-auto block h-9 w-9 animate-spin rounded-full border-2 border-[#dce7dd] border-t-[#346538]"></span>
+				<p class="mt-3 text-[11px] font-bold text-[#346538]">AI가 견적서를 분석하고 있습니다</p>
+				<p class="mt-1 text-[9px] text-[#929994]">완료되면 Step 2로 이동합니다.</p>
+			</div>
+		</div>
+	</form>
+	<script>
+		/* 첨부: 사진은 미리보기 → [확인] 시 분석, PDF는 바로 분석 (목업 0.9초) */
+		(function () {
+			const form = document.querySelector('[data-upload]');
+			const q = (s) => form.querySelector(s);
+			const chooser = q('[data-toggle-target="chooser"]');
+			const analyze = (kind) => {
+				q('[data-kind]').value = kind;
+				q('[data-loading]').hidden = false;
+				setTimeout(() => form.submit(), 900);
+			};
+			form.querySelectorAll('[data-pick]').forEach((input) => input.addEventListener('change', () => {
+				const file = input.files && input.files[0];
+				if (!file) return;
+				chooser.hidden = true;
+				q('[data-file-name]').textContent = file.name;
+				q('[data-file-name-value]').value = file.name;
+				q('[data-file-row]').hidden = false;
+				q('[data-thumb]').hidden = false;
+				const isPhoto = input.dataset.pick === 'photo';
+				q('[data-thumb-img]').hidden = !isPhoto;
+				q('[data-thumb-doc]').hidden = isPhoto;
+				if (isPhoto) {
+					const url = URL.createObjectURL(file);
+					q('[data-photo-img]').src = url;
+					q('[data-thumb-img]').src = url;
+					q('[data-photo-preview]').hidden = false;
+				} else {
+					analyze('pdf');
+				}
+				input.value = '';
+			}));
+			q('[data-retake]').addEventListener('click', () => {
+				['[data-photo-preview]', '[data-file-row]', '[data-thumb]'].forEach((s) => (q(s).hidden = true));
+			});
+			q('[data-analyze]').addEventListener('click', () => analyze('photo'));
+		})();
+	</script>
+</div>
+
+<!-- Step 2: 견적서 수정 (사진) -->
+<form th:if="${step == 2}" class="px-4 pb-28 pt-5" method="post" th:action="@{/admin/estimates/new/draft}">
+	<div th:replace="~{admin/estimate-new :: steps(2, ${pdfMode})}"></div>
+	<div class="mb-4 flex items-center justify-between">
+		<div><p class="text-[9px] font-extrabold tracking-[.12em] text-[#7a927d]">STEP 2</p><h2 class="mt-1 text-[20px] font-extrabold text-[#346538]">견적서 수정</h2></div>
+		<button class="h-9 rounded-xl bg-[#346538] px-4 text-[11px] font-extrabold text-white" type="submit">다음</button>
+	</div>
+	<div th:replace="~{admin/fragments/estimate-sheet :: viewer(${doc}, true, false, ~{})}"></div>
+</form>
+
+<!-- Step 3: 미리보기 -->
+<div th:if="${step == 3}" class="px-4 pb-28 pt-5">
+	<div th:replace="~{admin/estimate-new :: steps(3, ${pdfMode})}"></div>
+	<div class="mb-4 flex items-center justify-between">
+		<form th:if="${pdfMode}" method="post" th:action="@{/admin/estimates/new/reset}">
+			<button class="flex items-center gap-1 text-[10px] font-bold text-[#59625b]" type="submit"><svg th:replace="~{admin/fragments/icon :: icon('arrowRight', 14, 'rotate-180')}"></svg>첨부로</button>
+		</form>
+		<a th:unless="${pdfMode}" class="flex items-center gap-1 text-[10px] font-bold text-[#59625b]" th:href="@{/admin/estimates/new(step=2)}">
+			<svg th:replace="~{admin/fragments/icon :: icon('arrowRight', 14, 'rotate-180')}"></svg>수정으로</a>
+		<h2 class="text-[16px] font-extrabold text-[#29312b]">견적서 미리보기</h2>
+		<a class="grid h-9 place-items-center rounded-xl bg-[#346538] px-4 text-[11px] font-extrabold text-white" th:href="@{/admin/estimates/new(step=4)}">다음</a>
+	</div>
+	<div th:replace="~{admin/fragments/estimate-sheet :: viewer(${doc}, false, true, ~{})}"></div>
+</div>
+
+<!-- Step 4: 견적 등록 -->
+<form th:if="${step == 4}" class="px-4 pb-28 pt-5" method="post" th:action="@{/admin/estimates/new/complete}" data-complete>
+	<div th:replace="~{admin/estimate-new :: steps(4, ${pdfMode})}"></div>
+	<section class="rounded-[20px] bg-white p-5 shadow-[0_5px_18px_rgba(36,58,39,.06)]">
+		<p class="text-[9px] font-extrabold tracking-[.12em] text-[#7a927d]" th:text="${pdfMode} ? 'STEP 3' : 'STEP 4'">STEP 4</p>
+		<h2 class="mt-1 text-[20px] font-extrabold text-[#346538]">견적 등록</h2>
+		<div th:if="${pdfMode}" class="mt-5 space-y-3">
+			<label class="block"><span class="mb-1.5 block text-[10px] font-bold text-[#687069]">이름</span>
+				<input class="h-11 w-full rounded-xl border border-[#dfe4df] bg-white px-3 text-[12px] font-semibold outline-none focus:border-[#346538]" name="name" placeholder="고객 이름을 입력하세요" data-required></label>
+			<label class="block"><span class="mb-1.5 block text-[10px] font-bold text-[#687069]">날짜</span>
+				<input class="h-11 w-full rounded-xl border border-[#dfe4df] bg-white px-3 text-[12px] font-semibold outline-none focus:border-[#346538]" name="date" inputmode="numeric" maxlength="8" placeholder="YY.MM.DD" data-short-date data-required></label>
+		</div>
+		<p th:unless="${pdfMode}" class="mt-5 rounded-xl bg-[#f7f8f7] px-4 py-3 text-[11px] text-[#59615b]">견적서에서 인식한 담당자와 견적일이 등록 정보로 사용됩니다.</p>
+		<label class="mt-5 block">
+			<span class="mb-2 block text-[10px] font-extrabold text-[#59615b]">분류</span>
+			<select class="h-11 w-full rounded-xl border border-[#dfe4df] bg-white px-3 text-[12px] font-semibold" name="status">
+				<option>견적 검토</option><option>견적 승인</option><option>견적 확정</option>
+			</select>
+		</label>
+	</section>
+	<div class="mt-4 grid grid-cols-[1fr_2fr] gap-2">
+		<a class="grid h-12 place-items-center rounded-xl border border-[#d9ded9] bg-white text-[11px] font-bold" th:href="@{/admin/estimates/new(step=3)}">이전</a>
+		<button class="h-12 rounded-xl bg-[#346538] text-[12px] font-extrabold text-white disabled:opacity-40" type="submit" th:disabled="${pdfMode}" data-complete-submit>견적 관리에 등록</button>
+	</div>
+	<script>
+		/* PDF 등록: 이름과 날짜를 입력해야 등록 가능 */
+		(function () {
+			const form = document.querySelector('[data-complete]');
+			const required = form.querySelectorAll('[data-required]');
+			if (!required.length) return;
+			const submit = form.querySelector('[data-complete-submit]');
+			const refresh = () => (submit.disabled = [...required].some((i) => !i.value.trim()));
+			required.forEach((i) => i.addEventListener('input', refresh));
+		})();
+	</script>
+</form>
+</th:block>
+
+<!-- 진행 단계 표시 (프로토타입 EstimateRegistrationSteps) -->
+<div th:fragment="steps(current, pdfMode)" class="mb-5 px-2 pt-1"
+	 th:with="steps=${pdfMode} ? ${ { {'첨부', 1}, {'미리보기', 3}, {'견적 등록', 4} } } : ${ { {'첨부', 1}, {'수정', 2}, {'미리보기', 3}, {'견적 등록', 4} } }">
+	<div class="flex items-center">
+		<th:block th:each="s, it : ${steps}" th:with="active=${s[1] == current}, completed=${s[1] < current}">
+			<div class="flex min-w-0 flex-col items-center gap-1.5">
+				<span class="grid h-7 w-7 place-items-center rounded-full text-[10px] font-extrabold"
+					  th:classappend="${active} ? 'bg-[#346538] text-white' : (${completed} ? 'bg-[#dce9dd] text-[#346538]' : 'bg-[#eef0ee] text-[#929994]')">
+					<th:block th:if="${completed}"><svg th:replace="~{admin/fragments/icon :: icon('check', 13, '')}"></svg></th:block>
+					<th:block th:unless="${completed}" th:text="${it.count}"></th:block>
+				</span>
+				<span class="whitespace-nowrap text-[8px] font-bold" th:classappend="${active} ? 'text-[#346538]' : 'text-[#8a918c]'" th:text="${s[0]}">첨부</span>
+			</div>
+			<span th:unless="${it.last}" class="mx-2 mb-5 h-px flex-1" th:classappend="${completed} ? 'bg-[#8eaa91]' : 'bg-[#dfe4df]'"></span>
+		</th:block>
+	</div>
+</div>
+</body>
+</html>

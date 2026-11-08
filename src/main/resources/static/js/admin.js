@@ -141,5 +141,160 @@
 	/* select 변경 시 바로 조회 : <select data-auto-submit> */
 	$$('select[data-auto-submit]').forEach((sel) => sel.addEventListener('change', () => sel.form.submit()));
 
+	/* ---------- 견적서 뷰어: 확대/축소(60~180%) · 100% 초과 시 끌어서 이동 · 두 손가락 확대 ---------- */
+	$$('[data-doc-viewer]').forEach((viewer) => {
+		const viewport = $('[data-doc-viewport]', viewer);
+		const pageEl = $('[data-doc-page]', viewer);
+		const label = $('[data-zoom-reset]', viewer);
+		let zoom = 100, pan = { x: 0, y: 0 }, drag = null, pinch = null;
+		const clamp = (v) => Math.min(180, Math.max(60, v));
+		/* 종이 크기: 영역(여백 12px씩) 안에 견적서 비율(1488:2103) 그대로 맞춤 (CSS aspect + max-width 는 container-type 과 함께 쓰면 무시됨) */
+		const fit = () => {
+			const w = viewport.clientWidth - 24;
+			const h = viewport.clientHeight - 24;
+			pageEl.style.width = `${Math.max(0, Math.min(w, h * 1488 / 2103))}px`;
+			pageEl.style.height = 'auto';
+		};
+		fit();
+		window.addEventListener('resize', fit);
+		const apply = () => {
+			if (zoom <= 100) pan = { x: 0, y: 0 };
+			pageEl.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom / 100})`;
+			label.textContent = `${zoom}%`;
+		};
+		$$('[data-zoom-step]', viewer).forEach((b) => b.addEventListener('click', () => { zoom = clamp(zoom + Number(b.dataset.zoomStep)); apply(); }));
+		label.addEventListener('click', () => { zoom = 100; apply(); });
+		const isField = (t) => t.closest('input, textarea, select, button');
+		viewport.addEventListener('pointerdown', (e) => {
+			if (e.pointerType !== 'mouse' || isField(e.target)) return;
+			drag = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
+			viewport.setPointerCapture(e.pointerId);
+			viewport.classList.replace('cursor-grab', 'cursor-grabbing');
+		});
+		viewport.addEventListener('pointermove', (e) => {
+			if (e.pointerType !== 'mouse' || !drag || zoom <= 100) return;
+			pan = { x: drag.px + e.clientX - drag.x, y: drag.py + e.clientY - drag.y };
+			apply();
+		});
+		const endDrag = (e) => {
+			if (e.pointerType !== 'mouse') return;
+			drag = null;
+			if (viewport.hasPointerCapture(e.pointerId)) viewport.releasePointerCapture(e.pointerId);
+			viewport.classList.replace('cursor-grabbing', 'cursor-grab');
+		};
+		viewport.addEventListener('pointerup', endDrag);
+		viewport.addEventListener('pointercancel', endDrag);
+		viewport.addEventListener('touchstart', (e) => {
+			if (e.touches.length === 2) {
+				const [a, b] = e.touches;
+				pinch = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), zoom, cx: (a.clientX + b.clientX) / 2, cy: (a.clientY + b.clientY) / 2, px: pan.x, py: pan.y };
+				drag = null;
+			} else if (e.touches.length === 1 && !isField(e.target)) {
+				drag = { x: e.touches[0].clientX, y: e.touches[0].clientY, px: pan.x, py: pan.y };
+			}
+		}, { passive: true });
+		viewport.addEventListener('touchmove', (e) => {
+			if (e.touches.length === 2 && pinch) {
+				const [a, b] = e.touches;
+				zoom = clamp(Math.round(pinch.zoom * Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinch.d));
+				if (zoom > 100) pan = { x: pinch.px + (a.clientX + b.clientX) / 2 - pinch.cx, y: pinch.py + (a.clientY + b.clientY) / 2 - pinch.cy };
+				apply();
+			} else if (e.touches.length === 1 && drag && zoom > 100) {
+				pan = { x: drag.px + e.touches[0].clientX - drag.x, y: drag.py + e.touches[0].clientY - drag.y };
+				apply();
+			}
+		}, { passive: true });
+		viewport.addEventListener('touchend', (e) => {
+			pinch = null;
+			drag = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY, px: pan.x, py: pan.y } : null;
+		});
+	});
+
+	/* ---------- 수정 가능한 견적서: 옵션 ■□ 선택, 작업내용, 운반방법 전/후, 품목 행 추가·삭제 ---------- */
+	const ON = ['font-black', 'text-black'];
+	$$('[data-estimate-sheet]').forEach((sheet) => {
+		if (!$('input', sheet)) return;
+		const setBox = (btn, on, offClass) => {
+			btn.classList.remove(...ON, offClass);
+			btn.classList.add(...(on ? ON : [offClass]));
+			const box = $('span', btn);
+			if (box) box.textContent = on ? '■' : '□';
+		};
+		/* 옵션: 같은 걸 다시 누르면 해제 */
+		$$('[data-option-row]', sheet).forEach((row) => {
+			const input = $('[data-option-value]', row);
+			$$('[data-choice]', row).forEach((btn) => btn.addEventListener('click', () => {
+				input.value = input.value === btn.dataset.choice ? '' : btn.dataset.choice;
+				$$('[data-choice]', row).forEach((b) => setBox(b, b.dataset.choice === input.value, 'text-[#69716b]'));
+			}));
+		});
+		/* 작업내용: 하나만 선택 */
+		$$('[data-single]', sheet).forEach((group) => {
+			const input = $('[data-single-value]', group);
+			$$('[data-choice]', group).forEach((btn) => btn.addEventListener('click', () => {
+				input.value = btn.dataset.choice;
+				$$('[data-choice]', group).forEach((b) => setBox(b, b === btn, 'text-[#69716b]'));
+			}));
+		});
+		/* 운반방법: 전/후, 다시 누르면 해제 */
+		const UNDER = ['font-black', 'text-black', 'underline', 'decoration-[.18cqw]', 'underline-offset-[.3cqw]'];
+		$$('[data-transport]', sheet).forEach((group) => {
+			const input = $('[data-transport-value]', group);
+			$$('[data-choice]', group).forEach((btn) => btn.addEventListener('click', () => {
+				input.value = input.value === btn.dataset.choice ? '' : btn.dataset.choice;
+				$$('[data-choice]', group).forEach((b) => {
+					b.className = b.dataset.choice === input.value ? UNDER.join(' ') : 'text-[#8a918c]';
+				});
+			}));
+		});
+		/* 품목 행 1~14 */
+		const rows = $('[data-item-rows]', sheet);
+		const count = $('[data-row-count]', sheet);
+		const label = $('[data-row-label]', sheet);
+		const steps = $$('[data-row-step]', sheet);
+		const refreshRows = () => {
+			const n = rows.children.length;
+			count.value = n;
+			label.textContent = `${n}행`;
+			steps.forEach((b) => (b.disabled = Number(b.dataset.rowStep) < 0 ? n <= 1 : n >= 14));
+		};
+		steps.forEach((b) => b.addEventListener('click', () => {
+			if (Number(b.dataset.rowStep) < 0) {
+				rows.lastElementChild.remove();
+			} else {
+				const row = rows.lastElementChild.cloneNode(true);
+				const base = rows.children.length * 4;
+				$$('input', row).forEach((input, i) => {
+					const col = Math.floor(i / 2);
+					const isName = i % 2 === 0;
+					input.value = '';
+					input.name = `${isName ? 'itemNames' : 'itemQuantities'}[${base + col}]`;
+					input.setAttribute('aria-label', `${rows.children.length + 1}행 ${col + 1}번째 ${isName ? '품목' : '수량'}`);
+				});
+				rows.appendChild(row);
+			}
+			refreshRows();
+		}));
+		refreshRows();
+	});
+
+	/* ---------- 확인 모달: data-confirm-open="이름" → data-confirm="이름" (취소: data-confirm-close) ---------- */
+	$$('[data-confirm-open]').forEach((btn) => btn.addEventListener('click', () => {
+		const modal = $(`[data-confirm="${btn.dataset.confirmOpen}"]`);
+		if (modal) modal.hidden = false;
+	}));
+	$$('[data-confirm-close]').forEach((btn) => btn.addEventListener('click', () => (btn.closest('[data-confirm]').hidden = true)));
+
+	/* ---------- YY.MM.DD 입력 서식 (프로토타입 formatShortDateInput) ---------- */
+	$$('[data-short-date]').forEach((input) => input.addEventListener('input', (e) => {
+		const digits = input.value.replace(/\D/g, '').slice(0, 6);
+		const deleting = e.inputType && e.inputType.startsWith('delete');
+		let v = digits;
+		if (digits.length >= 5) v = `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
+		else if (digits.length >= 3) v = `${digits.slice(0, 2)}.${digits.slice(2)}${digits.length === 4 && !deleting ? '.' : ''}`;
+		else if (digits.length === 2 && !deleting) v = `${digits}.`;
+		input.value = v;
+	}));
+
 	window.AdminUI = { toast: showToast, openPanel };
 })();

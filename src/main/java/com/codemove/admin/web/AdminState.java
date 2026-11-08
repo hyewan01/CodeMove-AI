@@ -32,6 +32,9 @@ public class AdminState {
 	private List<Routine> routines = new ArrayList<>(defaultRoutines());
 	/** 다음 화면에서 한 번 보여줄 루틴 토스트 */
 	private Toast pendingToast;
+	private List<AdminEstimates.EstimateRecord> estimates = new ArrayList<>(AdminEstimates.initialRecords());
+	/** 견적서 등록 진행 상태 (등록 화면을 벗어나도 유지) */
+	private AdminEstimates.Registration registration = new AdminEstimates.Registration();
 	/** 일정 관리: yy.MM.dd → closed(업체 휴무일) | unavailable(이사 예약 불가능) */
 	private Map<String, String> managedDateStatuses = new LinkedHashMap<>(Map.of("26.09.20", "closed"));
 	/** 일정 등록으로 추가한 일정 (DB 테이블 없음: TBL_SCHEDULE 삭제됨 → DB 대조 때 검토) */

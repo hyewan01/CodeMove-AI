@@ -127,13 +127,13 @@ public final class AdminMockData {
 	public record Stat(String label, long value, String icon, String href) {
 	}
 
-	public static List<Stat> stats() {
+	/** reviewCount: 프로토타입 고정값 12, estimateReviewCount: 현재 '견적 검토' 견적 수 */
+	public static List<Stat> stats(long estimateReviewCount) {
 		List<Reservation> rs = reservations();
 		return List.of(
 				new Stat("전체 예약 신청", rs.size(), "calendar", "/admin/reservations"),
 				new Stat("리뷰 등록 현황", 12, "star", "/admin/reviews"),
-				new Stat("견적 검토", estimates().stream().filter(e -> "견적 검토".equals(e.status())).count(), "document",
-						"/admin/estimates"),
+				new Stat("견적 검토", estimateReviewCount, "document", "/admin/estimates"),
 				new Stat("예약 완료", rs.stream().filter(r -> "예약 완료".equals(r.displayStatus())).count(), "truck",
 						"/admin/reservations"));
 	}
