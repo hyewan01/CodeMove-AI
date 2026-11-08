@@ -4,7 +4,7 @@
 	const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 	/* 뒤로 가기: 같은 사이트에서 왔으면 history.back() */
-	$$('[data-back]').forEach((a) => a.addEventListener('click', (e) => {
+	$$('a[data-back]').forEach((a) => a.addEventListener('click', (e) => {
 		if (document.referrer.startsWith(location.origin) && history.length > 1) {
 			e.preventDefault();
 			history.back();

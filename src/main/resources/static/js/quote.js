@@ -85,7 +85,7 @@
 	$('[data-step-back]').addEventListener('click', () => {
 		if (state.step > 0) goStep(state.step - 1);
 		else if (history.length > 1 && document.referrer.startsWith(location.origin)) history.back();
-		else location.href = form.dataset.back;
+		else location.href = form.dataset.backUrl;
 	});
 	nextBtn.addEventListener('click', () => {
 		if (!canProceed()) return;

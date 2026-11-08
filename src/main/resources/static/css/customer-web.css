@@ -67,17 +67,21 @@ textarea.reservation-request-card { display: block; width: 100%; border: 0; font
   .easy-mode .date-skip-modal, .easy-mode .reservation-cancel-modal { width: min(380px, calc(100% - 24px)); max-height: calc(var(--frame-h) - 32px); }
   .reservation-detail-page { min-height: calc(var(--frame-h) - 56px - 59px); }
 
-  /* 온보딩: vw 단위가 브라우저 창 기준이라 프레임(430px)에서 과하게 커짐 → 고정 크기 + 여백 */
-  .onboarding { padding: 56px 28px 40px; }
+  /*
+   * 온보딩: vw 단위가 브라우저 창 기준이라 프레임에서 과하게 커짐
+   * → 프레임 높이(cqh) 기준으로 크기·여백을 함께 줄여 노트북 화면(프레임 약 600px)에서도 여유 있게
+   */
+  .app-shell { container-type: size; }
+  .onboarding { padding: clamp(24px, 6cqh, 56px) 28px clamp(20px, 4.5cqh, 40px); }
   .onboarding-main { transform: none; }
-  .onboarding-slide { height: 330px; }
-  .onboarding-art-main { width: 290px; margin-bottom: -14px; }
-  .onboarding-art-service { width: 210px; margin-block: 14px 12px; }
-  .onboarding-art-icon { width: 180px; height: 180px; margin-block: 28px 24px; padding: 30px; }
-  .onboarding-title { margin-top: 26px; font-size: 21px; line-height: 1.4; }
-  .brand-name { margin-top: 20px; font-size: 25px; }
-  .pager { margin-top: 28px; }
-  .onboarding-actions { margin-top: 36px; }
-  .onboarding-actions .action { min-height: 54px; }
-  .browse { margin-top: 22px; }
+  .onboarding-slide { height: clamp(210px, 38cqh, 330px); }
+  .onboarding-art-main { width: clamp(190px, 33cqh, 290px); margin-bottom: -14px; }
+  .onboarding-art-service { width: clamp(150px, 24cqh, 210px); margin-block: 14px 12px; }
+  .onboarding-art-icon { width: clamp(130px, 21cqh, 180px); height: clamp(130px, 21cqh, 180px); margin-block: 20px 16px; padding: clamp(22px, 3.4cqh, 30px); }
+  .onboarding-title { margin-top: clamp(14px, 3cqh, 26px); font-size: clamp(18px, 2.5cqh, 21px); line-height: 1.4; }
+  .brand-name { margin-top: clamp(10px, 2.3cqh, 20px); font-size: clamp(22px, 2.9cqh, 25px); }
+  .pager { margin-top: clamp(8px, 3.2cqh, 28px); }
+  .onboarding-actions { margin-top: clamp(16px, 4cqh, 36px); }
+  .onboarding-actions .action { min-height: clamp(48px, 6.2cqh, 54px); }
+  .browse { margin-top: clamp(14px, 2.5cqh, 22px); }
 }

@@ -3,6 +3,8 @@ server:
     session:
       # devtools 재시작 시 세션 복원 실패(ClassNotFoundException) 방지
       persistent: false
+      # 세션은 쿠키로만 유지 (URL에 ;jsessionid 붙지 않게)
+      tracking-modes: cookie
 
 spring:
   application:

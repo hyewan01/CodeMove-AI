@@ -8,7 +8,7 @@
 	영상 업로드 → AI 분석(품목 수정) → 주거형태·포장방식 → 출발지·도착지 → 날짜·시간(미정 가능) → 예상 견적 → 이사 요청
 -->
 <form class="screen flow-screen" th:classappend="${cs.easy} ? 'easy-quote'" method="post" enctype="multipart/form-data"
-	  th:action="@{/quote}" data-quote th:data-easy="${cs.easy}" th:data-back="@{/home}">
+	  th:action="@{/quote}" data-quote th:data-easy="${cs.easy}" th:data-back-url="@{/home}">
 	<div class="flow-head">
 		<button type="button" class="action back" aria-label="뒤로 가기" data-step-back><img alt="" th:src="@{/assets/4bbcf.svg}"></button>
 		<div class="progress"><i data-progress style="width: 16.6667%"></i></div>
