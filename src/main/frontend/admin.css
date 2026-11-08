@@ -57,6 +57,26 @@ button:focus-visible {
   background: #cdd5ce;
 }
 
+/* 견적서 뷰어: 확대했을 때 잡고 움직일 수 있도록 굵고 진한 스크롤바 (아래 = 좌우, 오른쪽 = 위아래) */
+.doc-viewport::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.doc-viewport::-webkit-scrollbar-track,
+.doc-viewport::-webkit-scrollbar-corner {
+  background: #e3e8e3;
+}
+
+.doc-viewport::-webkit-scrollbar-thumb {
+  border: 3px solid #e3e8e3;
+  background: #7f8b81;
+}
+
+.doc-viewport::-webkit-scrollbar-thumb:hover {
+  background: #346538;
+}
+
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }

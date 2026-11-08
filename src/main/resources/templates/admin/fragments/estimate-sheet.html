@@ -178,11 +178,11 @@
 </article>
 
 <!--
-	견적서 뷰어 (프로토타입 EstimateDocumentViewer): 다운로드 · 확대/축소 · 끌어서 이동
+	견적서 뷰어 (프로토타입 EstimateDocumentViewer): 다운로드 · 확대/축소 · 스크롤 이동
 	다운로드는 화면에 그려진 견적서(입력 중인 값 포함)를 A4 PDF로 저장합니다 (admin.js)
 	action: 오른쪽 위 버튼 영역 (없으면 ~{})
 -->
-<div th:fragment="viewer(doc, editable, showDownload, action)" class="overflow-hidden rounded-[18px] bg-[#dfe4df] shadow-[0_10px_30px_rgba(32,48,35,.15)]" data-doc-viewer>
+<div th:fragment="viewer(doc, editable, showDownload, action)" class="relative overflow-hidden rounded-[18px] bg-[#dfe4df] shadow-[0_10px_30px_rgba(32,48,35,.15)]" data-doc-viewer>
 	<div class="grid grid-cols-[1fr_auto_1fr] items-center border-b border-[#dfe4df] bg-white px-3 py-2.5">
 		<button th:if="${showDownload}" type="button" class="flex h-8 w-fit items-center gap-1.5 rounded-lg bg-[#edf3ed] px-3 text-[10px] font-extrabold text-[#346538] disabled:opacity-60"
 				th:data-file-name="'명품익스프레스_견적서' + (${#strings.isEmpty(doc.customer)} ? '' : '_' + ${doc.customer}) + '.pdf'"
@@ -197,9 +197,12 @@
 		</div>
 		<th:block th:replace="${action}"></th:block>
 	</div>
-	<div class="relative grid h-[calc(100dvh-260px)] min-h-[430px] cursor-grab place-items-center overflow-hidden bg-[#bfc5c0] select-none" style="touch-action: none" data-doc-viewport>
-		<div class="aspect-[1488/2103] h-[calc(100%_-_24px)] max-w-[calc(100%_-_24px)] bg-white shadow-lg [container-type:inline-size]" data-doc-page>
-			<article th:replace="~{admin/fragments/estimate-sheet :: sheet(${doc}, ${editable})}"></article>
+	<!-- 확대하면 종이가 커지고 영역 안 스크롤바(아래 좌우 · 오른쪽 위아래)로 이동 -->
+	<div class="h-[calc(100dvh-260px)] doc-viewport select-none overflow-auto overscroll-contain bg-[#bfc5c0]" style="touch-action: pan-x pan-y" data-doc-viewport>
+		<div class="grid min-h-full w-max min-w-full place-items-center p-3">
+			<div class="shrink-0 bg-white shadow-lg [container-type:inline-size]" data-doc-page>
+				<article th:replace="~{admin/fragments/estimate-sheet :: sheet(${doc}, ${editable})}"></article>
+			</div>
 		</div>
 	</div>
 </div>

@@ -149,96 +149,83 @@
 	$$('select[data-auto-submit]').forEach((sel) => sel.addEventListener('change', () => sel.form.submit()));
 
 	/*
-	 * ---------- 견적서 뷰어: 확대/축소(60~180%) · 두 손가락 확대 ----------
-	 * 100% 초과 시 이동: 끌기 · 마우스를 움직이는 쪽으로 따라가기 · 휠 스크롤(Shift = 좌우, Ctrl = 확대/축소)
-	 * 끌 때 글자가 선택되지 않고, 값 칸을 두 번 누르면 그 칸 글자만 선택·복사
+	 * ---------- 견적서 뷰어: 확대/축소(60~300%) · 두 손가락 확대 ----------
+	 * 확대하면 종이 크기 자체가 커지고(cqw 글자도 같이 커져 선명함) 영역 안 스크롤바로 이동.
+	 * 휠은 견적서만 스크롤 (Shift = 좌우, Ctrl = 확대/축소). 글자는 끌어서 선택하되 한 칸 안에서만, 두 번 누르면 그 칸 복사
 	 */
 	$$('[data-doc-viewer]').forEach((viewer) => {
 		const viewport = $('[data-doc-viewport]', viewer);
 		const pageEl = $('[data-doc-page]', viewer);
 		const label = $('[data-zoom-reset]', viewer);
-		let zoom = 100, pan = { x: 0, y: 0 }, drag = null, pinch = null;
-		const clamp = (v) => Math.min(180, Math.max(60, v));
+		let zoom = 100, pinch = null, base = { w: 0, h: 0 };
+		const clamp = (v) => Math.min(300, Math.max(60, v));
+		const size = () => {
+			pageEl.style.width = `${base.w * zoom / 100}px`;
+			pageEl.style.height = `${base.h * zoom / 100}px`;
+			label.textContent = `${zoom}%`;
+		};
 		/*
-		 * 종이 영역: 프로토타입처럼 높이는 영역 - 24px, 너비는 견적서 비율(1488:2103)과 영역 너비 중 작은 값
-		 * (CSS aspect-ratio + max-width 가 container-type 과 함께 쓰이면 max-width 가 무시되어 직접 계산)
+		 * 100% 종이: 높이는 영역 - 24px, 너비는 견적서 비율(1488:2103)과 영역 너비 중 작은 값
+		 * (스크롤바가 생겨도 바뀌지 않게 영역의 바깥 크기 기준)
 		 */
+		const scroller = (() => {
+			for (let p = viewer.parentElement; p; p = p.parentElement) if (/auto|scroll/.test(getComputedStyle(p).overflowY)) return p;
+			return null;
+		})();
 		const fit = () => {
-			const w = viewport.clientWidth - 24;
-			const h = viewport.clientHeight - 24;
-			pageEl.style.width = `${Math.max(0, Math.min(w, h * 1488 / 2103))}px`;
-			pageEl.style.height = `${Math.max(0, h)}px`;
+			/* 아래 스크롤바가 하단 메뉴에 가리지 않도록 영역 높이를 화면에 보이는 만큼으로 (최소 360px) */
+			if (scroller) {
+				const top = viewport.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+				viewport.style.height = `${Math.max(360, scroller.clientHeight - top - 16)}px`;
+			}
+			const w = viewport.offsetWidth - 24;
+			const h = viewport.offsetHeight - 24;
+			base = { w: Math.max(0, Math.min(w, h * 1488 / 2103)), h: Math.max(0, h) };
+			size();
 		};
 		fit();
 		window.addEventListener('resize', fit);
-		/* 이동 범위: 확대된 종이가 영역 밖으로 넘친 만큼 (+ 가장자리 12px) */
-		const limit = () => {
-			const s = zoom / 100;
-			return {
-				x: Math.max(0, (pageEl.offsetWidth * s - viewport.clientWidth) / 2 + 12),
-				y: Math.max(0, (pageEl.offsetHeight * s - viewport.clientHeight) / 2 + 12),
-			};
+		/* 확대 기준점(fx, fy: 영역 안 좌표, 기본 가운데)이 그 자리에 머물도록 스크롤 보정 */
+		const setZoom = (z, fx = viewport.clientWidth / 2, fy = viewport.clientHeight / 2) => {
+			z = clamp(z);
+			if (z === zoom) return;
+			const rx = (viewport.scrollLeft + fx) / viewport.scrollWidth;
+			const ry = (viewport.scrollTop + fy) / viewport.scrollHeight;
+			zoom = z;
+			size();
+			viewport.scrollLeft = rx * viewport.scrollWidth - fx;
+			viewport.scrollTop = ry * viewport.scrollHeight - fy;
 		};
-		const apply = () => {
-			const lim = limit();
-			pan = zoom <= 100 ? { x: 0, y: 0 } : { x: Math.max(-lim.x, Math.min(lim.x, pan.x)), y: Math.max(-lim.y, Math.min(lim.y, pan.y)) };
-			pageEl.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom / 100})`;
-			label.textContent = `${zoom}%`;
-		};
-		$$('[data-zoom-step]', viewer).forEach((b) => b.addEventListener('click', () => { zoom = clamp(zoom + Number(b.dataset.zoomStep)); apply(); }));
-		label.addEventListener('click', () => { zoom = 100; apply(); });
-		const isField = (t) => t.closest('input, textarea, select, button');
-		viewport.addEventListener('pointerdown', (e) => {
-			if (e.pointerType !== 'mouse' || isField(e.target)) return;
-			drag = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
-			viewport.setPointerCapture(e.pointerId);
-			viewport.classList.replace('cursor-grab', 'cursor-grabbing');
-		});
-		/* 끌기로 글자 선택이 시작되지 않게 (입력칸 안 선택은 그대로) */
-		viewport.addEventListener('mousedown', (e) => {
-			if (isField(e.target)) return;
-			e.preventDefault();
-			if (viewport.contains(document.activeElement)) document.activeElement.blur();
-		});
-		let hover = null;
-		viewport.addEventListener('pointermove', (e) => {
-			if (e.pointerType !== 'mouse') return;
-			if (drag) {
-				if (zoom <= 100) return;
-				pan = { x: drag.px + e.clientX - drag.x, y: drag.py + e.clientY - drag.y };
-				apply();
-				return;
-			}
-			/* 버튼을 누르지 않고 움직이면 그쪽 부분이 보이도록: 영역 끝에서 끝까지 움직이면 종이 끝에서 끝까지 */
-			if (zoom > 100 && hover && e.buttons === 0) {
-				const lim = limit();
-				pan.x -= (e.clientX - hover.x) * (2 * lim.x) / viewport.clientWidth;
-				pan.y -= (e.clientY - hover.y) * (2 * lim.y) / viewport.clientHeight;
-				apply();
-			}
-			hover = { x: e.clientX, y: e.clientY };
-		});
-		viewport.addEventListener('pointerleave', () => (hover = null));
+		$$('[data-zoom-step]', viewer).forEach((b) => b.addEventListener('click', () => setZoom(zoom + Number(b.dataset.zoomStep))));
+		label.addEventListener('click', () => setZoom(100));
 		/* 견적서 위에서 휠을 굴리면 화면 대신 견적서만 움직임 */
 		viewport.addEventListener('wheel', (e) => {
 			e.preventDefault();
 			const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? viewport.clientHeight : 1;
 			if (e.ctrlKey) {
-				zoom = clamp(zoom + (e.deltaY < 0 ? 10 : -10));
-			} else {
-				pan.x -= (e.shiftKey ? e.deltaY : e.deltaX) * unit;
-				pan.y -= (e.shiftKey ? 0 : e.deltaY) * unit;
+				const r = viewport.getBoundingClientRect();
+				setZoom(zoom + (e.deltaY < 0 ? 10 : -10), e.clientX - r.left, e.clientY - r.top);
+				return;
 			}
-			apply();
+			viewport.scrollLeft += (e.shiftKey ? e.deltaY : e.deltaX) * unit;
+			viewport.scrollTop += (e.shiftKey ? 0 : e.deltaY) * unit;
 		}, { passive: false });
-		/* 값 칸 두 번 누르기 → 그 칸 글자만 선택하고 복사 */
+		/* 글자 선택: 끌기를 시작한 칸 밖으로 선택이 넘어가면 그 칸 끝에서 멈춤 */
+		let selCell = null;
+		viewport.addEventListener('mousedown', (e) => { selCell = e.target.closest('[data-copy]'); });
+		document.addEventListener('selectionchange', () => {
+			const sel = window.getSelection();
+			if (!selCell || !sel.rangeCount || !selCell.contains(sel.anchorNode) || selCell.contains(sel.focusNode)) return;
+			const after = selCell.compareDocumentPosition(sel.focusNode) & Node.DOCUMENT_POSITION_FOLLOWING;
+			sel.setBaseAndExtent(sel.anchorNode, sel.anchorOffset, selCell, after ? selCell.childNodes.length : 0);
+		});
+		/* 값 칸 두 번 누르기 → 그 칸 글자 전체를 선택하고 복사 */
 		const hint = document.createElement('div');
-		hint.className = 'pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-[#263129]/85 px-3.5 py-2 text-[10px] font-bold text-white opacity-0 transition-opacity';
-		viewport.append(hint);
+		hint.className = 'pointer-events-none absolute bottom-6 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#263129]/85 px-3.5 py-2 text-[10px] font-bold text-white opacity-0 transition-opacity';
+		viewer.append(hint);
 		let hintTimer = null;
 		viewport.addEventListener('dblclick', (e) => {
-			/* 끌기용 pointer capture 때문에 e.target 이 영역 자체가 되므로 커서 아래 요소로 찾음 */
-			const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-copy]');
+			const cell = e.target.closest('[data-copy]');
 			if (!cell || !cell.textContent.trim()) return;
 			const range = document.createRange();
 			range.selectNodeContents(cell);
@@ -254,38 +241,18 @@
 			};
 			(navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(done, () => { if (document.execCommand('copy')) done(); });
 		});
-		const endDrag = (e) => {
-			if (e.pointerType !== 'mouse') return;
-			drag = null;
-			if (viewport.hasPointerCapture(e.pointerId)) viewport.releasePointerCapture(e.pointerId);
-			viewport.classList.replace('cursor-grabbing', 'cursor-grab');
-		};
-		viewport.addEventListener('pointerup', endDrag);
-		viewport.addEventListener('pointercancel', endDrag);
+		/* 두 손가락 확대 (한 손가락 이동은 기본 스크롤) */
+		const spread = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 		viewport.addEventListener('touchstart', (e) => {
-			if (e.touches.length === 2) {
-				const [a, b] = e.touches;
-				pinch = { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), zoom, cx: (a.clientX + b.clientX) / 2, cy: (a.clientY + b.clientY) / 2, px: pan.x, py: pan.y };
-				drag = null;
-			} else if (e.touches.length === 1 && !isField(e.target)) {
-				drag = { x: e.touches[0].clientX, y: e.touches[0].clientY, px: pan.x, py: pan.y };
-			}
+			pinch = e.touches.length === 2 ? { d: spread(e.touches), zoom } : null;
 		}, { passive: true });
 		viewport.addEventListener('touchmove', (e) => {
-			if (e.touches.length === 2 && pinch) {
-				const [a, b] = e.touches;
-				zoom = clamp(Math.round(pinch.zoom * Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinch.d));
-				if (zoom > 100) pan = { x: pinch.px + (a.clientX + b.clientX) / 2 - pinch.cx, y: pinch.py + (a.clientY + b.clientY) / 2 - pinch.cy };
-				apply();
-			} else if (e.touches.length === 1 && drag && zoom > 100) {
-				pan = { x: drag.px + e.touches[0].clientX - drag.x, y: drag.py + e.touches[0].clientY - drag.y };
-				apply();
-			}
+			if (e.touches.length !== 2 || !pinch) return;
+			const r = viewport.getBoundingClientRect();
+			const [a, b] = e.touches;
+			setZoom(Math.round(pinch.zoom * spread(e.touches) / pinch.d), (a.clientX + b.clientX) / 2 - r.left, (a.clientY + b.clientY) / 2 - r.top);
 		}, { passive: true });
-		viewport.addEventListener('touchend', (e) => {
-			pinch = null;
-			drag = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY, px: pan.x, py: pan.y } : null;
-		});
+		viewport.addEventListener('touchend', () => (pinch = null));
 	});
 
 	/* ---------- 년·월·일 휠 선택 (fragments/wheel.html): 위로 쓸기·▲·휠 아래·↑ = 증가 ---------- */
