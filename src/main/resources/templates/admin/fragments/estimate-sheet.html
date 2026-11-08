@@ -9,17 +9,17 @@
 <!-- 값 칸: 입력 또는 표시 -->
 <th:block th:fragment="field(editable, name, value, extra)">
 	<input th:if="${editable}" th:name="${name}" th:value="${value}"
-		   class="h-full w-full min-w-0 overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-[1.25cqw] font-semibold outline-none focus:bg-white" th:classappend="${extra}">
-	<span th:unless="${editable}" th:text="${value}"
-		  class="flex h-full min-w-0 flex-1 items-center overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-[1.25cqw] font-semibold" th:classappend="${extra}"></span>
+		   class="block h-full w-full min-w-0 overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-[1.25cqw] font-semibold outline-none focus:bg-white" th:classappend="${extra}">
+	<span th:unless="${editable}" th:text="${value}" data-copy
+		  class="select-text flex h-full min-w-0 flex-1 items-center overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-[1.25cqw] font-semibold" th:classappend="${extra}"></span>
 </th:block>
 
 <!-- 금액 칸 -->
 <th:block th:fragment="money(editable, name, value)">
 	<input th:if="${editable}" th:name="${name}" th:value="${value}" data-money
-		   class="h-full w-full min-w-0 overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-right text-[1.25cqw] font-semibold outline-none focus:bg-white">
-	<span th:unless="${editable}" th:text="'₩ ' + ${value}"
-		  class="flex h-full min-w-0 flex-1 items-center justify-end overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-[1.25cqw] font-semibold"></span>
+		   class="block h-full w-full min-w-0 overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-right text-[1.25cqw] font-semibold outline-none focus:bg-white">
+	<span th:unless="${editable}" th:text="'₩ ' + ${value}" data-copy
+		  class="select-text flex h-full min-w-0 flex-1 items-center justify-end overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-[1.25cqw] font-semibold"></span>
 </th:block>
 
 <article th:fragment="sheet(doc, editable)" class="estimate-document-sheet aspect-[1488/2103] w-full overflow-hidden bg-white p-[4cqw] text-black" data-estimate-sheet>
@@ -65,8 +65,8 @@
 			<label class="h-[3.8cqw] border-b border-r border-black" th:each="g, it : ${doc.itemGroups}">
 				<input th:if="${editable}" th:aria-label="${it.count} + '번째 품목 그룹'" th:name="'itemGroups[' + ${it.index} + ']'" th:value="${g}"
 					   th:placeholder="${it.index < 2} ? null : '관리자 입력'"
-					   class="h-full w-full min-w-0 overflow-hidden whitespace-nowrap bg-transparent px-[.55cqw] text-center text-[1.25cqw] font-black outline-none focus:bg-white">
-				<span th:unless="${editable}" th:text="${g}" class="flex h-full min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap bg-[#eeeeee] px-[.55cqw] text-[1.25cqw] font-black"></span>
+					   class="block h-full w-full min-w-0 overflow-hidden whitespace-nowrap bg-transparent px-[.55cqw] text-center text-[1.25cqw] font-black outline-none focus:bg-white">
+				<span th:unless="${editable}" th:text="${g}" data-copy class="select-text flex h-full min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap bg-[#eeeeee] px-[.55cqw] text-[1.25cqw] font-black"></span>
 			</label>
 		</div>
 		<div class="grid grid-cols-8 bg-[#f5f5f5]">
@@ -76,13 +76,13 @@
 			<div class="grid grid-cols-8 bg-white" th:each="row : ${#numbers.sequence(0, doc.itemRowCount - 1)}" data-item-row>
 				<th:block th:each="col : ${#numbers.sequence(0, 3)}" th:with="idx=${row * 4 + col}">
 					<input th:if="${editable}" th:aria-label="${row + 1} + '행 ' + ${col + 1} + '번째 품목'" th:name="'itemNames[' + ${idx} + ']'" th:value="${doc.itemName(idx)}"
-						   class="h-[3.1cqw] w-full min-w-0 overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-center text-[1.25cqw] font-semibold outline-none focus:bg-white">
-					<span th:unless="${editable}" th:utext="${#strings.isEmpty(doc.itemName(idx))} ? '&nbsp;' : ${#strings.escapeXml(doc.itemName(idx))}"
-						  class="flex h-[3.1cqw] min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-[1.25cqw] font-semibold"></span>
+						   class="block h-[3.1cqw] w-full min-w-0 overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-center text-[1.25cqw] font-semibold outline-none focus:bg-white">
+					<span th:unless="${editable}" th:utext="${#strings.isEmpty(doc.itemName(idx))} ? '&nbsp;' : ${#strings.escapeXml(doc.itemName(idx))}" data-copy
+						  class="select-text flex h-[3.1cqw] min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-[1.25cqw] font-semibold"></span>
 					<input th:if="${editable}" th:aria-label="${row + 1} + '행 ' + ${col + 1} + '번째 수량'" th:name="'itemQuantities[' + ${idx} + ']'" th:value="${doc.itemQuantity(idx)}"
-						   class="h-[3.1cqw] w-full min-w-0 overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-center text-[1.25cqw] font-semibold outline-none focus:bg-white">
-					<span th:unless="${editable}" th:utext="${#strings.isEmpty(doc.itemQuantity(idx))} ? '&nbsp;' : ${#strings.escapeXml(doc.itemQuantity(idx))}"
-						  class="flex h-[3.1cqw] min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-[1.25cqw] font-semibold"></span>
+						   class="block h-[3.1cqw] w-full min-w-0 overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-center text-[1.25cqw] font-semibold outline-none focus:bg-white">
+					<span th:unless="${editable}" th:utext="${#strings.isEmpty(doc.itemQuantity(idx))} ? '&nbsp;' : ${#strings.escapeXml(doc.itemQuantity(idx))}" data-copy
+						  class="select-text flex h-[3.1cqw] min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-[1.25cqw] font-semibold"></span>
 				</th:block>
 			</div>
 		</div>
@@ -110,8 +110,8 @@
 					</span>
 					<span class="flex items-center justify-center">₩</span>
 					<input th:if="${editable}" th:aria-label="${o[0]} + ' 옵션 비용'" th:name="'optionCosts[' + ${it.index} + ']'" th:value="${doc.optionCosts[it.index]}"
-						   class="min-w-0 bg-white px-[.5cqw] text-right outline-none focus:bg-white">
-					<span th:unless="${editable}" class="flex items-center justify-end bg-white px-[.5cqw]" th:text="${doc.optionCosts[it.index]}"></span>
+						   class="block min-w-0 bg-white px-[.5cqw] text-right outline-none focus:bg-white">
+					<span th:unless="${editable}" class="select-text flex items-center justify-end bg-white px-[.5cqw]" th:text="${doc.optionCosts[it.index]}" data-copy></span>
 				</div>
 			</div>
 		</div>
@@ -152,9 +152,19 @@
 		</div>
 		<div class="border-r border-black">
 			<h5 class="grid h-[2.8cqw] place-items-center border-b border-black text-[1.35cqw] font-black">B. 별도 비용</h5>
-			<label th:each="r : ${ { {'출발지 사다리(　)층', 'departureLadder', doc.departureLadder}, {'도착지 사다리(　)층', 'destinationLadder', doc.destinationLadder}, {'사다리 소계', 'ladderSubtotal', doc.ladderSubtotal} } }"
-				   class="grid min-h-[2.8cqw] grid-cols-[25cqw_1fr] border-b border-black">
-				<b class="grid place-items-center border-r border-black text-[1.15cqw]" th:text="${r[0]}"></b><th:block th:replace="~{admin/fragments/estimate-sheet :: money(${editable}, ${r[1]}, ${r[2]})}"/>
+			<div th:each="r : ${ { {'출발지', 'departureFloor', doc.departureFloor, 'departureLadder', doc.departureLadder}, {'도착지', 'destinationFloor', doc.destinationFloor, 'destinationLadder', doc.destinationLadder} } }"
+				 class="grid min-h-[2.8cqw] grid-cols-[25cqw_1fr] border-b border-black">
+				<b class="flex items-center justify-center whitespace-nowrap border-r border-black text-[1.15cqw]">
+					<th:block th:text="${r[0]} + ' 사다리('"></th:block>
+					<input th:if="${editable}" th:name="${r[1]}" th:value="${r[2]}" th:aria-label="${r[0]} + ' 사다리 층수'" inputmode="numeric" maxlength="3"
+						   class="block h-[2cqw] w-[4cqw] min-w-0 border-b border-dashed border-black/50 bg-transparent text-center font-black outline-none focus:bg-[#eef4ee]">
+					<span th:unless="${editable}" class="select-text inline-block min-w-[3cqw] text-center" th:text="${r[2]}" data-copy></span>
+					<th:block th:text="')층'"></th:block>
+				</b>
+				<th:block th:replace="~{admin/fragments/estimate-sheet :: money(${editable}, ${r[3]}, ${r[4]})}"/>
+			</div>
+			<label class="grid min-h-[2.8cqw] grid-cols-[25cqw_1fr] border-b border-black">
+				<b class="grid place-items-center border-r border-black text-[1.15cqw]">사다리 소계</b><th:block th:replace="~{admin/fragments/estimate-sheet :: money(${editable}, 'ladderSubtotal', ${doc.ladderSubtotal})}"/>
 			</label>
 		</div>
 	</section>
@@ -187,7 +197,7 @@
 		</div>
 		<th:block th:replace="${action}"></th:block>
 	</div>
-	<div class="relative grid h-[calc(100dvh-260px)] min-h-[430px] cursor-grab place-items-center overflow-hidden bg-[#bfc5c0]" style="touch-action: none" data-doc-viewport>
+	<div class="relative grid h-[calc(100dvh-260px)] min-h-[430px] cursor-grab place-items-center overflow-hidden bg-[#bfc5c0] select-none" style="touch-action: none" data-doc-viewport>
 		<div class="aspect-[1488/2103] h-[calc(100%_-_24px)] max-w-[calc(100%_-_24px)] bg-white shadow-lg [container-type:inline-size]" data-doc-page>
 			<article th:replace="~{admin/fragments/estimate-sheet :: sheet(${doc}, ${editable})}"></article>
 		</div>

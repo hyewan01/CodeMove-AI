@@ -148,7 +148,11 @@
 	/* select 변경 시 바로 조회 : <select data-auto-submit> */
 	$$('select[data-auto-submit]').forEach((sel) => sel.addEventListener('change', () => sel.form.submit()));
 
-	/* ---------- 견적서 뷰어: 확대/축소(60~180%) · 100% 초과 시 끌어서 이동 · 두 손가락 확대 ---------- */
+	/*
+	 * ---------- 견적서 뷰어: 확대/축소(60~180%) · 두 손가락 확대 ----------
+	 * 100% 초과 시 이동: 끌기 · 마우스를 움직이는 쪽으로 따라가기 · 휠 스크롤(Shift = 좌우, Ctrl = 확대/축소)
+	 * 끌 때 글자가 선택되지 않고, 값 칸을 두 번 누르면 그 칸 글자만 선택·복사
+	 */
 	$$('[data-doc-viewer]').forEach((viewer) => {
 		const viewport = $('[data-doc-viewport]', viewer);
 		const pageEl = $('[data-doc-page]', viewer);
@@ -167,8 +171,17 @@
 		};
 		fit();
 		window.addEventListener('resize', fit);
+		/* 이동 범위: 확대된 종이가 영역 밖으로 넘친 만큼 (+ 가장자리 12px) */
+		const limit = () => {
+			const s = zoom / 100;
+			return {
+				x: Math.max(0, (pageEl.offsetWidth * s - viewport.clientWidth) / 2 + 12),
+				y: Math.max(0, (pageEl.offsetHeight * s - viewport.clientHeight) / 2 + 12),
+			};
+		};
 		const apply = () => {
-			if (zoom <= 100) pan = { x: 0, y: 0 };
+			const lim = limit();
+			pan = zoom <= 100 ? { x: 0, y: 0 } : { x: Math.max(-lim.x, Math.min(lim.x, pan.x)), y: Math.max(-lim.y, Math.min(lim.y, pan.y)) };
 			pageEl.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom / 100})`;
 			label.textContent = `${zoom}%`;
 		};
@@ -181,10 +194,65 @@
 			viewport.setPointerCapture(e.pointerId);
 			viewport.classList.replace('cursor-grab', 'cursor-grabbing');
 		});
+		/* 끌기로 글자 선택이 시작되지 않게 (입력칸 안 선택은 그대로) */
+		viewport.addEventListener('mousedown', (e) => {
+			if (isField(e.target)) return;
+			e.preventDefault();
+			if (viewport.contains(document.activeElement)) document.activeElement.blur();
+		});
+		let hover = null;
 		viewport.addEventListener('pointermove', (e) => {
-			if (e.pointerType !== 'mouse' || !drag || zoom <= 100) return;
-			pan = { x: drag.px + e.clientX - drag.x, y: drag.py + e.clientY - drag.y };
+			if (e.pointerType !== 'mouse') return;
+			if (drag) {
+				if (zoom <= 100) return;
+				pan = { x: drag.px + e.clientX - drag.x, y: drag.py + e.clientY - drag.y };
+				apply();
+				return;
+			}
+			/* 버튼을 누르지 않고 움직이면 그쪽 부분이 보이도록: 영역 끝에서 끝까지 움직이면 종이 끝에서 끝까지 */
+			if (zoom > 100 && hover && e.buttons === 0) {
+				const lim = limit();
+				pan.x -= (e.clientX - hover.x) * (2 * lim.x) / viewport.clientWidth;
+				pan.y -= (e.clientY - hover.y) * (2 * lim.y) / viewport.clientHeight;
+				apply();
+			}
+			hover = { x: e.clientX, y: e.clientY };
+		});
+		viewport.addEventListener('pointerleave', () => (hover = null));
+		/* 견적서 위에서 휠을 굴리면 화면 대신 견적서만 움직임 */
+		viewport.addEventListener('wheel', (e) => {
+			e.preventDefault();
+			const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? viewport.clientHeight : 1;
+			if (e.ctrlKey) {
+				zoom = clamp(zoom + (e.deltaY < 0 ? 10 : -10));
+			} else {
+				pan.x -= (e.shiftKey ? e.deltaY : e.deltaX) * unit;
+				pan.y -= (e.shiftKey ? 0 : e.deltaY) * unit;
+			}
 			apply();
+		}, { passive: false });
+		/* 값 칸 두 번 누르기 → 그 칸 글자만 선택하고 복사 */
+		const hint = document.createElement('div');
+		hint.className = 'pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-[#263129]/85 px-3.5 py-2 text-[10px] font-bold text-white opacity-0 transition-opacity';
+		viewport.append(hint);
+		let hintTimer = null;
+		viewport.addEventListener('dblclick', (e) => {
+			/* 끌기용 pointer capture 때문에 e.target 이 영역 자체가 되므로 커서 아래 요소로 찾음 */
+			const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-copy]');
+			if (!cell || !cell.textContent.trim()) return;
+			const range = document.createRange();
+			range.selectNodeContents(cell);
+			const sel = window.getSelection();
+			sel.removeAllRanges();
+			sel.addRange(range);
+			const text = cell.textContent.trim();
+			const done = () => {
+				hint.textContent = `복사했어요: ${text.length > 18 ? `${text.slice(0, 18)}…` : text}`;
+				hint.classList.replace('opacity-0', 'opacity-100');
+				clearTimeout(hintTimer);
+				hintTimer = setTimeout(() => hint.classList.replace('opacity-100', 'opacity-0'), 1400);
+			};
+			(navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(done, () => { if (document.execCommand('copy')) done(); });
 		});
 		const endDrag = (e) => {
 			if (e.pointerType !== 'mouse') return;

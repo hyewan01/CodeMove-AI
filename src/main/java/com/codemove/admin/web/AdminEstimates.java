@@ -49,6 +49,9 @@ public final class AdminEstimates {
 		private String ladder = "전";
 		private String elevator = "후";
 		private String stairs = "";
+		/** 출발지·도착지 사다리 ( )층 */
+		private String departureFloor = "";
+		private String destinationFloor = "";
 		private String departureLadder = "150,000";
 		private String destinationLadder = "120,000";
 		private String ladderSubtotal = "270,000";
