@@ -36,3 +36,7 @@ textarea.review-editor::placeholder { color: #b8b8b8; }
 
 /* contentEditable 요청사항 → textarea */
 textarea.reservation-request-card { display: block; width: 100%; border: 0; font-family: inherit; resize: vertical; }
+
+/* 관리자 로그인 (고객 로그인 화면과 같은 형식) */
+.admin-login-link { display: block; margin-top: 8px; text-decoration: underline; }
+.form-error { margin-top: 14px; color: var(--orange); font-family: "Pretendard:Medium"; font-size: var(--text-caption); }

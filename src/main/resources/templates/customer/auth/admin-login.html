@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('관리자 로그인')}"></head>
+<body>
+<div class="app-shell">
+	<!-- 관리자 로그인 (고객 로그인 시트 > [관리자 로그인], 휴대전화 로그인과 같은 형식) -->
+	<div class="screen form-page">
+		<div th:replace="~{customer/fragments/common :: formHead('/login', '관리자 로그인')}"></div>
+		<form class="form-content" method="post" th:action="@{/login/admin}">
+			<div class="signup-copy">관리자 계정으로<br>로그인해주세요.</div>
+			<div class="field-wrap">
+				<div class="field-label">아이디</div>
+				<input class="field" name="loginId" type="text" aria-label="아이디" placeholder="사번을 입력해주세요."
+					   th:value="${loginId}" autocomplete="username" required>
+			</div>
+			<div class="field-wrap">
+				<div class="field-label">비밀번호</div>
+				<input class="field" name="password" type="password" aria-label="비밀번호" placeholder="비밀번호를 입력해주세요."
+					   autocomplete="current-password" required>
+			</div>
+			<p class="form-error" role="alert" th:if="${error}" th:text="${error}"></p>
+			<button class="action primary form-submit">로그인</button>
+		</form>
+	</div>
+</div>
+</body>
+</html>

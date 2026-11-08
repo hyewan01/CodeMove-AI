@@ -14,6 +14,17 @@ public final class AdminMockData {
 	private AdminMockData() {
 	}
 
+	/* ---------- 관리자 계정 (TBL_ADMIN) ---------- */
+
+	public record AdminAccount(String loginId, String password, String name) {
+	}
+
+	/** 목업 로그인 계정. 백엔드 개발 시 TBL_ADMIN(LOGIN_ID, PASSWORD 해시) 조회로 대체 */
+	public static AdminAccount findAdmin(String loginId) {
+		AdminAccount admin = new AdminAccount("admin", "admin1234", "김선국");
+		return admin.loginId().equals(loginId) ? admin : null;
+	}
+
 	/* ---------- 예약 ---------- */
 
 	public record Reservation(int id, String status, String name, String userId, String appliedDate, String phone,

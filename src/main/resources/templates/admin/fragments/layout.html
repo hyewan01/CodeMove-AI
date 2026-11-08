@@ -188,12 +188,13 @@
 							<th:block th:text="${menu.label}"></th:block>
 						</a>
 					</div>
-					<!-- 로그아웃: 관리자 로그인(TBL_ADMIN) 구현 전까지 홈으로 이동 (프로토타입 동작) -->
-					<a class="mx-auto mt-4 flex h-10 w-fit items-center justify-center gap-2 rounded-xl px-5 text-[12px] font-bold text-[#747c76] transition hover:bg-[#e9ede9] hover:text-[#346538]"
-					   th:href="@{/admin}">
-						<svg th:replace="~{admin/fragments/icon :: icon('logout', 17, '')}"></svg>
-						로그아웃
-					</a>
+					<form method="post" th:action="@{/admin/logout}">
+						<button class="mx-auto mt-4 flex h-10 items-center justify-center gap-2 rounded-xl px-5 text-[12px] font-bold text-[#747c76] transition hover:bg-[#e9ede9] hover:text-[#346538]"
+								type="submit">
+							<svg th:replace="~{admin/fragments/icon :: icon('logout', 17, '')}"></svg>
+							로그아웃
+						</button>
+					</form>
 				</nav>
 			</aside>
 		</div>
