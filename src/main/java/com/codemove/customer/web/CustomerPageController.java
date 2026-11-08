@@ -61,6 +61,12 @@ public class CustomerPageController {
 		return "customer/home";
 	}
 
+	/** 예약 일정 조회 (프로토타입 Reservation 화면) */
+	@GetMapping("/reservation")
+	public String reservation() {
+		return "customer/reservation";
+	}
+
 	/** 일반 / 쉬운 모드 전환 (SCR-U-028~029) */
 	@GetMapping("/mode/{mode}")
 	public String mode(@PathVariable String mode, HttpSession session,
@@ -238,6 +244,7 @@ public class CustomerPageController {
 			return "redirect:/move?tab=estimate";
 		}
 		model.addAttribute("vendorDoc", CustomerMockData.vendorDoc());
+		model.addAttribute("estimateDocItems", CustomerMockData.estimateDocItems());
 		model.addAttribute("receiptRows", CustomerMockData.receiptRows());
 		model.addAttribute("moveInfoRows", CustomerMockData.moveInfoRows());
 		model.addAttribute("detectedItems", CustomerMockData.detectedItems());

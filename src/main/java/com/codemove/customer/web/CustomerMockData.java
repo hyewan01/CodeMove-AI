@@ -170,6 +170,14 @@ public final class CustomerMockData {
 						List.of("전자레인지", "1", "책장", "1", "책상", "1", "생활짐", "1식")));
 	}
 
+	/** 견적 상세 > 업체 견적서 원본 품목 (내 이사 화면 견적서와 별도) */
+	public static List<List<String>> estimateDocItems() {
+		return List.of(
+				List.of("냉장고", "1", "침대", "1", "이사박스", "12", "화분", "3"),
+				List.of("세탁기", "1", "소파", "1", "생활짐", "1식", "행거", "2"),
+				List.of("TV", "1", "테이블", "1", "의류", "1식", "기타", "1식"));
+	}
+
 	public static List<DoneMove> doneMoves() {
 		return List.of(new DoneMove("2025. 11. 04", "마포구 합정동", "서대문구 홍은동", "원룸 · 반포장 · 320,000원"));
 	}

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('예약 일정 조회')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+	<!-- 예약 일정 조회 (프로토타입 Reservation 화면, 원본에서도 진입 링크 없음) -->
+	<div class="screen form-page">
+		<div th:replace="~{customer/fragments/common :: formHead('/home', '예약 일정 조회')}"></div>
+		<!-- 백엔드 개발 시 이름 + 휴대폰 번호로 TBL_RESERVATION 조회 -->
+		<form class="form-content" method="get" th:action="@{/move}">
+			<div class="signup-copy">예약하신 이사 일정을<br>빠르게 찾아드릴게요.</div>
+			<div class="field-wrap">
+				<div class="field-label">이름</div>
+				<input class="field" name="name" type="text" aria-label="이름" placeholder="이름을 입력해주세요." autocomplete="name">
+			</div>
+			<div class="field-wrap">
+				<div class="field-label">휴대폰 번호</div>
+				<input class="field" name="phone" type="tel" inputmode="tel" aria-label="휴대폰 번호"
+					   placeholder="휴대폰 번호를 입력해주세요." data-format="phone" autocomplete="tel">
+			</div>
+			<button class="action primary form-submit">예약 조회</button>
+		</form>
+	</div>
+</div>
+</body>
+</html>
