@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html th:replace="~{admin/fragments/layout :: layout('채팅 운영 설정', '', true, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 채팅 운영 설정 (SCR-A-008): 바꾸는 즉시 저장 -->
+<th:block th:fragment="content">
+<div class="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#f5f6f8]" data-operation>
+	<header class="relative flex h-14 shrink-0 items-center justify-center border-b border-[#e5e9e5] bg-white px-4">
+		<h1 class="text-base font-extrabold text-[#29322b]">채팅 운영 설정</h1>
+		<a aria-label="운영 설정 닫기" class="absolute right-3 grid h-10 w-10 place-items-center rounded-full text-[#525c54] hover:bg-[#f2f4f2]" th:href="@{/admin/chat-management}">
+			<svg th:replace="~{admin/fragments/icon :: icon2('x', 20, '')}"></svg></a>
+	</header>
+
+	<div class="flex-1 space-y-3 overflow-y-auto p-4">
+		<form class="rounded-[18px] bg-white p-4 shadow-[0_4px_16px_rgba(36,58,39,.05)]" method="post" th:action="@{/admin/chat-management/operation}">
+			<input type="hidden" name="enabled" th:value="${!settings.enabled}">
+			<div class="flex items-center gap-3">
+				<span class="grid h-11 w-11 place-items-center rounded-2xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon2('robot', 21, '')}"></svg></span>
+				<div class="min-w-0 flex-1">
+					<h2 class="text-sm font-extrabold text-[#303832]">챗봇 가동</h2>
+					<p class="mt-1 text-[11px] text-[#8a918c]">AI가 고객 문의에 자동으로 답변합니다</p>
+				</div>
+				<button th:replace="~{admin/chat-operation :: toggle(${settings.enabled}, '챗봇 가동')}"></button>
+			</div>
+		</form>
+
+		<section class="rounded-[18px] bg-white p-4 shadow-[0_4px_16px_rgba(36,58,39,.05)]">
+			<form class="flex items-center gap-3" method="post" th:action="@{/admin/chat-management/operation}">
+				<input type="hidden" name="operatingHoursEnabled" th:value="${!settings.operatingHoursEnabled}">
+				<span class="grid h-11 w-11 place-items-center rounded-2xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon2('clock', 21, '')}"></svg></span>
+				<div class="min-w-0 flex-1">
+					<h2 class="text-sm font-extrabold text-[#303832]">운영 시간</h2>
+					<p class="mt-1 text-[11px] text-[#8a918c]">관리자 응대 가능 시간을 설정합니다</p>
+				</div>
+				<button th:replace="~{admin/chat-operation :: toggle(${settings.operatingHoursEnabled}, '운영 시간 사용')}"></button>
+			</form>
+			<div class="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+				<button class="rounded-xl bg-[#f3f5f3] px-3 py-3 text-center text-sm font-extrabold text-[#346538] disabled:text-[#a7aea8]" type="button"
+						th:disabled="${!settings.operatingHoursEnabled}" data-time-open="start" th:data-time="${settings.startTime}" th:text="${settings.startTime}">09:00</button>
+				<span class="text-xs font-semibold text-[#9aa19b]">~</span>
+				<button class="rounded-xl bg-[#f3f5f3] px-3 py-3 text-center text-sm font-extrabold text-[#346538] disabled:text-[#a7aea8]" type="button"
+						th:disabled="${!settings.operatingHoursEnabled}" data-time-open="end" th:data-time="${settings.endTime}" th:text="${settings.endTime}">18:00</button>
+			</div>
+		</section>
+
+		<section class="rounded-[18px] bg-white p-4 shadow-[0_4px_16px_rgba(36,58,39,.05)]">
+			<div class="flex items-center gap-3">
+				<span class="grid h-11 w-11 place-items-center rounded-2xl bg-[#fff5e8] text-[#9d6c2f]"><svg th:replace="~{admin/fragments/icon :: icon2('help', 21, '')}"></svg></span>
+				<div class="min-w-0 flex-1">
+					<h2 class="text-sm font-extrabold text-[#303832]">대응 규칙</h2>
+					<p class="mt-1 truncate text-[11px] text-[#8a918c]" th:text="${settings.fallbackMessage}"></p>
+				</div>
+				<button aria-label="대응 규칙 수정" class="grid h-10 w-10 place-items-center rounded-xl bg-[#f3f5f3] text-[#346538]" type="button" data-toggle="rule">
+					<svg th:replace="~{admin/fragments/icon :: icon2('edit', 18, '')}"></svg></button>
+			</div>
+		</section>
+	</div>
+
+	<!-- 시간 선택 (아래에서 올라오는 시트) -->
+	<form class="absolute inset-0 z-40 flex items-end bg-[#1f2d21]/45 backdrop-blur-[2px]" method="post" th:action="@{/admin/chat-management/operation}" data-time-sheet hidden>
+		<input type="hidden" data-time-field>
+		<div class="w-full rounded-t-[24px] bg-white px-5 pb-6 pt-4 shadow-[0_-18px_50px_rgba(25,42,28,.22)]">
+			<div class="flex items-center justify-between">
+				<button class="px-2 py-2 text-sm font-semibold text-[#828a84]" type="button" data-time-cancel>취소</button>
+				<h2 class="text-sm font-extrabold text-[#303832]" data-time-title>시작 시간</h2>
+				<button class="px-2 py-2 text-sm font-extrabold text-[#346538]" type="submit">완료</button>
+			</div>
+			<div class="relative mt-4 grid grid-cols-3 gap-2 overflow-hidden rounded-2xl bg-[#f5f6f5] p-3">
+				<div class="pointer-events-none absolute inset-x-3 top-1/2 h-11 -translate-y-1/2 rounded-xl border-y border-[#dfe4df] bg-white/70"></div>
+				<select aria-label="오전 오후" class="relative z-10 h-32 bg-transparent text-center text-base font-bold outline-none" size="3" data-period>
+					<option>오전</option><option>오후</option>
+				</select>
+				<select aria-label="시" class="relative z-10 h-32 bg-transparent text-center text-base font-bold outline-none" size="3" data-hour>
+					<option th:each="h : ${#numbers.sequence(1, 12)}" th:value="${#numbers.formatInteger(h, 2)}" th:text="${#numbers.formatInteger(h, 2)} + '시'"></option>
+				</select>
+				<select aria-label="분" class="relative z-10 h-32 bg-transparent text-center text-base font-bold outline-none" size="3" data-minute>
+					<option th:each="mi : ${ {'00', '10', '20', '30', '40', '50'} }" th:value="${mi}" th:text="${mi} + '분'"></option>
+				</select>
+			</div>
+			<p class="mt-3 text-center text-[10px] text-[#8d958f]">각 항목을 위아래로 스크롤해 시간을 맞춰 주세요.</p>
+		</div>
+	</form>
+
+	<!-- 대응 규칙 -->
+	<form class="absolute inset-0 z-40 grid place-items-center bg-[#1f2d21]/45 p-5 backdrop-blur-[2px]" method="post" th:action="@{/admin/chat-management/operation}"
+		  data-toggle-target="rule" hidden>
+		<div aria-modal="true" class="w-full rounded-[22px] bg-white p-5 shadow-[0_20px_50px_rgba(25,42,28,.24)]" role="dialog">
+			<div class="relative flex items-center justify-center">
+				<h2 class="text-base font-extrabold text-[#303832]">대응 규칙</h2>
+				<button aria-label="대응 규칙 닫기" class="absolute right-0 grid h-8 w-8 place-items-center rounded-full hover:bg-[#f2f3f2]" type="button" data-toggle="rule">
+					<svg th:replace="~{admin/fragments/icon :: icon2('x', 17, '')}"></svg></button>
+			</div>
+			<label class="mt-5 block">
+				<span class="mb-2 block text-xs font-bold text-[#4c554e]">안내 문구 <span class="text-[#c34f45]">*</span></span>
+				<textarea class="h-32 w-full resize-none rounded-2xl border border-[#dfe4df] bg-[#f7f8f7] p-3 text-sm leading-6 text-[#303832] outline-none placeholder:text-[#9ca39d] focus:border-[#89a18b]"
+						  name="fallbackMessage" placeholder="현재 상담원 연결이 지연되고 있습니다. 조금만 기다려주세요." th:text="${settings.fallbackMessage}" data-required-text></textarea>
+			</label>
+			<button class="mt-4 h-12 w-full rounded-xl bg-[#346538] text-sm font-extrabold text-white disabled:bg-[#bcc5bd]" type="submit">등록</button>
+		</div>
+	</form>
+</div>
+<script>
+	/* 시간 선택: HH:mm ↔ 오전/오후·시·분 (프로토타입 toPickerValue / fromPickerValue) */
+	(function () {
+		const root = document.querySelector('[data-operation]');
+		const sheet = root.querySelector('[data-time-sheet]');
+		const field = sheet.querySelector('[data-time-field]');
+		const period = sheet.querySelector('[data-period]');
+		const hour = sheet.querySelector('[data-hour]');
+		const minute = sheet.querySelector('[data-minute]');
+		root.querySelectorAll('[data-time-open]').forEach((b) => b.addEventListener('click', () => {
+			const [h, m] = b.dataset.time.split(':');
+			const h24 = Number(h);
+			period.value = h24 >= 12 ? '오후' : '오전';
+			hour.value = String(h24 % 12 || 12).padStart(2, '0');
+			minute.value = m;
+			field.name = b.dataset.timeOpen === 'start' ? 'startTime' : 'endTime';
+			sheet.querySelector('[data-time-title]').textContent = b.dataset.timeOpen === 'start' ? '시작 시간' : '종료 시간';
+			sheet.hidden = false;
+		}));
+		sheet.querySelector('[data-time-cancel]').addEventListener('click', () => (sheet.hidden = true));
+		sheet.addEventListener('submit', () => {
+			const h12 = Number(hour.value);
+			const h24 = period.value === '오후' ? (h12 % 12) + 12 : h12 === 12 ? 0 : h12;
+			field.value = `${String(h24).padStart(2, '0')}:${minute.value}`;
+		});
+		/* 안내 문구가 비면 등록 불가 */
+		root.querySelectorAll('[data-required-text]').forEach((t) => {
+			const btn = t.closest('form').querySelector('[type="submit"]');
+			const refresh = () => (btn.disabled = !t.value.trim());
+			t.addEventListener('input', refresh);
+			refresh();
+		});
+	})();
+</script>
+</th:block>
+
+<!-- 켜기/끄기 토글 (프로토타입 Toggle): 누르면 감싼 form 제출 -->
+<button th:fragment="toggle(checked, label)" th:aria-label="${label}" th:aria-pressed="${checked}" type="submit"
+		class="relative h-7 w-12 shrink-0 rounded-full transition" th:classappend="${checked} ? 'bg-[#346538]' : 'bg-[#d8ddd9]'">
+	<span class="absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform" th:classappend="${checked} ? 'translate-x-5' : 'translate-x-0'"></span>
+</button>
+</body>
+</html>

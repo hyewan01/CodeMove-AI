@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html th:replace="~{admin/fragments/layout :: layout('첫화면/퀵메뉴 설정', '', true, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 첫 화면 / 퀵메뉴 설정 (SCR-A-009) -->
+<th:block th:fragment="content">
+<div class="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#f5f6f8]" data-entry>
+	<header class="relative flex h-14 shrink-0 items-center justify-center border-b border-[#e5e9e5] bg-white px-4">
+		<h1 class="text-base font-extrabold text-[#29322b]">첫화면/퀵메뉴 설정</h1>
+		<a aria-label="첫화면 설정 닫기" class="absolute right-3 grid h-10 w-10 place-items-center rounded-full text-[#525c54] hover:bg-[#f2f4f2]" th:href="@{/admin/chat-management}">
+			<svg th:replace="~{admin/fragments/icon :: icon2('x', 20, '')}"></svg></a>
+	</header>
+
+	<div class="flex-1 space-y-4 overflow-y-auto p-4 pb-24">
+		<section class="rounded-[18px] bg-white p-4 shadow-[0_4px_16px_rgba(36,58,39,.05)]">
+			<div class="flex items-center gap-3">
+				<span class="grid h-10 w-10 place-items-center rounded-xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon2('chat', 19, '')}"></svg></span>
+				<h2 class="flex-1 text-sm font-extrabold text-[#303832]">인사말</h2>
+				<button aria-label="인사말 수정" class="grid h-9 w-9 place-items-center rounded-xl bg-[#f3f5f3] text-[#346538]" type="button" data-toggle="greeting">
+					<svg th:replace="~{admin/fragments/icon :: icon2('edit', 17, '')}"></svg></button>
+			</div>
+			<p class="mt-4 rounded-xl bg-[#f7f8f7] p-3 text-xs leading-5 text-[#59615b]" th:text="${greeting}"></p>
+		</section>
+
+		<section class="rounded-[18px] bg-white p-4 shadow-[0_4px_16px_rgba(36,58,39,.05)]">
+			<div class="flex items-center gap-3">
+				<span class="grid h-10 w-10 place-items-center rounded-xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon2('menu', 19, '')}"></svg></span>
+				<div class="flex-1">
+					<h2 class="text-sm font-extrabold text-[#303832]">퀵메뉴 설정</h2>
+					<p class="mt-0.5 text-[10px] text-[#929994]">최대 4개까지 등록</p>
+				</div>
+			</div>
+			<div class="mt-4 grid grid-cols-2 gap-3">
+				<th:block th:each="i : ${#numbers.sequence(0, 3)}">
+					<div th:if="${i < #lists.size(quickMenus)}" th:with="item=${quickMenus[i]}" class="relative aspect-square rounded-2xl border border-[#dce6dc] bg-[#f1f6f1] p-3">
+						<button th:aria-label="${item.title} + ' 삭제'" class="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-white text-[#a34d45] shadow-sm" type="button"
+								th:data-delete-menu="${item.id}"><svg th:replace="~{admin/fragments/icon :: icon2('x', 13, '')}"></svg></button>
+						<div class="flex h-full flex-col items-center justify-center text-center">
+							<span class="grid h-10 w-10 place-items-center rounded-xl bg-white text-[#346538] shadow-sm"><svg th:replace="~{admin/fragments/icon :: icon2('chat', 19, '')}"></svg></span>
+							<strong class="mt-3 text-xs text-[#344037]" th:text="${item.title}"></strong>
+						</div>
+					</div>
+					<button th:unless="${i < #lists.size(quickMenus)}" class="aspect-square rounded-2xl border border-dashed border-[#bfc9c0] bg-[#fafbfa] text-xs font-bold text-[#718074] hover:bg-[#f3f6f3]"
+							type="button" data-toggle="menu-picker">
+						<span class="mx-auto mb-2 grid h-8 w-8 place-items-center rounded-full bg-[#edf3ed] text-lg text-[#346538]">+</span>등록</button>
+				</th:block>
+			</div>
+		</section>
+	</div>
+
+	<div class="absolute inset-x-0 bottom-0 border-t border-[#e5e9e5] bg-white/95 p-3 backdrop-blur-md">
+		<button class="mx-auto block h-11 min-w-32 rounded-full bg-[#346538] px-8 text-sm font-bold text-white shadow-[0_6px_18px_rgba(52,101,56,.24)]" type="button" data-toggle="preview">미리 보기</button>
+	</div>
+
+	<!-- 인사말 수정 -->
+	<form class="absolute inset-0 z-40 grid place-items-center bg-[#1f2d21]/45 p-5 backdrop-blur-[2px]" method="post" th:action="@{/admin/chat-management/entry/greeting}"
+		  data-toggle-target="greeting" hidden>
+		<div class="w-full rounded-[22px] bg-white p-5 shadow-[0_20px_50px_rgba(25,42,28,.24)]">
+			<div class="relative flex items-center justify-center">
+				<h2 class="text-base font-extrabold text-[#303832]">인사말 수정</h2>
+				<button aria-label="인사말 수정 닫기" class="absolute right-0 grid h-8 w-8 place-items-center rounded-full hover:bg-[#f2f3f2]" type="button" data-toggle="greeting">
+					<svg th:replace="~{admin/fragments/icon :: icon2('x', 17, '')}"></svg></button>
+			</div>
+			<textarea class="mt-5 h-36 w-full resize-none rounded-2xl border border-[#dfe4df] bg-[#f7f8f7] p-3 text-sm leading-6 text-[#303832] outline-none focus:border-[#89a18b]"
+					  name="greeting" th:text="${greeting}" data-required-text></textarea>
+			<button class="mt-4 h-12 w-full rounded-xl bg-[#346538] text-sm font-extrabold text-white disabled:bg-[#bcc5bd]" type="submit">등록</button>
+		</div>
+	</form>
+
+	<!-- 퀵메뉴 조회 (AI챗봇 답변 주제 중에서 선택) -->
+	<div class="absolute inset-0 z-40 bg-[#f5f6f8]" data-toggle-target="menu-picker" hidden>
+		<header class="relative flex h-14 items-center justify-center border-b border-[#e5e9e5] bg-white">
+			<h2 class="text-base font-extrabold text-[#303832]">퀵메뉴 조회</h2>
+			<button aria-label="퀵메뉴 조회 닫기" class="absolute right-3 grid h-10 w-10 place-items-center rounded-full" type="button" data-toggle="menu-picker">
+				<svg th:replace="~{admin/fragments/icon :: icon2('x', 19, '')}"></svg></button>
+		</header>
+		<div class="p-4">
+			<label class="flex items-center gap-2 rounded-full bg-white px-4 py-3 shadow-[0_3px_12px_rgba(36,58,39,.05)]">
+				<svg th:replace="~{admin/fragments/icon :: icon2('search', 17, 'text-[#8b928d]')}"></svg>
+				<input class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#9ca29e]" placeholder="검색어를 입력하세요" data-candidate-query>
+			</label>
+			<p class="mb-2 mt-5 px-1 text-xs font-bold text-[#69716b]">AI챗봇 대화 내역</p>
+			<div class="max-h-[calc(100vh-250px)] space-y-2 overflow-y-auto">
+				<form th:each="c : ${candidates}" method="post" th:action="@{/admin/chat-management/entry/menus}" th:data-search="${c.title} + ' ' + ${c.description}" data-candidate
+					  th:with="registered=${#lists.contains(quickMenus.![id], c.id)}">
+					<input type="hidden" name="topicId" th:value="${c.id}">
+					<button class="flex w-full items-center gap-3 rounded-2xl bg-white p-4 text-left disabled:opacity-45" type="submit"
+							th:disabled="${registered or #lists.size(quickMenus) >= 4}">
+						<span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon2('chat', 17, '')}"></svg></span>
+						<span class="min-w-0 flex-1">
+							<strong class="block text-sm text-[#333b35]" th:text="${c.title}"></strong>
+							<span class="mt-1 block truncate text-xs text-[#8a918c]" th:text="${c.description}"></span>
+						</span>
+						<span class="text-xs font-bold text-[#346538]" th:text="${registered} ? '등록됨' : '선택'"></span>
+					</button>
+				</form>
+				<p class="py-16 text-center text-sm text-[#858d87]" data-candidate-empty th:hidden="${!#lists.isEmpty(candidates)}">검색 결과가 없습니다.</p>
+			</div>
+		</div>
+	</div>
+
+	<!-- 퀵메뉴 삭제 확인 -->
+	<form class="absolute inset-0 z-50 grid place-items-center bg-[#1f2d21]/45 p-6 backdrop-blur-[2px]" method="post" th:action="@{/admin/chat-management/entry/menus/delete}" data-delete-confirm hidden>
+		<input type="hidden" name="menuId" data-delete-id>
+		<div class="w-full rounded-[22px] bg-white p-5 text-center shadow-[0_20px_50px_rgba(25,42,28,.24)]">
+			<span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#fff0ee] text-[#b64b42]"><svg th:replace="~{admin/fragments/icon :: icon2('trash', 21, '')}"></svg></span>
+			<h2 class="mt-4 text-base font-extrabold text-[#303832]">정말 삭제하시겠습니까?</h2>
+			<p class="mt-2 text-xs text-[#8a918c]">삭제된 데이터는 복구할 수 없습니다.</p>
+			<div class="mt-5 grid grid-cols-2 gap-2">
+				<button class="h-11 rounded-xl bg-[#f0f2f0] text-sm font-bold text-[#646c66]" type="button" data-delete-cancel>취소</button>
+				<button class="h-11 rounded-xl bg-[#c65249] text-sm font-bold text-white" type="submit">삭제</button>
+			</div>
+		</div>
+	</form>
+
+	<!-- 미리보기 (고객 채팅 첫 화면) -->
+	<div class="absolute inset-0 z-40 bg-[#f3f6f2]" data-toggle-target="preview" hidden>
+		<header class="relative flex h-14 items-center justify-center border-b border-[#e0e5df] bg-white">
+			<h2 class="text-base font-extrabold text-[#303832]">미리보기</h2>
+			<button aria-label="미리보기 닫기" class="absolute right-3 grid h-10 w-10 place-items-center rounded-full" type="button" data-toggle="preview">
+				<svg th:replace="~{admin/fragments/icon :: icon2('x', 19, '')}"></svg></button>
+		</header>
+		<div class="p-5 pt-7">
+			<div class="mb-4 flex items-center gap-3 px-1">
+				<span class="grid h-11 w-11 place-items-center rounded-full bg-[#dce9d8] text-[#346538] shadow-[0_4px_12px_rgba(36,58,39,.12)]"><svg th:replace="~{admin/fragments/icon :: icon2('robot', 20, '')}"></svg></span>
+				<strong class="block text-sm text-[#59615b]">명품 이사 도우미</strong>
+			</div>
+			<div class="rounded-[22px] bg-white p-3 shadow-[0_8px_24px_rgba(36,58,39,.08)]">
+				<div class="p-2">
+					<p class="whitespace-pre-line text-sm leading-7 text-[#38413a]" th:text="${greeting}"></p>
+					<div class="mt-4 space-y-2">
+						<button th:each="m : ${quickMenus}" class="h-14 w-full rounded-xl bg-[#f2f4f1] px-4 text-sm font-bold text-[#465048]" type="button" th:text="${m.title}"></button>
+						<button class="h-14 w-full rounded-xl bg-[#fff5e8] px-4 text-sm font-bold text-[#ad6d32]" type="button">상담사 연결</button>
+					</div>
+					<p class="mt-4 text-right text-[10px] text-[#9aa09b]">상담 운영시간　평일 09:00–18:00</p>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+	(function () {
+		const root = document.querySelector('[data-entry]');
+		/* 퀵메뉴 후보 검색 */
+		const q = root.querySelector('[data-candidate-query]');
+		const items = [...root.querySelectorAll('[data-candidate]')];
+		q.addEventListener('input', () => {
+			const v = q.value.trim().toLocaleLowerCase();
+			let n = 0;
+			items.forEach((f) => { const show = !v || f.dataset.search.toLocaleLowerCase().includes(v); f.hidden = !show; if (show) n++; });
+			root.querySelector('[data-candidate-empty]').hidden = n > 0;
+		});
+		/* 퀵메뉴 삭제 확인 */
+		const confirm = root.querySelector('[data-delete-confirm]');
+		root.querySelectorAll('[data-delete-menu]').forEach((b) => b.addEventListener('click', () => {
+			confirm.querySelector('[data-delete-id]').value = b.dataset.deleteMenu;
+			confirm.hidden = false;
+		}));
+		confirm.querySelector('[data-delete-cancel]').addEventListener('click', () => (confirm.hidden = true));
+		/* 인사말이 비면 등록 불가 */
+		root.querySelectorAll('[data-required-text]').forEach((t) => {
+			const btn = t.closest('form').querySelector('[type="submit"]');
+			const refresh = () => (btn.disabled = !t.value.trim());
+			t.addEventListener('input', refresh);
+			refresh();
+		});
+	})();
+</script>
+</th:block>
+</body>
+</html>

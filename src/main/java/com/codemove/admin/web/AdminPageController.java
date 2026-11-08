@@ -29,11 +29,6 @@ public class AdminPageController {
 
 	/** 아직 옮기지 않은 화면: URL → (화면 이름, Screen ID) */
 	private static final Map<String, String[]> PENDING = Map.ofEntries(
-			Map.entry("/admin/chat-management", new String[] { "채팅 관리", "SCR-A-005" }),
-			Map.entry("/admin/chats", new String[] { "채팅 목록", "SCR-A-006" }),
-			Map.entry("/admin/chat-management/operation", new String[] { "채팅 운영 설정", "SCR-A-008" }),
-			Map.entry("/admin/chat-management/entry", new String[] { "첫 화면/퀵메뉴 설정", "SCR-A-009" }),
-			Map.entry("/admin/chat-management/answers", new String[] { "답변 설정 관리", "SCR-A-010" }),
 			Map.entry("/admin/notifications", new String[] { "알림 관리", "SCR-A-013" }),
 			Map.entry("/admin/notifications/history", new String[] { "알림 내역", "SCR-A-014" }),
 			Map.entry("/admin/notifications/messaging", new String[] { "메시징 운영 설정", "SCR-A-015" }));
@@ -193,20 +188,11 @@ public class AdminPageController {
 
 	/* ---------- 아직 옮기지 않은 화면 ---------- */
 
-	@GetMapping({ "/chat-management", "/chats", "/chat-management/operation",
-			"/chat-management/entry", "/chat-management/answers", "/notifications", "/notifications/history",
-			"/notifications/messaging" })
+	@GetMapping({ "/notifications", "/notifications/history", "/notifications/messaging" })
 	public String pending(HttpServletRequest request, Model model) {
 		String[] page = PENDING.get(request.getRequestURI().substring(request.getContextPath().length()));
 		model.addAttribute("pageName", page[0]);
 		model.addAttribute("screenId", page[1]);
-		return "admin/pending";
-	}
-
-	@GetMapping("/chats/{chatId}")
-	public String chatDetail(@PathVariable String chatId, Model model) {
-		model.addAttribute("pageName", "채팅 상세");
-		model.addAttribute("screenId", "SCR-A-007");
 		return "admin/pending";
 	}
 

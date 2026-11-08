@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html th:replace="~{admin/fragments/layout :: layout(${room.name} + ' 채팅', 'chat', true, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 채팅 상세 (SCR-A-007) -->
+<th:block th:fragment="content">
+<div class="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#f5f6f8]" data-chat-detail>
+	<header class="flex h-14 shrink-0 items-center justify-between border-b border-[#e8ece8] bg-white px-3">
+		<div class="flex min-w-0 items-center gap-1">
+			<a aria-label="채팅 목록으로 돌아가기" class="grid h-10 w-9 shrink-0 place-items-center rounded-full text-[#3f4941] hover:bg-[#f2f5f2]" th:href="@{${backUrl}}">
+				<span class="rotate-180"><svg th:replace="~{admin/fragments/icon :: icon2('arrowRight', 21, '')}"></svg></span></a>
+			<a th:if="${from == 'management'}" aria-label="채팅 관리로 돌아가기" class="flex shrink-0 items-center gap-1 rounded-full bg-[#edf3ed] px-2.5 py-1.5 text-[10px] font-bold text-[#346538]"
+			   th:href="@{/admin/chat-management}"><span class="rotate-180 leading-none"><svg th:replace="~{admin/fragments/icon :: icon2('arrowRight', 12, '')}"></svg></span>채팅 관리</a>
+			<div class="min-w-0"><h1 class="truncate text-[15px] font-extrabold text-[#346538]" th:text="${room.name}">홍길동</h1></div>
+			<span th:if="${room.waiting}" class="ml-1 flex shrink-0 items-center gap-1 rounded-full bg-[#fff0ee] px-2 py-1 text-[9px] font-bold text-[#bd5147]">
+				<span class="h-1.5 w-1.5 rounded-full bg-[#d95c50]"></span>대기 중</span>
+		</div>
+		<div class="flex shrink-0 items-center">
+			<button aria-label="대화 내용 검색" class="grid h-10 w-9 place-items-center rounded-full text-[#3f4941] hover:bg-[#f2f5f2]" type="button" data-toggle="msg-search">
+				<svg th:replace="~{admin/fragments/icon :: icon2('search', 20, '')}"></svg></button>
+			<div class="relative">
+				<button aria-label="대화 설정" class="grid h-10 w-9 place-items-center rounded-full text-[#3f4941] hover:bg-[#f2f5f2]" type="button" data-toggle="msg-settings">
+					<svg th:replace="~{admin/fragments/icon :: icon2('menu', 20, '')}"></svg></button>
+				<div class="absolute right-0 top-11 z-30 w-48 rounded-xl border border-[#e2e7e2] bg-white p-2 shadow-[0_12px_32px_rgba(34,53,37,.16)]" data-toggle-target="msg-settings" hidden>
+					<button th:each="o : ${ { {'hideAi', 'AI 대화 내역 숨기기'}, {'waitingOnly', '대기 답변만 보기'} } }" type="button" th:data-option="${o[0]}" aria-pressed="false"
+							class="group flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-xs font-semibold text-[#4d554f] hover:bg-[#f5f6f5]">
+						<th:block th:text="${o[1]}"></th:block>
+						<span class="grid h-5 w-5 place-items-center rounded-md border border-[#d8ddd8] group-aria-pressed:border-0 group-aria-pressed:bg-[#346538] group-aria-pressed:text-white">
+							<svg th:replace="~{admin/fragments/icon :: icon2('check', 13, 'hidden group-aria-pressed:block')}"></svg></span>
+					</button>
+				</div>
+			</div>
+		</div>
+	</header>
+
+	<div class="flex shrink-0 items-center gap-2 border-b border-[#e8ece8] bg-white px-3 py-2.5" data-toggle-target="msg-search" hidden>
+		<div class="flex flex-1 items-center gap-2 rounded-full bg-[#f2f3f5] px-4 py-2.5">
+			<svg th:replace="~{admin/fragments/icon :: icon2('search', 16, 'shrink-0 text-[#8b928d]')}"></svg>
+			<input aria-label="대화 내용 검색" class="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#9ca29e]" placeholder="대화 내용을 검색하세요" type="search" data-msg-query>
+			<span class="text-xs text-[#718074]" data-msg-count hidden></span>
+		</div>
+		<button aria-label="대화 검색 닫기" class="grid h-9 w-9 place-items-center rounded-full" type="button" data-msg-search-close>
+			<svg th:replace="~{admin/fragments/icon :: icon2('x', 18, '')}"></svg></button>
+	</div>
+
+	<div class="flex-1 overflow-y-auto p-4" data-msg-area>
+		<div class="mb-5 text-center"><span class="rounded-full bg-[#e8ebe8] px-3 py-1.5 text-[10px] font-semibold text-[#7d857f]">오늘</span></div>
+		<div class="space-y-4">
+			<div th:each="m : ${messages}" th:with="isCustomer=${m.role == 'customer'}"
+				 class="flex max-w-[84%] flex-col gap-1" th:classappend="${isCustomer} ? 'items-start' : 'ml-auto items-end'"
+				 th:data-role="${m.role}" th:data-waiting="${m.waiting}" th:data-text="${m.text}" data-msg>
+				<span th:unless="${isCustomer}" class="text-[10px] font-bold" th:classappend="${m.role == 'ai'} ? 'text-[#6c7d6e]' : 'text-[#346538]'"
+					  th:text="${m.role == 'ai'} ? 'AI' : '관리자'">AI</span>
+				<div class="rounded-2xl p-3 text-[13px] leading-5 shadow-sm"
+					 th:classappend="${m.waiting} ? 'border border-[#efc4bf] bg-[#fff0ee] text-[#a44038]' : (${isCustomer} ? 'rounded-tl-md bg-white text-[#343b36]' : (${m.role == 'ai'} ? 'rounded-tr-md bg-[#e8efe8] text-[#355639]' : 'rounded-tr-md bg-[#346538] text-white'))">
+					<span th:if="${m.replyTo}" class="mb-2 block rounded-lg border-l-2 border-[#d8b65d] bg-white/20 px-2 py-1 text-[11px] opacity-90" th:text="${m.replyTo}"></span>
+					<th:block th:text="${m.text}"></th:block>
+				</div>
+				<span th:if="${m.waiting}" class="flex items-center gap-1 text-[10px] font-semibold text-[#ba554c]">답변 대기 · 왼쪽으로 밀어 답장</span>
+			</div>
+			<div class="py-16 text-center" data-msg-empty hidden>
+				<p class="text-sm font-semibold text-[#656d67]">조회된 대화가 없습니다</p>
+				<p class="mt-1 text-xs text-[#979d98]">검색어나 설정을 변경해 주세요.</p>
+			</div>
+		</div>
+	</div>
+
+	<form class="shrink-0 border-t border-[#e1e6e1] bg-white px-3 pb-3 pt-2 shadow-[0_-4px_16px_rgba(36,58,39,.06)]"
+		  method="post" th:action="@{/admin/chats/{id}/messages(id=${room.id})}" data-send>
+		<input type="hidden" name="from" th:value="${from}">
+		<input type="hidden" name="replyTo" data-reply-value>
+		<div class="mb-2 flex items-center gap-2 rounded-xl border-l-4 border-[#d6b24e] bg-[#fff8df] px-3 py-2" data-reply hidden>
+			<div class="min-w-0 flex-1">
+				<span class="block text-[10px] font-bold text-[#8c732d]">답장할 메시지</span>
+				<span class="block truncate text-xs text-[#6f633f]" data-reply-text></span>
+			</div>
+			<button aria-label="답장 취소" class="grid h-7 w-7 place-items-center rounded-full text-[#7a704f]" type="button" data-reply-cancel>
+				<svg th:replace="~{admin/fragments/icon :: icon2('x', 15, '')}"></svg></button>
+		</div>
+		<div class="flex items-center gap-2 rounded-full bg-[#f2f3f5] py-1.5 pl-4 pr-1.5">
+			<input aria-label="메시지 입력" class="min-w-0 flex-1 bg-transparent py-2 text-sm text-[#29302b] outline-none placeholder:text-[#9ca29e]" name="text" placeholder="메시지를 입력하세요" autocomplete="off" data-draft>
+			<button aria-label="메시지 전송" class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#346538] text-white transition disabled:bg-[#b8c2b9]" type="submit" disabled data-send-btn>
+				<svg th:replace="~{admin/fragments/icon :: icon2('send', 17, '')}"></svg></button>
+		</div>
+	</form>
+</div>
+<script>
+	/* 대화 검색 · AI 숨기기 · 대기 답변만 · 고객 메시지를 왼쪽으로 밀어 답장 */
+	(function () {
+		const root = document.querySelector('[data-chat-detail]');
+		const $ = (s) => root.querySelector(s);
+		const msgs = [...root.querySelectorAll('[data-msg]')];
+		const area = $('[data-msg-area]');
+		const opts = { hideAi: false, waitingOnly: false };
+		const query = $('[data-msg-query]');
+		const apply = () => {
+			const q = query.value.trim().toLocaleLowerCase();
+			let n = 0;
+			msgs.forEach((m) => {
+				const show = !(opts.hideAi && m.dataset.role === 'ai') && !(opts.waitingOnly && m.dataset.waiting !== 'true')
+					&& (!q || m.dataset.text.toLocaleLowerCase().includes(q));
+				m.hidden = !show;
+				if (show) n++;
+			});
+			$('[data-msg-empty]').hidden = n > 0;
+			$('[data-msg-count]').hidden = !q;
+			$('[data-msg-count]').textContent = `${n}건`;
+		};
+		root.querySelectorAll('[data-option]').forEach((b) => b.addEventListener('click', () => {
+			opts[b.dataset.option] = !opts[b.dataset.option];
+			b.setAttribute('aria-pressed', String(opts[b.dataset.option]));
+			apply();
+		}));
+		query.addEventListener('input', apply);
+		$('[data-msg-search-close]').addEventListener('click', () => {
+			$('[data-toggle-target="msg-search"]').hidden = true;
+			query.value = '';
+			apply();
+		});
+
+		const scrollBottom = () => area.scrollTo({ top: area.scrollHeight, behavior: 'smooth' });
+		scrollBottom();
+
+		const reply = $('[data-reply]');
+		const setReply = (text) => {
+			reply.hidden = !text;
+			$('[data-reply-text]').textContent = text || '';
+			$('[data-reply-value]').value = text || '';
+			scrollBottom();
+		};
+		$('[data-reply-cancel]').addEventListener('click', () => setReply(''));
+		msgs.filter((m) => m.dataset.role === 'customer').forEach((m) => {
+			let startX = null;
+			const end = (x) => { if (startX !== null && startX - x > 45) setReply(m.dataset.text); startX = null; };
+			m.addEventListener('pointerdown', (e) => { startX = e.clientX; });
+			m.addEventListener('pointerup', (e) => end(e.clientX));
+			m.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; }, { passive: true });
+			m.addEventListener('touchend', (e) => end(e.changedTouches[0].clientX));
+		});
+
+		const draft = $('[data-draft]');
+		draft.addEventListener('input', () => ($('[data-send-btn]').disabled = !draft.value.trim()));
+	})();
+</script>
+</th:block>
+</body>
+</html>

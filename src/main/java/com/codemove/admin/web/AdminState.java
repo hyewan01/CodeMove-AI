@@ -32,6 +32,17 @@ public class AdminState {
 	private List<Routine> routines = new ArrayList<>(defaultRoutines());
 	/** 다음 화면에서 한 번 보여줄 루틴 토스트 */
 	private Toast pendingToast;
+	/** 채팅방 ID → 대화 (관리자가 보낸 메시지 누적) */
+	private Map<String, List<AdminChat.Message>> chatMessages = new LinkedHashMap<>();
+	private AdminChat.Settings chatSettings = AdminChat.defaultSettings();
+	private String chatGreeting = AdminChat.DEFAULT_GREETING;
+	private List<AdminChat.QuickMenu> quickMenus = AdminChat.defaultQuickMenus();
+	private List<AdminChat.Topic> answerTopics = AdminChat.defaultTopics();
+
+	public List<AdminChat.Message> messagesOf(String roomId) {
+		return chatMessages.computeIfAbsent(roomId, id -> AdminChat.initialMessages(AdminChat.room(id)));
+	}
+
 	private List<AdminEstimates.EstimateRecord> estimates = new ArrayList<>(AdminEstimates.initialRecords());
 	/** 견적서 등록 진행 상태 (등록 화면을 벗어나도 유지) */
 	private AdminEstimates.Registration registration = new AdminEstimates.Registration();

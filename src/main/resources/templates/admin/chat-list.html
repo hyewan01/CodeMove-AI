@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html th:replace="~{admin/fragments/layout :: layout('채팅', 'chat', true, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 채팅 목록 (SCR-A-006) -->
+<th:block th:fragment="content">
+<div class="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#f5f6f8]" data-chat-list>
+	<header class="flex h-14 shrink-0 items-center justify-between border-b border-[#e8ece8] bg-white px-4">
+		<div class="flex items-center gap-2">
+			<a th:if="${from == 'management'}" aria-label="채팅 관리로 돌아가기" class="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#3f4941] hover:bg-[#f2f5f2]"
+			   th:href="@{/admin/chat-management}"><span class="rotate-180"><svg th:replace="~{admin/fragments/icon :: icon2('arrowRight', 20, '')}"></svg></span></a>
+			<h1 class="text-xl font-extrabold tracking-[-0.03em] text-[#346538]">채팅</h1>
+		</div>
+		<div class="flex items-center gap-1">
+			<button aria-label="채팅 검색" class="grid h-10 w-10 place-items-center rounded-full text-[#3f4941] hover:bg-[#f2f5f2]" type="button" data-toggle="chat-search">
+				<svg th:replace="~{admin/fragments/icon :: icon2('search', 22, '')}"></svg></button>
+			<div class="relative">
+				<button aria-label="채팅 목록 메뉴" class="grid h-10 w-10 place-items-center rounded-full text-[#3f4941] hover:bg-[#f2f5f2]" type="button" data-toggle="chat-menu">
+					<svg th:replace="~{admin/fragments/icon :: icon2('menu', 22, '')}"></svg></button>
+				<div class="absolute right-0 top-11 z-30 w-36 overflow-hidden rounded-xl border border-[#e2e7e2] bg-white p-1.5 shadow-[0_12px_32px_rgba(34,53,37,.16)]" data-toggle-target="chat-menu" hidden>
+					<a class="block w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold" th:classappend="${filter == 'all'} ? 'bg-[#edf3ed] text-[#346538]' : 'text-[#4d554f]'"
+					   th:href="@{/admin/chats(filter='all',sort=${sort},from=${from})}">전체</a>
+					<a class="block w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold" th:classappend="${filter == 'waiting'} ? 'bg-[#fff0ee] text-[#b34c43]' : 'text-[#4d554f]'"
+					   th:href="@{/admin/chats(filter='waiting',sort=${sort},from=${from})}">대기</a>
+					<a class="block w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold" th:classappend="${filter == 'unread'} ? 'bg-[#edf3ed] text-[#346538]' : 'text-[#4d554f]'"
+					   th:href="@{/admin/chats(filter='unread',sort=${sort},from=${from})}">안 읽음</a>
+					<div class="my-1 border-t border-[#edf0ed]"></div>
+					<button class="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[#4d554f] hover:bg-[#f5f6f5]" type="button" data-sort-open>
+						정렬 <span class="text-xs text-[#8c948e]" th:text="${sort == 'unread'} ? '안 읽은 순' : '최신 순'">최신 순</span>
+					</button>
+				</div>
+			</div>
+		</div>
+	</header>
+
+	<div class="flex shrink-0 items-center gap-2 border-b border-[#e8ece8] bg-white px-4 py-2.5" data-toggle-target="chat-search" hidden>
+		<div class="flex flex-1 items-center gap-2 rounded-full bg-[#f2f3f5] px-4 py-2.5">
+			<svg th:replace="~{admin/fragments/icon :: icon2('search', 17, 'shrink-0 text-[#8b928d]')}"></svg>
+			<input aria-label="고객 이름 또는 대화 내용 검색" class="min-w-0 flex-1 bg-transparent text-sm text-[#29302b] outline-none placeholder:text-[#9ca29e]"
+				   placeholder="이름 또는 대화 내용을 입력하세요" type="search" data-room-query>
+			<span class="text-xs font-semibold text-[#718074]" data-room-count hidden></span>
+		</div>
+		<button aria-label="검색 닫기" class="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#626a64] hover:bg-[#f2f3f5]" type="button" data-search-close>
+			<svg th:replace="~{admin/fragments/icon :: icon2('x', 18, '')}"></svg></button>
+	</div>
+
+	<div class="flex-1 overflow-y-auto px-4 pb-5 pt-3">
+		<div class="mb-2 flex items-center justify-between px-1">
+			<span class="text-xs font-semibold text-[#7c847e]">
+				<th:block th:text="${filter == 'waiting'} ? '답변 대기' : (${filter == 'unread'} ? '안 읽은 채팅' : '전체 채팅')"></th:block>
+				<span th:text="${#lists.size(rooms)}" data-visible-count></span>
+			</span>
+			<span class="text-xs text-[#9aa09b]" th:text="${sort == 'unread'} ? '안 읽은 순' : '최신 순'"></span>
+		</div>
+		<a th:each="room : ${rooms}" th:href="@{/admin/chats/{id}(id=${room.id},from=${from})}" th:data-search="${room.name} + ' ' + ${room.message}" data-room
+		   class="mb-2 flex w-full items-center gap-3 rounded-2xl border border-white bg-white p-3.5 text-left shadow-[0_3px_12px_rgba(36,58,39,.05)] transition active:scale-[.99]">
+			<span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#edf3ed] text-sm font-extrabold text-[#346538]" th:text="${room.initial()}">홍</span>
+			<span class="min-w-0 flex-1">
+				<span class="flex items-center gap-1.5"><strong class="truncate text-sm text-[#29302b]" th:text="${room.name}"></strong></span>
+				<span class="mt-1 block truncate text-xs text-[#737b75]" th:text="${room.message}"></span>
+			</span>
+			<span class="flex shrink-0 flex-col items-end gap-1.5">
+				<span class="text-[10px] text-[#9aa09b]" th:text="${room.time}"></span>
+				<span th:if="${room.waiting}" class="rounded-full bg-[#fff0ee] px-2 py-1 text-[10px] font-bold text-[#bd5147]">대기 중</span>
+				<span th:if="${room.unread > 0}" class="grid h-5 min-w-5 place-items-center rounded-full bg-[#346538] px-1 text-[10px] font-bold text-white" th:text="${room.unread}"></span>
+			</span>
+		</a>
+		<div class="grid place-items-center py-20 text-center" data-room-empty th:hidden="${!#lists.isEmpty(rooms)}">
+			<span class="mb-3 grid h-12 w-12 place-items-center rounded-full bg-white text-[#9aa29c]"><svg th:replace="~{admin/fragments/icon :: icon2('search', 22, '')}"></svg></span>
+			<p class="text-sm font-semibold text-[#656d67]">일치하는 채팅이 없습니다</p>
+			<p class="mt-1 text-xs text-[#979d98]">이름 또는 대화 내용을 다시 확인해 주세요.</p>
+		</div>
+	</div>
+
+	<!-- 정렬 -->
+	<form aria-modal="true" class="absolute inset-0 z-40 grid place-items-center bg-[#1f2d21]/40 p-6 backdrop-blur-[2px]" role="dialog"
+		  method="get" th:action="@{/admin/chats}" data-sort-modal hidden>
+		<input type="hidden" name="filter" th:value="${filter}">
+		<input type="hidden" name="from" th:value="${from}">
+		<div class="w-full rounded-[20px] bg-white p-5 shadow-[0_20px_50px_rgba(25,42,28,.24)]">
+			<div class="flex items-center justify-between">
+				<h2 class="text-base font-extrabold text-[#29302b]">채팅방 순서 정렬</h2>
+				<button aria-label="정렬 창 닫기" class="grid h-8 w-8 place-items-center rounded-full hover:bg-[#f2f3f5]" type="button" data-sort-close>
+					<svg th:replace="~{admin/fragments/icon :: icon2('x', 17, '')}"></svg></button>
+			</div>
+			<div class="mt-4 space-y-2">
+				<label th:each="o : ${ { {'latest', '최신 순', '최근 메시지를 받은 채팅부터 표시'}, {'unread', '안 읽은 순', '읽지 않은 메시지가 많은 채팅부터 표시'} } }"
+					   class="flex cursor-pointer items-center gap-3 rounded-xl border border-[#e7eae7] p-3.5 has-checked:border-[#9db39f] has-checked:bg-[#f1f6f1]">
+					<input class="accent-[#346538]" name="sort" type="radio" th:value="${o[0]}" th:checked="${sort == o[0]}">
+					<span><strong class="block text-sm text-[#303832]" th:text="${o[1]}"></strong><span class="mt-0.5 block text-xs text-[#8a918c]" th:text="${o[2]}"></span></span>
+				</label>
+			</div>
+			<button class="mt-5 h-11 w-full rounded-xl bg-[#346538] text-sm font-bold text-white" type="submit">적용</button>
+		</div>
+	</form>
+</div>
+<script>
+	/* 이름·대화 내용 검색 (입력 즉시), 정렬 창 */
+	(function () {
+		const root = document.querySelector('[data-chat-list]');
+		const $ = (s) => root.querySelector(s);
+		const rooms = [...root.querySelectorAll('[data-room]')];
+		const input = $('[data-room-query]');
+		const filterRooms = () => {
+			const q = input.value.trim().toLocaleLowerCase();
+			let n = 0;
+			rooms.forEach((r) => { const show = !q || r.dataset.search.toLocaleLowerCase().includes(q); r.hidden = !show; if (show) n++; });
+			$('[data-visible-count]').textContent = n;
+			$('[data-room-count]').hidden = !q;
+			$('[data-room-count]').textContent = `${n}건`;
+			$('[data-room-empty]').hidden = n > 0;
+		};
+		input.addEventListener('input', filterRooms);
+		$('[data-search-close]').addEventListener('click', () => {
+			$('[data-toggle-target="chat-search"]').hidden = true;
+			input.value = '';
+			filterRooms();
+		});
+		$('[data-sort-open]').addEventListener('click', () => {
+			$('[data-toggle-target="chat-menu"]').hidden = true;
+			$('[data-sort-modal]').hidden = false;
+		});
+		$('[data-sort-close]').addEventListener('click', () => ($('[data-sort-modal]').hidden = true));
+	})();
+</script>
+</th:block>
+</body>
+</html>
