@@ -126,7 +126,7 @@ public class ChatService {
 	}
 
 	public List<String> quickMenuTitles() {
-		List<String> titles = new ArrayList<>(quickMenus().stream().map(QuickMenu::getMenuName).toList());
+		List<String> titles = new ArrayList<>(quickMenus().stream().map(m -> m.getMenuName()).toList());
 		titles.add("상담사 연결");
 		return titles;
 	}
@@ -139,7 +139,7 @@ public class ChatService {
 			return;
 		}
 		topics().stream().filter(t -> t.getTopicId() == topicId).findFirst().ifPresent(t -> chats.insertQuickMenu(topicId,
-				t.getTitle(), menus.stream().mapToInt(QuickMenu::getSortOrder).max().orElse(0) + 1, adminId));
+				t.getTitle(), menus.stream().mapToInt(m -> m.getSortOrder()).max().orElse(0) + 1, adminId));
 	}
 
 	@Transactional
@@ -318,7 +318,7 @@ public class ChatService {
 		for (Topic t : topics()) {
 			boolean title = !t.getTitle().isBlank() && value.contains(t.getTitle());
 			for (Lorebook l : t.getLorebooks()) {
-				boolean hit = title || java.util.Arrays.stream(l.getKeywords().split("#")).map(String::trim)
+				boolean hit = title || java.util.Arrays.stream(l.getKeywords().split("#")).map(k -> k.trim())
 						.anyMatch(k -> !k.isEmpty() && value.contains(k));
 				if (hit && !value.contains("예약") && !value.contains("견적")) {
 					return new Reply(l.getContent(), List.of(action("상담사 연결", "상담사 연결 요청", null)), t.getTopicId());

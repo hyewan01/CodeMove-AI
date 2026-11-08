@@ -41,8 +41,8 @@ public class AdminChatController {
 	@GetMapping("/chat-management")
 	public String home(Model model) {
 		List<AdminChat.ChatRoom> rooms = rooms();
-		model.addAttribute("waitingCount", rooms.stream().filter(AdminChat.ChatRoom::waiting).count());
-		model.addAttribute("unreadCount", rooms.stream().mapToInt(AdminChat.ChatRoom::unread).sum());
+		model.addAttribute("waitingCount", rooms.stream().filter(r -> r.waiting()).count());
+		model.addAttribute("unreadCount", rooms.stream().mapToInt(r -> r.unread()).sum());
 		return "admin/chat-home";
 	}
 
@@ -76,7 +76,7 @@ public class AdminChatController {
 		AdminChat.ChatRoom room = AdminChat.ChatRoom.of(line);
 		List<ChatMessage> messages = chats.openRoom(id);
 		long lastCustomer = messages.stream().filter(m -> "01".equals(m.getSenderType()))
-				.mapToLong(ChatMessage::getMessageId).max().orElse(-1);
+				.mapToLong(m -> m.getMessageId()).max().orElse(-1);
 		model.addAttribute("room", room);
 		model.addAttribute("messages", messages.stream()
 				.map(m -> AdminChat.Message.of(m, room.waiting() && m.getMessageId() == lastCustomer)).toList());

@@ -175,9 +175,9 @@ public class AdminViews {
 		Map<String, List<Notification>> grouped = new LinkedHashMap<>();
 		grouped.put("최근 7일", new ArrayList<>());
 		grouped.put("최근 30일", new ArrayList<>());
-		list.stream().sorted(Comparator.comparingLong(Notification::minutesAgo)).filter(n -> n.group() != null)
+		list.stream().sorted(Comparator.comparingLong(n -> n.minutesAgo())).filter(n -> n.group() != null)
 				.forEach(n -> grouped.get(n.group()).add(n));
-		grouped.values().removeIf(List::isEmpty);
+		grouped.values().removeIf(items -> items.isEmpty());
 		return grouped;
 	}
 

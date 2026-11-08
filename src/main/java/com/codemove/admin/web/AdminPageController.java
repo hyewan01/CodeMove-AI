@@ -173,7 +173,7 @@ public class AdminPageController {
 		List<AdminViews.Review> all = views.reviews();
 		List<AdminViews.Review> visible = "전체".equals(rating) ? all
 				: all.stream().filter(r -> String.valueOf(r.rating()).equals(rating)).toList();
-		double average = all.stream().mapToInt(AdminViews.Review::rating).average().orElse(0);
+		double average = all.stream().mapToInt(r -> r.rating()).average().orElse(0);
 		long size = Math.max(1, all.size());
 		model.addAttribute("reviews", visible);
 		model.addAttribute("reviewCount", all.size());
@@ -185,10 +185,10 @@ public class AdminPageController {
 		}).toList());
 		model.addAttribute("rating", rating);
 		java.util.Map<Long, String> replies = new java.util.LinkedHashMap<>();
-		all.stream().filter(AdminViews.Review::answered).forEach(r -> replies.put(r.id(), r.reply()));
+		all.stream().filter(r -> r.answered()).forEach(r -> replies.put(r.id(), r.reply()));
 		model.addAttribute("replies", replies);
 		// 프로토타입은 처음에 답변 안 한 첫 리뷰의 입력창이 열린 상태
-		long firstOpen = visible.stream().filter(r -> !r.answered()).mapToLong(AdminViews.Review::id).findFirst().orElse(-1);
+		long firstOpen = visible.stream().filter(r -> !r.answered()).mapToLong(r -> r.id()).findFirst().orElse(-1);
 		model.addAttribute("replyingTo", reply != null ? reply : (edit == null ? firstOpen : -1));
 		model.addAttribute("editing", edit);
 		return "admin/reviews";
