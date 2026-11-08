@@ -231,11 +231,71 @@ codemove-myungpum-express/
 | 애플 | Apple Developer(유료 멤버십) → Services ID + Sign in with Apple 키(.p8) | Services ID, 팀 ID, 키 ID, .p8 | `https://<도메인>/login/oauth/apple/callback` |
 
 - 애플은 `localhost`·`http` 주소를 허용하지 않으므로 배포 도메인이나 https 터널 주소를 `redirect-base`에 적어야 합니다.
-- 현재는 로그인 성공 시 제공자 이름으로 고객 세션만 만듭니다. 회원 조회·가입(TBL_SOCIAL 연동)은 백엔드 개발 때 연결합니다.
+- 처음 간편 로그인한 계정은 회원가입으로 이동하고, 가입을 마치면 `TBL_SOCIAL`에 연결되어 다음부터 바로 로그인됩니다.
 
 **주의:** 화면 시연(Figma Make) 구현과 최종 서버·DB 연동 완료는 구분합니다. 이 README의 기능 목록은 프로젝트 목표를 포함하며 전체 기능 구현 완료를 의미하지 않습니다.
 
-## 14. 변경 이력
+## 14. 실행 방법 및 화면 주소
+
+### 서버 켜기
+
+- **더블클릭:** 프로젝트 폴더의 `서버실행.bat`을 더블클릭하면 서버가 켜지고, 준비되면 브라우저에 첫 화면이 열립니다. 처음에는 1~2분쯤 걸립니다. 열린 검은 창을 닫으면 서버도 꺼집니다. 이미 켜져 있으면 브라우저만 엽니다.
+- **터미널:** 프로젝트 폴더에서 `.\gradlew bootRun` 을 실행하고 `Started CodemoveApplication`이 보이면 접속합니다.
+- 먼저 `src/main/resources/application-local.yml`(DB 접속 정보)이 있어야 합니다. 없으면 `application-local.yml.example`을 복사해 만듭니다.
+- `localhost`는 서버를 켠 컴퓨터를 뜻하므로 그 컴퓨터에서만 열립니다. 다른 기기에서 보려면 서버 배포가 필요합니다.
+
+### 샘플 계정 (휴대전화 로그인, 인증번호는 아무 6자리)
+
+| 계정 | 번호 | 상태 |
+| --- | --- | --- |
+| 관리자 김선국 | 010-9445-8224 | 로그인하면 관리자 화면으로 이동 |
+| 고객 김코드 | 010-5678-1234 | 예약 완료 (지난 이사 후기 있음) |
+| 고객 김무브 | 010-4321-8765 | 견적 도착, 확정 전 |
+
+샘플 데이터는 `db/data-sample.sql`로 다시 넣을 수 있습니다.
+
+### 고객 화면
+
+| 화면 | 주소 |
+| --- | --- |
+| 첫 화면 (로그인) | http://localhost:8080 |
+| 홈 | http://localhost:8080/home |
+| 이사 견적 요청 | http://localhost:8080/quote |
+| 내 이사 (예약 · 견적 · 완료) | http://localhost:8080/move |
+| 견적 상세 | http://localhost:8080/move/estimate |
+| 예약 상세 | http://localhost:8080/move/reservation |
+| 상담 (챗봇 · 상담사 연결) | http://localhost:8080/chat |
+| 더보기 | http://localhost:8080/more |
+| 내 정보 수정 | http://localhost:8080/more/profile |
+| 견적내역 | http://localhost:8080/more/estimates |
+| 예약내역 | http://localhost:8080/more/reservations |
+| 후기 | http://localhost:8080/more/reviews |
+| 알림 | http://localhost:8080/notifications |
+
+### 관리자 화면
+
+| 화면 | 주소 |
+| --- | --- |
+| 홈 (대시보드) | http://localhost:8080/admin |
+| 견적 관리 | http://localhost:8080/admin/estimates |
+| 견적서 등록 | http://localhost:8080/admin/estimates/new |
+| 예약 관리 | http://localhost:8080/admin/reservations |
+| 일정 캘린더 | http://localhost:8080/admin/schedule |
+| 일정 관리 (휴무일 · 예약 불가) | http://localhost:8080/admin/schedule/manage |
+| 채팅 관리 | http://localhost:8080/admin/chat-management |
+| 채팅 목록 | http://localhost:8080/admin/chats |
+| 채팅 운영 설정 | http://localhost:8080/admin/chat-management/operation |
+| 첫 화면 · 퀵메뉴 설정 | http://localhost:8080/admin/chat-management/entry |
+| 답변 설정 관리 | http://localhost:8080/admin/chat-management/answers |
+| 리뷰 관리 | http://localhost:8080/admin/reviews |
+| 회원 관리 | http://localhost:8080/admin/members |
+| 알림 관리 | http://localhost:8080/admin/notifications |
+| 알림 내역 | http://localhost:8080/admin/notifications/history |
+| 메시징 운영 설정 | http://localhost:8080/admin/notifications/messaging |
+
+관리자 화면 아래쪽 **전체** 메뉴에도 모든 관리자 화면이 모여 있습니다.
+
+## 15. 변경 이력
 
 | 버전 | 날짜 | 변경 내용 | 작성자 |
 | --- | --- | --- | --- |
