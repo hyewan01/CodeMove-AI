@@ -66,4 +66,18 @@ textarea.reservation-request-card { display: block; width: 100%; border: 0; font
   .quote-success, .easy-quote-success { min-height: 100%; }
   .easy-mode .date-skip-modal, .easy-mode .reservation-cancel-modal { width: min(380px, calc(100% - 24px)); max-height: calc(var(--frame-h) - 32px); }
   .reservation-detail-page { min-height: calc(var(--frame-h) - 56px - 59px); }
+
+  /* 온보딩: vw 단위가 브라우저 창 기준이라 프레임(430px)에서 과하게 커짐 → 고정 크기 + 여백 */
+  .onboarding { padding: 56px 28px 40px; }
+  .onboarding-main { transform: none; }
+  .onboarding-slide { height: 330px; }
+  .onboarding-art-main { width: 290px; margin-bottom: -14px; }
+  .onboarding-art-service { width: 210px; margin-block: 14px 12px; }
+  .onboarding-art-icon { width: 180px; height: 180px; margin-block: 28px 24px; padding: 30px; }
+  .onboarding-title { margin-top: 26px; font-size: 21px; line-height: 1.4; }
+  .brand-name { margin-top: 20px; font-size: 25px; }
+  .pager { margin-top: 28px; }
+  .onboarding-actions { margin-top: 36px; }
+  .onboarding-actions .action { min-height: 54px; }
+  .browse { margin-top: 22px; }
 }

@@ -19,6 +19,8 @@ import lombok.Setter;
 public class CustomerSession implements Serializable {
 
 	private static final String KEY = "customerSession";
+	/** 로그인이 필요한 화면에 접근했을 때 저장해 두는 원래 주소 */
+	public static final String LOGIN_REDIRECT_KEY = "customerLoginRedirect";
 
 	private boolean loggedIn;
 	private String userName = "김무브";
@@ -35,6 +37,13 @@ public class CustomerSession implements Serializable {
 	private String requestNote = "냉장고는 전날 비워둘게요. 도착지 주차는 지하 2층에 가능합니다.";
 	/** 이번 세션에서 작성한 후기 */
 	private List<CustomerMockData.MyReview> submittedReviews = new ArrayList<>();
+
+	/** 로그인 후 이동할 주소: 저장된 원래 주소가 있으면 그곳, 없으면 홈 */
+	public static String redirectAfterLogin(HttpSession session) {
+		Object target = session.getAttribute(LOGIN_REDIRECT_KEY);
+		session.removeAttribute(LOGIN_REDIRECT_KEY);
+		return "redirect:" + (target != null ? target : "/home");
+	}
 
 	public static CustomerSession of(HttpSession session) {
 		CustomerSession state = (CustomerSession) session.getAttribute(KEY);

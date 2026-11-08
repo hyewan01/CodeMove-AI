@@ -93,7 +93,7 @@ public class CustomerPageController {
 	@PostMapping("/login/social")
 	public String socialLogin(@RequestParam String provider, HttpSession session) {
 		CustomerSession.of(session).loginAs("kakao".equals(provider) ? "kimCode" : "kimMove", provider);
-		return "redirect:/home";
+		return CustomerSession.redirectAfterLogin(session);
 	}
 
 	@GetMapping("/login/phone")
@@ -108,7 +108,7 @@ public class CustomerPageController {
 		String digits = phone.replaceAll("\\D", "");
 		cs.loginAs("01056781234".equals(digits) ? "kimCode" : "kimMove", null);
 		cs.setPhone(phone);
-		return "redirect:/home";
+		return CustomerSession.redirectAfterLogin(session);
 	}
 
 	@GetMapping("/logout")
@@ -179,7 +179,7 @@ public class CustomerPageController {
 		SignupForm form = signupForm(session);
 		CustomerSession.of(session).signupComplete(form.getName(), form.getPhone());
 		session.removeAttribute(SIGNUP_KEY);
-		return "redirect:/home";
+		return CustomerSession.redirectAfterLogin(session);
 	}
 
 	/* ---------- 영상 견적 (SCR-U-003~010) ---------- */

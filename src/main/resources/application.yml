@@ -1,3 +1,9 @@
+server:
+  servlet:
+    session:
+      # devtools 재시작 시 세션 복원 실패(ClassNotFoundException) 방지
+      persistent: false
+
 spring:
   application:
     name: codemove

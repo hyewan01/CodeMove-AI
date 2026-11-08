@@ -16,6 +16,13 @@ public class CustomerLoginInterceptor implements HandlerInterceptor {
 		if (CustomerSession.of(request.getSession()).isLoggedIn()) {
 			return true;
 		}
+		// 로그인 후 원래 가려던 화면으로 돌아가도록 저장 (예: 하단 [이사견적] → 로그인 → 영상 올리기)
+		if ("GET".equals(request.getMethod())) {
+			String query = request.getQueryString();
+			String target = request.getRequestURI().substring(request.getContextPath().length())
+					+ (query != null ? "?" + query : "");
+			request.getSession().setAttribute(CustomerSession.LOGIN_REDIRECT_KEY, target);
+		}
 		response.sendRedirect(request.getContextPath() + "/login?backdrop=home");
 		return false;
 	}
