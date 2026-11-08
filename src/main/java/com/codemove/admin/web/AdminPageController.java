@@ -7,7 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,25 +38,7 @@ public class AdminPageController {
 			Map.entry("/admin/chat-management/answers", new String[] { "답변 설정 관리", "SCR-A-010" }),
 			Map.entry("/admin/notifications", new String[] { "알림 관리", "SCR-A-013" }),
 			Map.entry("/admin/notifications/history", new String[] { "알림 내역", "SCR-A-014" }),
-			Map.entry("/admin/notifications/messaging", new String[] { "메시징 운영 설정", "SCR-A-015" }),
-			Map.entry("/admin/schedule", new String[] { "일정 캘린더", "SCR-A-020" }),
-			Map.entry("/admin/schedule/manage", new String[] { "일정 관리", "SCR-A-022" }));
-
-	/** 모든 관리자 화면 공통: 헤더 알림 패널, 통합 메뉴 검색, 전체 메뉴, 루틴 토스트 */
-	@ModelAttribute
-	public void common(HttpServletRequest request, HttpSession session, Model model) {
-		AdminState state = AdminState.of(session);
-		model.addAttribute("notificationGroups", AdminMockData.groupedNotifications(state.getNotifications()));
-		model.addAttribute("hasUnreadNotifications", !state.isNotificationsRead());
-		model.addAttribute("searchMenus", AdminMockData.searchMenus());
-		model.addAttribute("drawerMenus", AdminMockData.drawerMenus());
-		String query = request.getQueryString();
-		model.addAttribute("currentUrl", request.getRequestURI().substring(request.getContextPath().length())
-				+ (query != null ? "?" + query : ""));
-		if ("GET".equals(request.getMethod())) {
-			model.addAttribute("toast", state.takeToast());
-		}
-	}
+			Map.entry("/admin/notifications/messaging", new String[] { "메시징 운영 설정", "SCR-A-015" }));
 
 	/** 헤더 알림 패널을 열면 빨간 점 제거 */
 	@PostMapping("/notifications/panel-read")
@@ -215,7 +196,7 @@ public class AdminPageController {
 
 	@GetMapping({ "/estimates", "/estimates/new", "/chat-management", "/chats", "/chat-management/operation",
 			"/chat-management/entry", "/chat-management/answers", "/notifications", "/notifications/history",
-			"/notifications/messaging", "/schedule", "/schedule/manage" })
+			"/notifications/messaging" })
 	public String pending(HttpServletRequest request, Model model) {
 		String[] page = PENDING.get(request.getRequestURI().substring(request.getContextPath().length()));
 		model.addAttribute("pageName", page[0]);
@@ -233,7 +214,7 @@ public class AdminPageController {
 	/* ---------- 공통 ---------- */
 
 	/** 목록 페이지 나누기: rows, page, pageCount, rowOffset */
-	private static void addPage(Model model, List<?> filtered, int page) {
+	static void addPage(Model model, List<?> filtered, int page) {
 		int pageCount = Math.max(1, (int) Math.ceil(filtered.size() / (double) PAGE_SIZE));
 		int current = Math.min(Math.max(1, page), pageCount);
 		int from = (current - 1) * PAGE_SIZE;
@@ -244,7 +225,7 @@ public class AdminPageController {
 	}
 
 	/** 같은 관리자 화면 안의 주소로만 되돌아가기 */
-	private static String safeBack(String back, String fallback) {
+	static String safeBack(String back, String fallback) {
 		return back.startsWith("/admin") ? back : fallback;
 	}
 }

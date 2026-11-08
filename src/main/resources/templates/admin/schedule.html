@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html th:replace="~{admin/fragments/layout :: layout('일정 캘린더', 'schedule', false, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 일정 캘린더 (SCR-A-020) · 일정 등록 (SCR-A-021) -->
+<th:block th:fragment="content">
+<div class="px-4 pb-28 pt-6" data-schedule>
+	<h2 class="px-1 text-[24px] font-extrabold tracking-[-0.04em] text-[#346538]">일정 캘린더</h2>
+	<section class="mt-5 rounded-[20px] bg-white p-4 shadow-[0_5px_18px_rgba(36,58,39,.06)] transition-all" data-calendar-section>
+		<div class="flex items-center justify-center gap-4">
+			<a aria-label="이전 달" class="grid h-8 w-8 rotate-180 place-items-center text-[#586159]"
+			   th:href="@{/admin/schedule(y=${prev.year},m=${prev.monthValue},d=1)}"><svg th:replace="~{admin/fragments/icon :: icon('arrowRight', 17, '')}"></svg></a>
+			<button class="flex items-center gap-1 text-[15px] font-extrabold text-[#29312b]" type="button" data-toggle="month-picker">
+				<th:block th:text="${y} + '년 ' + ${m} + '월'"></th:block> <svg th:replace="~{admin/fragments/icon :: icon('chevron', 14, '')}"></svg>
+			</button>
+			<a aria-label="다음 달" class="grid h-8 w-8 place-items-center text-[#586159]"
+			   th:href="@{/admin/schedule(y=${next.year},m=${next.monthValue},d=1)}"><svg th:replace="~{admin/fragments/icon :: icon('arrowRight', 17, '')}"></svg></a>
+		</div>
+		<div class="mt-4 grid grid-cols-7 text-center text-[9px] font-bold">
+			<span th:each="w, it : ${ {'일', '월', '화', '수', '목', '금', '토'} }" th:text="${w}"
+				  th:class="${it.index == 0} ? 'text-[#c85f57]' : (${it.index == 6} ? 'text-[#557fa3]' : 'text-[#858d87]')"></span>
+		</div>
+		<div class="mt-2 grid grid-cols-7">
+			<th:block th:each="c : ${cells}">
+				<span th:if="${c.day == null}" class="h-[58px]"></span>
+				<a th:unless="${c.day == null}" th:href="@{/admin/schedule(y=${y},m=${m},d=${c.day})}"
+				   class="relative flex h-[58px] flex-col items-start border-t border-[#f0f2f0] p-1 text-left" th:classappend="${c.day == d} ? 'bg-[#edf3ed]'">
+					<span class="relative flex h-5 w-4 shrink-0 items-end justify-center">
+						<span th:if="${c.noMove}" class="absolute left-1/2 top-0 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#4f80ac]"></span>
+						<span th:if="${c.holiday}" class="absolute left-1/2 top-0 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#c85f57]"></span>
+						<span class="text-[10px] font-bold" th:classappend="${c.holiday or c.weekday == 0} ? 'text-[#c85f57]' : 'text-[#555e57]'" th:text="${c.day}">1</span>
+					</span>
+					<span th:if="${c.event}" class="mt-1 block w-full truncate rounded px-1 py-0.5 text-[7px] font-bold text-white"
+						  th:classappend="${c.event.status == '승인 대기'} ? 'bg-[#4f80ac]' : (${c.event.status == '예약 확정'} ? 'bg-[#4f8b55]' : 'bg-[#59635b]')"
+						  th:text="${c.event.name}"></span>
+					<span th:if="${c.manual}" class="mt-1 block w-full truncate rounded px-1 py-0.5 text-[7px] font-bold text-white"
+						  th:classappend="${c.manual.category == '업체 휴무일'} ? 'bg-[#343a35]' : (${c.manual.category == '견적 상담'} ? 'bg-[#7a6db0]' : 'bg-[#7a837c]')"
+						  th:text="${c.manual.title}"></span>
+					<span th:if="${c.managed}" class="mt-1 block w-full truncate rounded px-1 py-0.5 text-[7px] font-bold text-white"
+						  th:classappend="${c.managed == 'closed'} ? 'bg-[#343a35]' : 'bg-[#F57C00]'"
+						  th:text="${c.managed == 'closed'} ? '정기 휴무' : '예약 불가'"></span>
+				</a>
+			</th:block>
+		</div>
+		<div class="mt-3 flex flex-wrap gap-3 border-t border-[#edf0ed] pt-3 text-[8px] text-[#727a74]">
+			<span><b class="mr-1 inline-block h-2 w-2 bg-[#343a35]"></b>업체 휴무일</span>
+			<span><b class="mr-1 inline-block h-2 w-2 bg-[#F57C00]"></b>예약 불가</span>
+			<span><b class="mr-1 inline-block h-2 w-2 bg-[#4f80ac]"></b>승인 대기</span>
+			<span><b class="mr-1 inline-block h-2 w-2 bg-[#4f8b55]"></b>예약 확정</span>
+			<span><b class="mr-1 inline-block h-2 w-2 bg-[#59635b]"></b>이사 완료</span>
+			<span><b class="mr-1 inline-block h-2 w-2 bg-[#7a6db0]"></b>견적 상담</span>
+			<span><b class="mr-1 inline-block h-2 w-2 rounded-full bg-[#4f80ac]"></b>손 없는 날</span>
+			<span><b class="mr-1 inline-block h-2 w-2 rounded-full bg-[#c85f57]"></b>공휴일</span>
+		</div>
+	</section>
+
+	<section class="mt-4 rounded-[20px] bg-white p-5 shadow-[0_5px_18px_rgba(36,58,39,.06)] transition-all" data-day-section>
+		<div class="flex items-center justify-between">
+			<div>
+				<p class="text-[10px] font-bold text-[#89918b]" th:text="${y} + '년 ' + ${m} + '월'">2026년 9월</p>
+				<div class="mt-1 flex items-baseline gap-2">
+					<h3 class="text-[17px] font-extrabold" th:text="${m} + '월 ' + ${d} + '일'">9월 27일</h3>
+					<span th:if="${noMove}" class="text-[9px] font-bold text-[#4f80ac]">손 없는 날</span>
+					<span th:if="${holiday}" class="text-[9px] font-bold text-[#c85f57]">공휴일</span>
+				</div>
+			</div>
+			<button class="text-[9px] font-bold text-[#7b837d]" type="button" data-expand>일정 펼치기</button>
+		</div>
+		<div class="mt-5 space-y-3">
+			<a th:each="r : ${daySchedules}" class="flex w-full gap-3 text-left" th:href="${baseUrl} + '&rsv=' + ${r.id}">
+				<span class="w-11 pt-3 text-[10px] font-bold text-[#687069]" th:text="${r.movingTime}">09:00</span>
+				<span class="flex-1 rounded-xl border-l-4 bg-[#f5f8f5] p-3"
+					  th:classappend="${r.status == '승인 대기'} ? 'border-[#4f80ac]' : (${r.status == '예약 확정'} ? 'border-[#4f8b55]' : 'border-[#59635b]')">
+					<b class="block text-[11px]" th:text="${r.name}"></b>
+					<small class="mt-1 block text-[9px] text-[#727a74]" th:text="${r.status} + ' · ' + ${r.service}"></small>
+				</span>
+			</a>
+			<div class="relative" th:each="s : ${dayManuals}">
+				<a class="flex w-full gap-3 text-left" th:href="${baseUrl} + '&manual=' + ${s.id}">
+					<span class="w-11 pt-3 text-[10px] font-bold" th:text="${s.time}"></span>
+					<span class="flex-1 rounded-xl border-l-4 bg-[#f3f4f3] p-3 pr-10 text-[11px] font-bold"
+						  th:classappend="${s.category == '업체 휴무일'} ? 'border-[#343a35]' : (${s.category == '견적 상담'} ? 'border-[#7a6db0]' : 'border-[#7a837c]')">
+						<th:block th:text="${s.title}"></th:block>
+						<small class="mt-1 block font-normal text-[#7a827c]" th:text="${s.category} + (${#strings.isEmpty(s.place)} ? '' : ' · ' + ${s.place})"></small>
+					</span>
+				</a>
+				<a th:aria-label="${s.title} + ' 일정 삭제'" class="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-lg text-[#c7635a] hover:bg-[#fbefed]"
+				   th:href="${baseUrl} + '&del=' + ${s.id}"><svg th:replace="~{admin/fragments/icon :: icon('trash', 15, '')}"></svg></a>
+			</div>
+			<div class="flex gap-3" th:if="${dayManaged}">
+				<span class="w-11 pt-3 text-[10px] font-bold">종일</span>
+				<span class="flex-1 rounded-xl border-l-4 bg-[#f3f4f3] p-3 text-[11px] font-bold"
+					  th:classappend="${dayManaged == 'closed'} ? 'border-[#343a35]' : 'border-[#F57C00]'"
+					  th:text="${dayManaged == 'closed'} ? '업체 휴무일' : '이사 예약 불가능'"></span>
+			</div>
+			<p th:if="${#lists.isEmpty(daySchedules) and #lists.isEmpty(dayManuals) and dayManaged == null}" class="py-8 text-center text-[10px] text-[#929994]">등록된 일정이 없습니다.</p>
+		</div>
+		<a class="mx-auto mt-5 block w-fit rounded-full border border-[#cfd6d0] px-5 py-2.5 text-[10px] font-bold text-[#346538]" th:href="${baseUrl} + '&modal=new'">+ 일정 등록</a>
+	</section>
+
+	<!-- 년·월 선택 -->
+	<div class="absolute inset-x-0 bottom-[82px] top-[68px] z-50 grid place-items-center bg-[#1f2d21]/45 p-5 backdrop-blur-[2px]" data-toggle-target="month-picker" hidden>
+		<form class="w-full rounded-[20px] bg-white p-5" method="get" th:action="@{/admin/schedule}" data-month-picker>
+			<button class="mx-auto flex items-center gap-1 text-[16px] font-extrabold" type="button" data-grid-mode>
+				<span data-picker-label th:text="${y} + '년 ' + ${m} + '월'"></span> <svg th:replace="~{admin/fragments/icon :: icon('chevron', 15, 'rotate-180')}"></svg>
+			</button>
+			<div class="mt-5 grid grid-cols-3 gap-2" data-grid hidden>
+				<button th:each="mm : ${#numbers.sequence(1, 12)}" type="button" th:data-month="${mm}" th:text="${mm} + '월'"
+						class="h-11 rounded-xl bg-[#f3f5f3] text-[11px] font-bold aria-pressed:bg-[#346538] aria-pressed:text-white" th:aria-pressed="${mm == m}"></button>
+			</div>
+			<div class="mt-5 grid grid-cols-3 gap-2" data-selects>
+				<label class="text-center"><span class="mb-1.5 block text-[9px] font-bold text-[#858d87]">년</span>
+					<select class="h-12 w-full rounded-xl bg-[#f5f6f5] px-2 text-center text-[12px] font-bold" name="y">
+						<option th:each="yy : ${ {2024, 2025, 2026, 2027, 2028} }" th:value="${yy}" th:text="${yy}" th:selected="${yy == y}"></option>
+					</select></label>
+				<label class="text-center"><span class="mb-1.5 block text-[9px] font-bold text-[#858d87]">월</span>
+					<select class="h-12 w-full rounded-xl bg-[#f5f6f5] px-2 text-center text-[12px] font-bold" name="m">
+						<option th:each="mm : ${#numbers.sequence(1, 12)}" th:value="${mm}" th:text="${mm}" th:selected="${mm == m}"></option>
+					</select></label>
+				<label class="text-center"><span class="mb-1.5 block text-[9px] font-bold text-[#858d87]">일</span>
+					<select class="h-12 w-full rounded-xl bg-[#f5f6f5] px-2 text-center text-[12px] font-bold" name="d">
+						<option th:each="dd : ${#numbers.sequence(1, 31)}" th:value="${dd}" th:text="${dd}" th:selected="${dd == d}"></option>
+					</select></label>
+			</div>
+			<div class="mt-5 grid grid-cols-2 gap-2">
+				<button class="h-11 rounded-xl border border-[#d9ded9] text-[11px] font-bold" type="button" data-toggle="month-picker">취소</button>
+				<button class="h-11 rounded-xl bg-[#346538] text-[11px] font-bold text-white" type="submit">완료</button>
+			</div>
+		</form>
+	</div>
+
+	<!-- 일정 상세 (직접 등록한 일정) -->
+	<div th:if="${selectedManual}" class="absolute inset-x-0 bottom-[82px] top-[68px] z-50 grid place-items-center bg-[#1f2d21]/45 p-5 backdrop-blur-[2px]">
+		<div class="w-full rounded-[20px] bg-white p-5 shadow-2xl">
+			<div class="flex items-center justify-between">
+				<h3 class="text-[17px] font-extrabold">일정 상세</h3>
+				<a aria-label="일정 상세 닫기" th:href="${baseUrl}"><svg th:replace="~{admin/fragments/icon :: icon('x', 18, '')}"></svg></a>
+			</div>
+			<div class="mt-5 space-y-3 rounded-xl bg-[#f7f8f7] p-4 text-[10px]">
+				<p><b>제목</b><span class="float-right" th:text="${selectedManual.title}"></span></p>
+				<p><b>분류</b><span class="float-right" th:text="${selectedManual.category}"></span></p>
+				<p><b>요일·날짜</b><span class="float-right" th:text="${selectedManual.date}"></span></p>
+				<p><b>시간</b><span class="float-right" th:text="${selectedManual.time}"></span></p>
+				<p><b>장소</b><span class="float-right" th:text="${#strings.isEmpty(selectedManual.place)} ? '미등록' : ${selectedManual.place}"></span></p>
+			</div>
+			<div th:if="${linkedMember}" class="mt-3 rounded-xl border border-[#e1e5e1] p-4">
+				<p class="text-[10px] font-extrabold text-[#346538]">연결 회원</p>
+				<p class="mt-2 text-[10px] font-bold" th:text="${linkedMember[0]}"></p>
+				<p class="mt-1 text-[9px] text-[#7c847e]" th:text="${linkedMember[1]}"></p>
+			</div>
+			<th:block th:if="${linkedReservation}">
+				<div class="mt-3 rounded-xl border border-[#e1e5e1] p-4">
+					<div class="flex items-center justify-between">
+						<p class="text-[10px] font-extrabold text-[#346538]">연결 예약</p>
+						<span class="rounded-full px-2 py-1 text-[8px] font-bold" th:classappend="${reservationTone.get(linkedReservation.status)}" th:text="${linkedReservation.status}"></span>
+					</div>
+					<p class="mt-2 truncate text-[9px] text-[#626a64]" th:text="${linkedReservation.origin} + ' → ' + ${linkedReservation.destination}"></p>
+				</div>
+				<a class="mt-5 grid h-11 w-full place-items-center rounded-xl bg-[#346538] text-[11px] font-bold text-white"
+				   th:href="@{/admin/estimates/{id}/document(id=${(linkedReservation.id - 1) % 11 + 1},back=${baseUrl})}">상세 보기</a>
+			</th:block>
+		</div>
+	</div>
+
+	<!-- 예약 상세 정보 (예약 일정) -->
+	<div th:if="${selectedSchedule}" th:with="r=${selectedSchedule}" class="absolute inset-x-0 bottom-[82px] top-[68px] z-50 grid place-items-center bg-[#1f2d21]/45 p-5 backdrop-blur-[2px]">
+		<div class="w-full rounded-[20px] bg-white p-5">
+			<div class="flex items-center justify-between"><h3 class="text-[17px] font-extrabold">예약 상세 정보</h3>
+				<a aria-label="닫기" th:href="${baseUrl}"><svg th:replace="~{admin/fragments/icon :: icon('x', 18, '')}"></svg></a></div>
+			<div class="mt-4 flex items-center justify-between">
+				<span class="rounded-full px-2 py-1 text-[9px] font-bold" th:classappend="${r.displayStatus() == '예약 취소'} ? 'bg-[#fbefed] text-[#b9574f]' : 'bg-[#edf4ed] text-[#346538]'" th:text="${r.displayStatus()}"></span>
+				<span class="text-[9px] text-[#858d87]" th:text="'신청일 ' + ${r.appliedDate}"></span>
+			</div>
+			<div class="mt-4 space-y-3">
+				<section class="rounded-xl bg-[#f7f8f7] p-4"><h4 class="text-[11px] font-extrabold text-[#346538]">연동 정보</h4>
+					<div class="mt-3 grid grid-cols-[88px_1fr] gap-y-2 text-[10px]">
+						<span class="font-bold text-[#737b75]">회원 정보</span><span th:text="${r.name}"></span>
+						<span class="font-bold text-[#737b75]">견적 번호</span><span th:text="'EST-' + ${#numbers.formatInteger(selectedEstimateId, 4)}"></span>
+						<span class="font-bold text-[#737b75]">예약 번호</span><span th:text="'RSV-' + ${#numbers.formatInteger(r.id, 4)}"></span>
+					</div></section>
+				<section class="rounded-xl bg-[#f7f8f7] p-4"><h4 class="text-[11px] font-extrabold text-[#346538]">예약 상세 내역</h4>
+					<div class="mt-3 grid grid-cols-[88px_1fr] gap-y-2 text-[10px]">
+						<span class="font-bold text-[#737b75]">이사 유형</span><span th:text="${r.service}"></span>
+						<span class="font-bold text-[#737b75]">이사일</span><span th:text="${r.movingDate} ?: '-'"></span>
+						<span class="font-bold text-[#737b75]">이사 시간</span><span th:text="${r.movingTime} ?: '-'"></span>
+						<span class="font-bold text-[#737b75]">출발지</span><span th:text="${r.origin}"></span>
+						<span class="font-bold text-[#737b75]">도착지</span><span th:text="${r.destination}"></span>
+					</div></section>
+			</div>
+			<a class="mt-5 grid h-11 w-full place-items-center rounded-xl bg-[#346538] text-[11px] font-bold text-white"
+			   th:href="@{/admin/estimates/{id}/document(id=${selectedEstimateId},back=${baseUrl})}">상세 보기</a>
+		</div>
+	</div>
+
+	<!-- 일정 삭제 확인 -->
+	<form th:if="${deletingManual}" method="post" th:action="@{/admin/schedule/manual/{id}/delete(id=${deletingManual.id})}"
+		  class="absolute inset-x-0 bottom-[82px] top-[68px] z-[70] grid place-items-center bg-[#1f2d21]/45 p-6 backdrop-blur-[2px]">
+		<input type="hidden" name="back" th:value="${baseUrl}">
+		<div class="w-full rounded-[20px] bg-white p-6 text-center shadow-2xl">
+			<h3 class="text-[17px] font-extrabold text-[#29312b]">정말 삭제하시겠습니까?</h3>
+			<p class="mt-2 text-[10px] text-[#8b928d]">삭제된 데이터는 복구할 수 없습니다.</p>
+			<div class="mt-6 grid grid-cols-2 gap-2">
+				<a class="grid h-11 place-items-center rounded-xl border border-[#d9ded9] text-[11px] font-bold text-[#69716b]" th:href="${baseUrl}">취소</a>
+				<button class="h-11 rounded-xl bg-[#c75f56] text-[11px] font-bold text-white" type="submit">삭제</button>
+			</div>
+		</div>
+	</form>
+
+	<!-- 일정 등록 (SCR-A-021) -->
+	<div th:if="${modal == 'new'}" class="absolute inset-x-0 bottom-[82px] top-[68px] z-50 grid place-items-center overflow-y-auto bg-[#1f2d21]/45 p-5 backdrop-blur-[2px]">
+		<form class="my-auto w-full rounded-[20px] bg-white p-5 shadow-2xl" method="post" th:action="@{/admin/schedule/manual}" data-manual-form>
+			<div class="flex items-center justify-between">
+				<h3 class="text-[17px] font-extrabold">일정 등록</h3>
+				<a aria-label="일정 등록 닫기" th:href="${baseUrl}"><svg th:replace="~{admin/fragments/icon :: icon('x', 18, '')}"></svg></a>
+			</div>
+			<div class="mt-4 max-h-[480px] space-y-3 overflow-y-auto pr-1">
+				<label class="block"><span class="mb-1 block text-[9px] font-bold">제목 <b class="text-[#c75f56]">*</b></span>
+					<input class="h-10 w-full rounded-lg border border-[#dfe4df] px-3 text-[11px] outline-none focus:border-[#346538]" name="title" placeholder="일정 제목을 입력하세요"></label>
+				<div class="block">
+					<span class="mb-1 block text-[9px] font-bold">분류 <b class="text-[#c75f56]">*</b></span>
+					<input type="hidden" name="category" value="견적 상담" data-category-value>
+					<button class="flex h-10 w-full items-center justify-between rounded-lg border border-[#dfe4df] bg-white px-3 text-left text-[11px]" type="button" data-toggle="category">
+						<span class="font-semibold text-[#424a44]" data-category-label>견적 상담</span>
+						<svg th:replace="~{admin/fragments/icon :: icon('chevron', 14, '')}"></svg>
+					</button>
+					<div class="mt-1.5 overflow-hidden rounded-lg border border-[#dfe4df] bg-white shadow-[0_8px_20px_rgba(36,58,39,.12)]" data-toggle-target="category" hidden>
+						<button th:each="c : ${ {'견적 상담', '기타', '직접 입력'} }" type="button" th:data-category="${c}" th:text="${c}"
+								class="flex h-10 w-full items-center border-b border-[#edf0ed] px-3 text-left text-[11px] font-semibold text-[#59625b] last:border-none hover:bg-[#f5f7f5]"></button>
+					</div>
+					<input class="mt-2 h-10 w-full rounded-lg border border-[#dfe4df] px-3 text-[11px] outline-none focus:border-[#346538]"
+						   placeholder="분류명을 직접 입력하세요" data-category-custom hidden>
+				</div>
+				<div class="grid grid-cols-2 gap-2">
+					<label class="block"><span class="mb-1 block text-[9px] font-bold">요일·날짜 <b class="text-[#c75f56]">*</b></span>
+						<input class="h-10 w-full rounded-lg border border-[#dfe4df] px-2 text-[10px]" name="date" type="date" th:value="${newDate}"></label>
+					<label class="block"><span class="mb-1 block text-[9px] font-bold">시간 <b class="text-[#c75f56]">*</b></span>
+						<input class="h-10 w-full rounded-lg border border-[#dfe4df] px-2 text-[10px]" name="time" type="time"></label>
+				</div>
+				<label class="block"><span class="mb-1 block text-[9px] font-bold">장소</span>
+					<input class="h-10 w-full rounded-lg border border-[#dfe4df] px-3 text-[11px]" name="place" placeholder="일정 장소를 입력하세요"></label>
+
+				<div class="rounded-xl bg-[#f7f8f7] p-3">
+					<p class="text-[10px] font-extrabold text-[#346538]">회원 연결</p>
+					<input type="hidden" name="memberId" data-member-id>
+					<input class="mt-2 h-9 w-full rounded-lg border border-[#dfe4df] bg-white px-3 text-[10px]" placeholder="회원 이름이나 휴대전화를 입력하세요" data-member-query>
+					<div class="mt-2 max-h-28 overflow-y-auto rounded-lg border border-[#e1e5e1] bg-white" data-member-results hidden></div>
+				</div>
+				<div class="rounded-xl bg-[#f7f8f7] p-3">
+					<p class="text-[10px] font-extrabold text-[#346538]">예약 내역 연결</p>
+					<input type="hidden" name="reservationId" data-reservation-id>
+					<input class="mt-2 h-9 w-full rounded-lg border border-[#dfe4df] bg-white px-3 text-[10px]" placeholder="이름, 휴대전화 또는 주소를 입력하세요" data-reservation-query>
+					<div class="mt-2 max-h-36 overflow-y-auto rounded-lg border border-[#e1e5e1] bg-white" data-reservation-results hidden></div>
+				</div>
+			</div>
+			<div class="mt-5 grid grid-cols-2 gap-2">
+				<a class="grid h-11 place-items-center rounded-xl border border-[#d9ded9] text-[11px] font-bold" th:href="${baseUrl}">취소</a>
+				<button class="h-11 rounded-xl bg-[#346538] text-[11px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-40" type="submit" disabled data-manual-submit>등록</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<script th:inline="javascript">
+	/* 일정 펼치기 · 년월 선택 그리드 모드 · 일정 등록 (분류 선택, 회원·예약 연결 검색) */
+	(function () {
+		const $ = (s, r = document) => r.querySelector(s);
+		const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+		/* 일정 펼치기: 달력을 접고 일정 영역을 넓힘 (위아래 스와이프로도) */
+		const cal = $('[data-calendar-section]');
+		const day = $('[data-day-section]');
+		const expandBtn = $('[data-expand]');
+		const setExpanded = (on) => {
+			['max-h-[250px]', 'overflow-hidden', 'opacity-90'].forEach((c) => cal.classList.toggle(c, on));
+			day.classList.toggle('min-h-[470px]', on);
+			expandBtn.textContent = on ? '달력 펼치기' : '일정 펼치기';
+			expandBtn.dataset.on = on ? '1' : '';
+		};
+		expandBtn.addEventListener('click', () => setExpanded(!expandBtn.dataset.on));
+		let touchY = 0;
+		const root = $('[data-schedule]');
+		root.addEventListener('touchstart', (e) => { touchY = e.touches[0].clientY; }, { passive: true });
+		root.addEventListener('touchend', (e) => {
+			const delta = touchY - e.changedTouches[0].clientY;
+			if (Math.abs(delta) > 45) setExpanded(delta > 0);
+		});
+
+		/* 년월 선택: 제목을 누르면 월 그리드 ↔ 년·월·일 선택 */
+		const picker = $('[data-month-picker]');
+		const grid = $('[data-grid]', picker);
+		const selects = $('[data-selects]', picker);
+		const label = $('[data-picker-label]', picker);
+		const refreshLabel = () => (label.textContent = `${picker.y.value}년 ${picker.m.value}월`);
+		$('[data-grid-mode]', picker).addEventListener('click', () => { grid.hidden = !grid.hidden; selects.hidden = !grid.hidden; });
+		$$('[data-month]', grid).forEach((b) => b.addEventListener('click', () => {
+			picker.m.value = b.dataset.month;
+			$$('[data-month]', grid).forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+			refreshLabel();
+		}));
+		[picker.y, picker.m].forEach((s) => s.addEventListener('change', refreshLabel));
+
+		/* 일정 등록 */
+		const form = $('[data-manual-form]');
+		if (!form) return;
+		const customers = /*[[${linkCustomers}]]*/ [];
+		const reservations = /*[[${linkReservations}]]*/ [];
+		const submit = $('[data-manual-submit]', form);
+		const refresh = () => (submit.disabled = !form.title.value.trim() || !form.category.value.trim() || !form.date.value || !form.time.value);
+		['title', 'date', 'time'].forEach((n) => form[n].addEventListener('input', refresh));
+
+		const custom = $('[data-category-custom]', form);
+		$$('[data-category]', form).forEach((b) => b.addEventListener('click', () => {
+			const isCustom = b.dataset.category === '직접 입력';
+			custom.hidden = !isCustom;
+			form.category.value = isCustom ? '' : b.dataset.category;
+			$('[data-category-label]', form).textContent = isCustom ? '분류를 선택하세요' : b.dataset.category;
+			$('[data-toggle-target="category"]', form).hidden = true;
+			if (isCustom) { custom.value = ''; custom.focus(); }
+			refresh();
+		}));
+		custom.addEventListener('input', () => { form.category.value = custom.value; refresh(); });
+
+		const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+		const memberQ = $('[data-member-query]', form);
+		const memberBox = $('[data-member-results]', form);
+		const memberId = $('[data-member-id]', form);
+		const rsvQ = $('[data-reservation-query]', form);
+		const rsvBox = $('[data-reservation-results]', form);
+		const rsvId = $('[data-reservation-id]', form);
+
+		const renderMembers = () => {
+			const q = memberQ.value.toLowerCase();
+			memberBox.hidden = !q || !!memberId.value;
+			memberBox.innerHTML = customers.filter((c) => `${c[0]}${c[2]}`.toLowerCase().includes(q)).slice(0, 5)
+				.map((c) => `<button class="flex w-full justify-between border-b border-[#edf0ed] px-3 py-2 text-left text-[9px] last:border-none" type="button" data-pick-member="${esc(c[1])}"><b>${esc(c[0])}</b><span class="text-[#858d87]">${esc(c[2])}</span></button>`).join('');
+		};
+		const renderReservations = () => {
+			const q = rsvQ.value.toLowerCase();
+			rsvBox.hidden = !memberId.value && !q;
+			const list = reservations.filter((r) => !memberId.value || r.userId === memberId.value)
+				.filter((r) => !q || `${r.name}${r.phone}${r.origin}${r.destination}`.toLowerCase().includes(q)).slice(0, 6);
+			rsvBox.innerHTML = list.length
+				? list.map((r) => `<button class="w-full border-b border-[#edf0ed] px-3 py-2 text-left text-[9px] last:border-none ${String(r.id) === rsvId.value ? 'bg-[#edf3ed]' : ''}" type="button" data-pick-reservation="${r.id}"><b class="block">${esc(r.name)} · ${esc(r.phone)}</b><span class="mt-1 block truncate text-[#7d857f]">${esc(r.origin)} → ${esc(r.destination)}</span></button>`).join('')
+				: '<p class="p-3 text-center text-[9px] text-[#939a95]">일치하는 예약이 없습니다.</p>';
+		};
+		memberQ.addEventListener('input', () => { memberId.value = ''; renderMembers(); renderReservations(); });
+		rsvQ.addEventListener('input', () => { rsvId.value = ''; renderReservations(); });
+		memberBox.addEventListener('click', (e) => {
+			const b = e.target.closest('[data-pick-member]');
+			if (!b) return;
+			const c = customers.find((x) => x[1] === b.dataset.pickMember);
+			memberId.value = c[1];
+			memberQ.value = `${c[0]} · ${c[2]}`;
+			rsvQ.value = '';
+			renderMembers();
+			renderReservations();
+		});
+		rsvBox.addEventListener('click', (e) => {
+			const b = e.target.closest('[data-pick-reservation]');
+			if (!b) return;
+			const r = reservations.find((x) => String(x.id) === b.dataset.pickReservation);
+			rsvId.value = r.id;
+			rsvQ.value = `${r.name} · ${r.origin}`;
+			if (!memberId.value) { memberId.value = r.userId; memberQ.value = `${r.name} · ${r.phone}`; }
+			renderMembers();
+			renderReservations();
+		});
+		form.title.focus();
+	})();
+</script>
+</th:block>
+</body>
+</html>

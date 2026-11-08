@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html th:replace="~{admin/fragments/layout :: layout('일정 관리', '', false, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 일정 관리 (SCR-A-022): 수정 모드에서 날짜별 상태 초안을 만들고 [수정 완료] → 저장 -->
+<th:block th:fragment="content">
+<div class="px-4 pb-28 pt-6" data-manage>
+	<h2 class="px-1 text-[24px] font-extrabold tracking-[-0.04em] text-[#346538]">일정 관리</h2>
+	<section class="mt-5 rounded-[20px] bg-white p-4 shadow-[0_5px_18px_rgba(36,58,39,.06)]">
+		<div class="relative flex items-center justify-center gap-4">
+			<button aria-label="이전 달" class="grid h-8 w-8 rotate-180 place-items-center" type="button" data-month-step="-1"><svg th:replace="~{admin/fragments/icon :: icon('arrowRight', 17, '')}"></svg></button>
+			<button class="flex items-center gap-1 text-[15px] font-extrabold" type="button" data-open-month>
+				<span data-title>2026년 9월</span> <svg th:replace="~{admin/fragments/icon :: icon('chevron', 14, '')}"></svg>
+			</button>
+			<button aria-label="다음 달" class="grid h-8 w-8 place-items-center" type="button" data-month-step="1"><svg th:replace="~{admin/fragments/icon :: icon('arrowRight', 17, '')}"></svg></button>
+			<button class="absolute right-0 text-[10px] font-extrabold text-[#346538]" type="button" data-finish hidden>수정 완료</button>
+			<button aria-label="일정 수정" class="absolute right-0 grid h-8 w-8 place-items-center text-[#346538]" type="button" data-begin>
+				<svg th:replace="~{admin/fragments/icon :: icon('edit', 17, '')}"></svg>
+			</button>
+		</div>
+		<div class="mt-4 grid grid-cols-7 text-center text-[9px] font-bold">
+			<span th:each="w, it : ${ {'일', '월', '화', '수', '목', '금', '토'} }" th:text="${w}"
+				  th:class="${it.index == 0} ? 'text-[#c85f57]' : (${it.index == 6} ? 'text-[#557fa3]' : 'text-[#858d87]')"></span>
+		</div>
+		<div class="mt-2 grid grid-cols-7" data-cells></div>
+		<div class="mt-4 flex gap-4 border-t border-[#edf0ed] pt-3 text-[8px] text-[#727a74]">
+			<span><b class="mr-1 inline-block h-2 w-2 bg-[#343a35]"></b>업체 휴무일</span>
+			<span><b class="mr-1 inline-block h-2 w-2 bg-[#F57C00]"></b>이사 예약 불가능</span>
+		</div>
+	</section>
+
+	<div class="absolute bottom-[92px] left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-[#263129]/85 px-4 py-2.5 text-[10px] font-bold text-white shadow-lg" data-editing-badge hidden>
+		<svg th:replace="~{admin/fragments/icon :: icon('edit', 14, '')}"></svg>
+		현재 수정 중입니다
+	</div>
+
+	<!-- 날짜 상태 설정 -->
+	<div class="absolute inset-x-0 bottom-[82px] top-[68px] z-50 grid place-items-center bg-[#1f2d21]/45 p-5 backdrop-blur-[2px]" data-date-modal hidden>
+		<div class="w-full rounded-[20px] bg-white p-5 shadow-2xl">
+			<div class="flex items-center justify-between"><h3 class="text-[17px] font-extrabold">날짜 상태 설정</h3>
+				<button aria-label="닫기" type="button" data-close-date><svg th:replace="~{admin/fragments/icon :: icon('x', 18, '')}"></svg></button></div>
+			<p class="mt-2 text-[10px] text-[#858d87]" data-date-label></p>
+			<div class="mt-5 space-y-3">
+				<label th:each="o : ${ { {'unavailable', '이사 예약 불가능'}, {'closed', '업체 휴무일'} } }"
+					   class="flex cursor-pointer items-center gap-3 rounded-xl border border-[#dfe4df] p-4 text-[12px] font-bold has-checked:border-[#346538] has-checked:bg-[#edf3ed]">
+					<input name="dateStatus" type="radio" th:value="${o[0]}"><th:block th:text="${o[1]}"></th:block>
+				</label>
+			</div>
+			<div class="mt-5 grid gap-2" data-date-actions>
+				<button class="h-11 rounded-xl border border-[#d9ded9] text-[11px] font-bold text-[#59625b]" type="button" data-date-cancel>등록 취소</button>
+				<button class="h-11 rounded-xl bg-[#346538] text-[11px] font-bold text-white" type="button" data-date-save>등록</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- 수정 확인 -->
+	<form class="absolute inset-x-0 bottom-[82px] top-[68px] z-50 grid place-items-center bg-[#1f2d21]/45 p-6 backdrop-blur-[2px]"
+		  method="post" th:action="@{/admin/schedule/manage}" data-confirm hidden>
+		<div class="relative w-full rounded-[20px] bg-white p-6 text-center shadow-2xl">
+			<button aria-label="확인 창 닫기" class="absolute right-5 top-5 grid h-7 w-7 place-items-center text-[#59625b]" type="button" data-close-confirm>
+				<svg th:replace="~{admin/fragments/icon :: icon('x', 18, '')}"></svg>
+			</button>
+			<h3 class="text-[17px] font-extrabold">정말 수정 하시겠습니까?</h3>
+			<p class="mt-2 text-[10px] text-[#8b928d]">수정된 데이터는 복구할 수 없습니다.</p>
+			<div data-entries></div>
+			<div class="mt-6 grid grid-cols-2 gap-2">
+				<button class="h-11 rounded-xl border border-[#d9ded9] text-[11px] font-bold" type="button" data-cancel-edit>취소</button>
+				<button class="h-11 rounded-xl bg-[#346538] text-[11px] font-bold text-white" type="submit">저장</button>
+			</div>
+		</div>
+	</form>
+
+	<!-- 년·월 선택 -->
+	<div class="absolute inset-x-0 bottom-[82px] top-[68px] z-50 grid place-items-center bg-[#1f2d21]/45 p-5" data-month-modal hidden>
+		<div class="w-full rounded-[20px] bg-white p-5">
+			<button class="mx-auto flex items-center gap-1 text-[16px] font-extrabold" type="button" data-grid-mode>
+				<span data-temp-label></span> <svg th:replace="~{admin/fragments/icon :: icon('chevron', 15, 'rotate-180')}"></svg>
+			</button>
+			<div class="mt-5 grid grid-cols-3 gap-2" data-grid hidden>
+				<button th:each="mm : ${#numbers.sequence(1, 12)}" type="button" th:data-grid-month="${mm}" th:text="${mm} + '월'"
+						class="h-11 rounded-xl bg-[#f3f5f3] text-[11px] font-bold aria-pressed:bg-[#346538] aria-pressed:text-white"></button>
+			</div>
+			<div class="relative mt-5 grid grid-cols-2 gap-2" data-dropdowns>
+				<div class="relative">
+					<button class="flex h-12 w-full items-center justify-center gap-1 rounded-xl bg-[#f5f6f5] text-[12px] font-bold" type="button" data-open-list="year">
+						<span data-temp-year></span> <svg th:replace="~{admin/fragments/icon :: icon('chevron', 13, '')}"></svg></button>
+					<div class="absolute left-0 right-0 top-14 z-20 max-h-44 overflow-y-auto rounded-xl border border-[#dfe4df] bg-white p-1.5 shadow-[0_10px_28px_rgba(36,58,39,.16)]" data-list="year" hidden>
+						<button th:each="yy : ${#numbers.sequence(2015, 2035)}" type="button" th:data-pick-year="${yy}" th:text="${yy} + '년'"
+								class="h-9 w-full rounded-lg text-[11px] font-bold text-[#59625b] aria-pressed:bg-[#edf3ed] aria-pressed:text-[#346538]"></button>
+					</div>
+				</div>
+				<div class="relative">
+					<button class="flex h-12 w-full items-center justify-center gap-1 rounded-xl bg-[#f5f6f5] text-[12px] font-bold" type="button" data-open-list="month">
+						<span data-temp-month></span> <svg th:replace="~{admin/fragments/icon :: icon('chevron', 13, '')}"></svg></button>
+					<div class="absolute left-0 right-0 top-14 z-20 max-h-44 overflow-y-auto rounded-xl border border-[#dfe4df] bg-white p-1.5 shadow-[0_10px_28px_rgba(36,58,39,.16)]" data-list="month" hidden>
+						<button th:each="mm : ${#numbers.sequence(1, 12)}" type="button" th:data-pick-month="${mm}" th:text="${mm} + '월'"
+								class="h-9 w-full rounded-lg text-[11px] font-bold text-[#59625b] aria-pressed:bg-[#edf3ed] aria-pressed:text-[#346538]"></button>
+					</div>
+				</div>
+			</div>
+			<div class="mt-5 grid grid-cols-2 gap-2">
+				<button class="h-11 rounded-xl border border-[#d9ded9] text-[11px] font-bold" type="button" data-month-cancel>취소</button>
+				<button class="h-11 rounded-xl bg-[#346538] text-[11px] font-bold text-white" type="button" data-month-done>완료</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script th:inline="javascript">
+	(function () {
+		const $ = (s, r = document) => r.querySelector(s);
+		const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+		const saved = /*[[${statuses}]]*/ {};
+		const events = /*[[${events}]]*/ {};
+		let draft = { ...saved };
+		let editing = false;
+		let year = 2026, month = 9;
+		let selectedKey = '';
+		const key = (d) => `${String(year).slice(-2)}.${String(month).padStart(2, '0')}.${String(d).padStart(2, '0')}`;
+		const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+		const render = () => {
+			$('[data-title]').textContent = `${year}년 ${month}월`;
+			const statuses = editing ? draft : saved;
+			const first = new Date(year, month - 1, 1).getDay();
+			const days = new Date(year, month, 0).getDate();
+			let html = '';
+			for (let i = 0; i < 42; i++) {
+				const d = i - first + 1;
+				if (d < 1 || d > days) { html += '<span class="h-[62px]"></span>'; continue; }
+				const k = key(d);
+				const state = statuses[k];
+				const badge = state
+					? `<span class="block w-full truncate rounded px-1 py-0.5 text-[7px] font-bold text-white ${state === 'closed' ? 'bg-[#343a35]' : 'bg-[#F57C00]'}">${state === 'closed' ? '정기 휴무' : '예약 불가'}</span>`
+					: events[k] ? `<span class="block w-full truncate rounded bg-[#7e8a80] px-1 py-0.5 text-[7px] font-bold text-white">${esc(events[k])}</span>` : '';
+				html += `<button class="flex h-[62px] flex-col items-start border-t border-[#f0f2f0] p-1 text-left ${editing ? 'hover:bg-[#f4f7f4]' : ''}" type="button" data-day="${k}">`
+					+ `<span class="h-5 text-[10px] font-bold ${i % 7 === 0 ? 'text-[#c85f57]' : 'text-[#555e57]'}">${d}</span>${badge}</button>`;
+			}
+			$('[data-cells]').innerHTML = html;
+			$('[data-begin]').hidden = editing;
+			$('[data-finish]').hidden = !editing;
+			$('[data-editing-badge]').hidden = !editing;
+		};
+
+		$$('[data-month-step]').forEach((b) => b.addEventListener('click', () => {
+			const next = new Date(year, month - 1 + Number(b.dataset.monthStep), 1);
+			year = next.getFullYear();
+			month = next.getMonth() + 1;
+			render();
+		}));
+		$('[data-begin]').addEventListener('click', () => { draft = { ...saved }; editing = true; render(); });
+
+		/* 날짜 상태 설정 (수정 모드에서만) */
+		const dateModal = $('[data-date-modal]');
+		$('[data-cells]').addEventListener('click', (e) => {
+			const cell = e.target.closest('[data-day]');
+			if (!cell || !editing) return;
+			selectedKey = cell.dataset.day;
+			$('[data-date-label]').textContent = selectedKey;
+			const current = draft[selectedKey] || 'unavailable';
+			$$('input[name="dateStatus"]', dateModal).forEach((r) => (r.checked = r.value === current));
+			const has = !!draft[selectedKey];
+			$('[data-date-cancel]').hidden = !has;
+			$('[data-date-actions]').classList.toggle('grid-cols-2', has);
+			$('[data-date-actions]').classList.toggle('grid-cols-1', !has);
+			dateModal.hidden = false;
+		});
+		$('[data-close-date]').addEventListener('click', () => (dateModal.hidden = true));
+		$('[data-date-cancel]').addEventListener('click', () => { delete draft[selectedKey]; dateModal.hidden = true; render(); });
+		$('[data-date-save]').addEventListener('click', () => {
+			draft[selectedKey] = $('input[name="dateStatus"]:checked', dateModal).value;
+			dateModal.hidden = true;
+			render();
+		});
+
+		/* 수정 완료 → 확인 → 저장(서버) / 취소(초안 버림) */
+		const confirm = $('[data-confirm]');
+		$('[data-finish]').addEventListener('click', () => {
+			$('[data-entries]', confirm).innerHTML = Object.entries(draft)
+				.map(([k, v]) => `<input type="hidden" name="entries" value="${esc(k)}:${esc(v)}">`).join('');
+			confirm.hidden = false;
+		});
+		$('[data-close-confirm]').addEventListener('click', () => (confirm.hidden = true));
+		$('[data-cancel-edit]').addEventListener('click', () => { draft = { ...saved }; editing = false; confirm.hidden = true; render(); });
+
+		/* 년·월 선택 */
+		const modal = $('[data-month-modal]');
+		let tempYear = year, tempMonth = month;
+		const refreshTemp = () => {
+			$('[data-temp-label]').textContent = `${tempYear}년 ${tempMonth}월`;
+			$('[data-temp-year]').textContent = `${tempYear}년`;
+			$('[data-temp-month]').textContent = `${tempMonth}월`;
+			$$('[data-grid-month]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.gridMonth) === tempMonth)));
+			$$('[data-pick-year]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.pickYear) === tempYear)));
+			$$('[data-pick-month]').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.pickMonth) === tempMonth)));
+		};
+		const closeLists = () => $$('[data-list]').forEach((l) => (l.hidden = true));
+		$('[data-open-month]').addEventListener('click', () => { tempYear = year; tempMonth = month; refreshTemp(); modal.hidden = false; });
+		$('[data-grid-mode]').addEventListener('click', () => {
+			const grid = $('[data-grid]');
+			grid.hidden = !grid.hidden;
+			$('[data-dropdowns]').hidden = !grid.hidden;
+			closeLists();
+		});
+		$$('[data-grid-month]').forEach((b) => b.addEventListener('click', () => { tempMonth = Number(b.dataset.gridMonth); refreshTemp(); }));
+		$$('[data-open-list]').forEach((b) => b.addEventListener('click', () => {
+			const list = $(`[data-list="${b.dataset.openList}"]`);
+			const open = list.hidden;
+			closeLists();
+			list.hidden = !open;
+		}));
+		$$('[data-pick-year]').forEach((b) => b.addEventListener('click', () => { tempYear = Number(b.dataset.pickYear); closeLists(); refreshTemp(); }));
+		$$('[data-pick-month]').forEach((b) => b.addEventListener('click', () => { tempMonth = Number(b.dataset.pickMonth); closeLists(); refreshTemp(); }));
+		$('[data-month-cancel]').addEventListener('click', () => { modal.hidden = true; closeLists(); });
+		$('[data-month-done]').addEventListener('click', () => { year = tempYear; month = tempMonth; modal.hidden = true; closeLists(); render(); });
+
+		render();
+	})();
+</script>
+</th:block>
+</body>
+</html>

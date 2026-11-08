@@ -32,6 +32,15 @@ public class AdminState {
 	private List<Routine> routines = new ArrayList<>(defaultRoutines());
 	/** 다음 화면에서 한 번 보여줄 루틴 토스트 */
 	private Toast pendingToast;
+	/** 일정 관리: yy.MM.dd → closed(업체 휴무일) | unavailable(이사 예약 불가능) */
+	private Map<String, String> managedDateStatuses = new LinkedHashMap<>(Map.of("26.09.20", "closed"));
+	/** 일정 등록으로 추가한 일정 (DB 테이블 없음: TBL_SCHEDULE 삭제됨 → DB 대조 때 검토) */
+	private List<ManualSchedule> manualSchedules = new ArrayList<>();
+
+	/** date: yy.MM.dd, memberId: 회원 아이디, reservationId: 연결 예약 */
+	public record ManualSchedule(long id, String date, String title, String category, String time, String place,
+			String memberId, Integer reservationId) {
+	}
 
 	public AdminState() {
 		AdminMockData.reviews().stream()
