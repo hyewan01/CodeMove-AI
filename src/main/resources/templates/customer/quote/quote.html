@@ -151,6 +151,15 @@
 					<input type="hidden" th:name="${key} + 'Address'" data-addr-value>
 				</div>
 			</div>
+			<!-- 주소 검색 시트 (카카오 우편번호 서비스 embed: 도로명·지번 자동 매칭) -->
+			<div class="addr-sheet-scrim" data-addr-sheet-close data-addr-sheet hidden></div>
+			<div class="addr-sheet" role="dialog" aria-modal="true" aria-label="주소 검색" data-addr-sheet hidden>
+				<div class="addr-sheet-head">
+					<strong data-addr-sheet-title>주소 검색</strong>
+					<button type="button" class="action addr-sheet-close" aria-label="주소 검색 닫기" data-addr-sheet-close>×</button>
+				</div>
+				<div class="addr-sheet-body" data-addr-sheet-body></div>
+			</div>
 		</section>
 
 		<!-- 5. 날짜·시간 (SCR-U-008) -->
@@ -310,6 +319,8 @@
 		estimate: /*[[${estimate}]]*/ {}
 	};
 </script>
+<!-- 카카오(다음) 우편번호 서비스: API 키 불필요 -->
+<script defer src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script defer th:src="@{/js/quote.js}"></script>
 </div>
 </body>

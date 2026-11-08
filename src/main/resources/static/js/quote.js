@@ -219,13 +219,46 @@
 		refreshNext();
 	}));
 
-	/* ---------- 4. 주소 검색 (화면 시연: 목업 주소, 추후 주소 API 연동) ---------- */
+	/* ---------- 4. 주소 검색 (카카오 우편번호 서비스, 불러오지 못하면 목업 주소로 대체) ---------- */
+	const addrSheet = $$('[data-addr-sheet]');
+	const addrSheetBody = $('[data-addr-sheet-body]');
+	const closeAddrSheet = () => {
+		addrSheet.forEach((el) => (el.hidden = true));
+		addrSheetBody.innerHTML = '';
+	};
+	$$('[data-addr-sheet-close]').forEach((el) => el.addEventListener('click', closeAddrSheet));
+	const openPostcode = (label, term, onPick) => {
+		$('[data-addr-sheet-title]').textContent = `${label} 주소 검색`;
+		addrSheet.forEach((el) => (el.hidden = false));
+		addrSheetBody.innerHTML = '';
+		new window.daum.Postcode({
+			width: '100%',
+			height: '100%',
+			theme: { searchBgColor: '#346538', queryTextColor: '#FFFFFF' },
+			oncomplete: (data) => {
+				// 도로명(신주소) + 지번(구주소). 지번을 고르지 않았으면 자동 매칭된 지번 사용
+				const building = data.buildingName && data.apartment === 'Y' ? ` (${data.buildingName})` : '';
+				onPick({
+					road: (data.roadAddress || data.autoRoadAddress) + building,
+					jibun: data.jibunAddress || data.autoJibunAddress || '',
+					zonecode: data.zonecode,
+				});
+				closeAddrSheet();
+			},
+		}).embed(addrSheetBody, { q: term, autoClose: false });
+	};
+
 	$$('[data-address]').forEach((wrap) => {
 		const key = wrap.dataset.address;
+		const label = $('.addr-label', wrap).textContent;
 		const q = $('[data-addr-query]', wrap);
 		const results = $('[data-addr-results]', wrap);
 		const search = () => {
 			const term = q.value.trim();
+			if (window.daum && window.daum.Postcode) {
+				openPostcode(label, term, pick);
+				return;
+			}
 			if (!term) return;
 			const found = (DATA.addresses || []).filter((a) => a.road.includes(term) || a.jibun.includes(term));
 			results.innerHTML = found.length
@@ -244,8 +277,8 @@
 		const pick = (addr) => {
 			state.address[key] = addr.road;
 			$('[data-addr-value]', wrap).value = addr.road;
-			$('[data-addr-road]', wrap).textContent = addr.road;
-			$('[data-addr-jibun]', wrap).textContent = addr.jibun;
+			$('[data-addr-road]', wrap).textContent = (addr.zonecode ? `[${addr.zonecode}] ` : '') + addr.road;
+			$('[data-addr-jibun]', wrap).textContent = addr.jibun ? `지번 ${addr.jibun}` : '';
 			$('[data-addr-search]', wrap).hidden = true;
 			$('[data-addr-selected]', wrap).hidden = false;
 			$('[data-addr-detail-wrap]', wrap).hidden = false;

@@ -85,3 +85,11 @@ textarea.reservation-request-card { display: block; width: 100%; border: 0; font
   .onboarding-actions .action { min-height: clamp(48px, 6.2cqh, 54px); }
   .browse { margin-top: clamp(14px, 2.5cqh, 22px); }
 }
+
+/* 이사 견적 · 주소 검색 시트 (카카오 우편번호 서비스 embed) */
+.addr-sheet-scrim { position: fixed; inset: 0; z-index: 40; background: rgb(0 0 0 / .4); }
+.addr-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; height: min(82%, 640px); display: flex; flex-direction: column; overflow: hidden; border-radius: 22px 22px 0 0; background: var(--white); box-shadow: 0 -8px 30px rgb(0 0 0 / .12); }
+.addr-sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 12px; border-bottom: 1px solid var(--line); }
+.addr-sheet-head strong { font-family: "Pretendard:Bold"; font-size: 16px; color: var(--ink); }
+.addr-sheet-close { width: 32px; height: 32px; display: grid; place-items: center; font-size: 24px; line-height: 1; color: #777; }
+.addr-sheet-body { flex: 1; min-height: 0; }
