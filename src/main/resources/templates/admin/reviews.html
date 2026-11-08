@@ -88,7 +88,7 @@
 			<form th:if="${answer == null and replyingTo == review.id}" class="mt-4 rounded-[14px] bg-[#f7f8f7] p-3" method="post"
 				  th:action="@{/admin/reviews/{id}/reply(id=${review.id})}">
 				<input type="hidden" name="rating" th:value="${rating}">
-				<textarea name="content" th:id="'review-' + ${review.id}"
+				<textarea name="content" th:id="'review-' + ${review.id}" autofocus
 						  class="min-h-20 w-full resize-none rounded-lg border border-[#dbe1dc] bg-white p-3 text-[11px] leading-5 text-[#505852] outline-none placeholder:text-[#a8aea9] focus:border-[#346538]"
 						  placeholder="답변 내용을 입력하세요..."></textarea>
 				<div class="mt-2 flex justify-end gap-2">

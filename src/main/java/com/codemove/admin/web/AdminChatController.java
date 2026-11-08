@@ -59,7 +59,8 @@ public class AdminChatController {
 		model.addAttribute("room", room);
 		model.addAttribute("messages", AdminState.of(session).messagesOf(room.id()));
 		model.addAttribute("from", from);
-		model.addAttribute("backUrl", "management".equals(from) ? "/admin/chat-management" : "/admin/chats");
+		// 화면설계서 SCR-A-007 ①: 뒤로 → 채팅 목록 (채팅 관리에서 왔으면 목록에서도 채팅 관리로 돌아갈 수 있게 from 유지)
+		model.addAttribute("backUrl", "management".equals(from) ? "/admin/chats?from=management" : "/admin/chats");
 		return "admin/chat-detail";
 	}
 

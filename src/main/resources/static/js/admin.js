@@ -72,6 +72,13 @@
 		sheet.classList.toggle('translate-y-full', !open);
 	};
 	$$('[data-open="drawer"]').forEach((btn) => btn.addEventListener('click', () => setDrawer(true)));
+	/* 전체 서비스 접기/펼치기 (화면설계서 SCR-A-017) */
+	$('[data-service-toggle]')?.addEventListener('click', (e) => {
+		const btn = e.currentTarget;
+		const open = btn.getAttribute('aria-expanded') !== 'true';
+		btn.setAttribute('aria-expanded', String(open));
+		$$('[data-service-item]').forEach((item) => (item.hidden = !open));
+	});
 	$('[data-drawer-close]')?.addEventListener('click', () => setDrawer(false));
 
 	document.addEventListener('keydown', (e) => {
@@ -148,12 +155,15 @@
 		const label = $('[data-zoom-reset]', viewer);
 		let zoom = 100, pan = { x: 0, y: 0 }, drag = null, pinch = null;
 		const clamp = (v) => Math.min(180, Math.max(60, v));
-		/* 종이 크기: 영역(여백 12px씩) 안에 견적서 비율(1488:2103) 그대로 맞춤 (CSS aspect + max-width 는 container-type 과 함께 쓰면 무시됨) */
+		/*
+		 * 종이 영역: 프로토타입처럼 높이는 영역 - 24px, 너비는 견적서 비율(1488:2103)과 영역 너비 중 작은 값
+		 * (CSS aspect-ratio + max-width 가 container-type 과 함께 쓰이면 max-width 가 무시되어 직접 계산)
+		 */
 		const fit = () => {
 			const w = viewport.clientWidth - 24;
 			const h = viewport.clientHeight - 24;
 			pageEl.style.width = `${Math.max(0, Math.min(w, h * 1488 / 2103))}px`;
-			pageEl.style.height = 'auto';
+			pageEl.style.height = `${Math.max(0, h)}px`;
 		};
 		fit();
 		window.addEventListener('resize', fit);

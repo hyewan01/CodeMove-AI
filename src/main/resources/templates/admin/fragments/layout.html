@@ -177,11 +177,13 @@
 				</div>
 				<nav class="flex-1 overflow-y-auto px-4 pb-6 pt-3">
 					<div class="overflow-hidden rounded-[20px] bg-white shadow-[0_5px_18px_rgba(36,58,39,.06)]">
-						<div class="flex items-center justify-between border-b border-[#edf0ed] px-5 py-5">
+						<!-- 화면설계서 SCR-A-017 ①: [전체 서비스] 누르면 메뉴 목록 접기/펼치기 -->
+						<button class="group flex w-full items-center justify-between border-b border-[#edf0ed] px-5 py-5 text-left aria-[expanded=false]:border-none"
+								type="button" aria-expanded="true" data-service-toggle>
 							<span class="text-[16px] font-extrabold text-[#253328]">전체 서비스</span>
-							<svg th:replace="~{admin/fragments/icon :: icon('chevron', 18, 'text-[#346538]')}"></svg>
-						</div>
-						<a th:each="menu : ${drawerMenus}" th:href="@{${menu.href}}"
+							<svg th:replace="~{admin/fragments/icon :: icon('chevron', 18, 'text-[#346538] transition-transform group-aria-[expanded=false]:-rotate-90')}"></svg>
+						</button>
+						<a th:each="menu : ${drawerMenus}" th:href="@{${menu.href}}" data-service-item
 						   class="flex w-full items-center gap-3 border-b border-[#f0f2f0] px-5 py-4 text-left text-[14px] font-semibold text-[#434b45] last:border-none hover:bg-[#f7f9f7]">
 							<span class="grid h-9 w-9 place-items-center rounded-xl bg-[#edf3ed] text-[#346538]">
 								<svg th:replace="~{admin/fragments/icon :: icon(${menu.icon}, 18, '')}"></svg>
