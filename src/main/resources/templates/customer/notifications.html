@@ -13,16 +13,17 @@
 		</form>
 	</div>
 	<div class="notification-controls">
-		<span>읽지 않은 알림 <th:block th:text="${cs.unreadNotifications.size()}">3</th:block>건</span>
+		<span>읽지 않은 알림 <th:block th:text="${cs.notificationCount}">3</th:block>건</span>
 		<button type="button" class="action" aria-label="알림 종류 선택" data-modal-open="ntf-filter">
 			<span data-ntf-label>전체알림</span>
 			<img th:replace="~{customer/fragments/common :: chevron}">
 		</button>
 	</div>
-	<div class="notification-day">어제</div>
 	<div class="notification-feed">
-		<button type="button" class="action notification-row" th:each="n : ${alerts}"
-				th:classappend="${cs.unreadNotifications.contains(n.id)} ? 'unread'"
+		<th:block th:each="n, st : ${alerts}">
+		<div class="notification-day" th:if="${st.first or alerts[st.index - 1].day != n.day}" th:text="${n.day}">어제</div>
+		<button type="button" class="action notification-row"
+				th:classappend="${n.unread} ? 'unread'"
 				th:aria-label="${n.title}" th:data-ntf-id="${n.id}" th:data-ntf-type="${n.type}">
 			<div class="notification-type-icon" th:switch="${n.type}">
 				<svg th:case="'예약/일정 정보'" aria-hidden="true" fill="none" viewBox="0 0 44 44">
@@ -61,8 +62,10 @@
 				<p th:text="${n.body}"></p>
 				<small th:text="${n.time}"></small>
 			</div>
-			<i th:if="${cs.unreadNotifications.contains(n.id)}"></i>
+			<i th:if="${n.unread}"></i>
 		</button>
+		</th:block>
+		<div class="past-reservation-empty" th:if="${#lists.isEmpty(alerts)}">받은 알림이 없어요.</div>
 	</div>
 
 	<div class="notification-sheet-scrim" data-modal="ntf-filter" data-modal-close hidden></div>

@@ -1,7 +1,6 @@
 package com.codemove.admin.web;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -11,10 +10,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 
-import com.codemove.admin.web.AdminEstimates.EstimateDoc;
 import com.codemove.admin.web.AdminEstimates.EstimateRecord;
 import com.codemove.admin.web.AdminEstimates.Registration;
+import com.codemove.common.FileStore;
+import com.codemove.move.EstimateDoc;
+import com.codemove.move.Quote;
+import com.codemove.move.QuoteService;
+import com.codemove.notification.NotificationService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -23,8 +27,18 @@ import jakarta.servlet.http.HttpSession;
 @RequestMapping("/admin/estimates")
 public class AdminEstimateController {
 
-	private static Optional<EstimateRecord> find(HttpSession session, long id) {
-		return AdminState.of(session).getEstimates().stream().filter(e -> e.getId() == id).findFirst();
+	private final QuoteService quotes;
+	private final NotificationService notifications;
+	private final FileStore files;
+
+	public AdminEstimateController(QuoteService quotes, NotificationService notifications, FileStore files) {
+		this.quotes = quotes;
+		this.notifications = notifications;
+		this.files = files;
+	}
+
+	private List<EstimateRecord> records() {
+		return quotes.listLines().stream().map(EstimateRecord::of).toList();
 	}
 
 	/* ---------- 견적 관리 · 견적 수정 ---------- */
@@ -33,13 +47,12 @@ public class AdminEstimateController {
 	public String list(@RequestParam(defaultValue = "전체") String status, @RequestParam(defaultValue = "") String date,
 			@RequestParam(defaultValue = "1") int page, @RequestParam(required = false) Long id,
 			@RequestParam(defaultValue = "form") String tab, @RequestParam(defaultValue = "false") boolean editing,
-			@RequestParam(required = false) Long del, HttpSession session, Model model) {
-		List<EstimateRecord> all = AdminState.of(session).getEstimates();
+			@RequestParam(required = false) Long del, Model model) {
+		List<EstimateRecord> all = records();
 		String digits = date.replaceAll("\\D", "");
 		List<EstimateRecord> filtered = all.stream()
 				.filter(e -> "전체".equals(status) || e.getStatus().equals(status))
 				.filter(e -> digits.isEmpty() || e.getDate().replaceAll("\\D", "").startsWith(digits))
-				.sorted((a, b) -> b.getDate().compareTo(a.getDate()))
 				.toList();
 		AdminPageController.addPage(model, filtered, page);
 		model.addAttribute("status", status);
@@ -51,66 +64,65 @@ public class AdminEstimateController {
 					switch (label) { case "견적 검토" -> "#d96c62"; case "견적 승인" -> "#d3904b"; default -> "#4f8b55"; } };
 		}).toList());
 		if (id != null) {
-			find(session, id).ifPresent(e -> {
-				model.addAttribute("editingRecord", e);
-				model.addAttribute("doc", e.document());
-			});
+			Quote q = quotes.find(id);
+			all.stream().filter(e -> e.getId() == id).findFirst().ifPresent(e -> model.addAttribute("editingRecord", e));
+			if (q != null) {
+				model.addAttribute("doc", quotes.toDoc(q));
+			}
 			model.addAttribute("tab", tab);
 			model.addAttribute("editing", editing);
 		}
 		if (del != null) {
-			find(session, del).ifPresent(e -> model.addAttribute("deletingRecord", e));
+			all.stream().filter(e -> e.getId() == del).findFirst().ifPresent(e -> model.addAttribute("deletingRecord", e));
 		}
-		model.addAttribute("optionRows", AdminEstimates.OPTION_ROWS);
+		model.addAttribute("optionRows", EstimateDoc.OPTION_ROWS);
 		return "admin/estimates";
 	}
 
-	/** 견적서 수정 저장: 고객명·연락처·견적일도 목록에 반영 */
+	/** 견적서 수정 저장 (고객명·연락처·견적일도 목록에 반영) */
 	@PostMapping("/{id}/document")
 	public String saveDocument(@PathVariable long id, @ModelAttribute EstimateDoc doc,
-			@RequestParam(defaultValue = "") String back, HttpSession session) {
-		find(session, id).ifPresent(e -> {
-			EstimateDoc saved = doc.normalized();
-			e.setDoc(saved);
-			e.setName(saved.getCustomer());
-			e.setPhone(saved.getPhone());
-			e.setDate(saved.getEstimateDate());
-		});
+			@RequestParam(defaultValue = "") String back) {
+		quotes.save(id, doc);
 		return "redirect:" + AdminPageController.safeBack(back, "/admin/estimates?id=" + id);
 	}
 
+	/** 견적 승인 → 고객에게 "견적 도착" */
 	@PostMapping("/{id}/approve")
 	public String approve(@PathVariable long id, HttpSession session) {
-		AdminState state = AdminState.of(session);
-		find(session, id).ifPresent(e -> {
-			e.setStatus("견적 승인");
-			e.setApprovedDate(AdminEstimates.today());
-			state.fire("견적 관리 · 견적 승인");
-		});
+		Quote q = quotes.approve(id, AdminSession.adminId(session));
+		if (q != null && q.getMemberId() != null) {
+			notifications.toMember(q.getMemberId(), "02", "새로운 견적이 도착했어요", "견적 금액과 작업 내용을 확인하고 확정해주세요.",
+					"/move/estimate");
+		}
+		if (q != null) {
+			notifications.toAdmin("16", "상태 변경", q.getContactName() + " 고객님의 견적 상태가 '견적 검토'에서 '견적 승인'으로 변경되었습니다.",
+					"/admin/estimates", false);
+		}
 		return "redirect:/admin/estimates";
 	}
 
 	@PostMapping("/{id}/delete")
-	public String delete(@PathVariable long id, @RequestParam(defaultValue = "") String back, HttpSession session) {
-		AdminState state = AdminState.of(session);
-		if (state.getEstimates().removeIf(e -> e.getId() == id)) {
-			state.fire("견적 관리 · 행 삭제 시");
+	public String delete(@PathVariable long id, @RequestParam(defaultValue = "") String back) {
+		Quote q = quotes.delete(id);
+		if (q != null) {
+			notifications.toAdmin("17", "데이터 삭제", q.getContactName() + " 고객님의 견적서(" + q.getQuoteNo() + ")가 삭제되었습니다.",
+					"/admin/estimates", false);
 		}
 		return "redirect:" + AdminPageController.safeBack(back, "/admin/estimates");
 	}
 
 	/** 견적 상세 (일정 캘린더 > 상세 보기): 읽기 전용 견적서 */
 	@GetMapping("/{id}/document")
-	public String document(@PathVariable long id, @RequestParam(defaultValue = "") String back, HttpSession session,
-			Model model) {
-		Optional<EstimateRecord> record = find(session, id);
-		if (record.isEmpty()) {
+	public String document(@PathVariable long id, @RequestParam(defaultValue = "") String back, Model model) {
+		Quote q = quotes.find(id);
+		if (q == null) {
 			return "redirect:" + AdminPageController.safeBack(back, "/admin/estimates");
 		}
-		model.addAttribute("record", record.get());
-		model.addAttribute("doc", record.get().document());
+		model.addAttribute("record", records().stream().filter(e -> e.getId() == id).findFirst().orElse(null));
+		model.addAttribute("doc", quotes.toDoc(q));
 		model.addAttribute("back", AdminPageController.safeBack(back, "/admin/schedule"));
-		model.addAttribute("optionRows", AdminEstimates.OPTION_ROWS);
+		model.addAttribute("optionRows", EstimateDoc.OPTION_ROWS);
 		return "admin/estimate-document";
 	}
 
@@ -128,17 +140,18 @@ public class AdminEstimateController {
 		model.addAttribute("step", current);
 		model.addAttribute("pdfMode", "pdf".equals(reg.getKind()));
 		model.addAttribute("doc", reg.getDoc());
-		model.addAttribute("optionRows", AdminEstimates.OPTION_ROWS);
+		model.addAttribute("optionRows", EstimateDoc.OPTION_ROWS);
 		return "admin/estimate-new";
 	}
 
-	/** Step 1 → 첨부 분석 (사진: AI 인식 목업 후 Step 2, PDF: Step 3) */
+	/** Step 1 → 첨부 저장 · 분석 (사진: 인식 시연값 후 Step 2, PDF: Step 3) */
 	@PostMapping("/new/analyze")
 	public String analyze(@RequestParam String kind, @RequestParam(defaultValue = "") String fileName,
-			HttpSession session) {
+			@RequestParam(required = false) MultipartFile document, HttpSession session) {
 		Registration reg = new Registration();
 		reg.setKind("pdf".equals(kind) ? "pdf" : "photo");
 		reg.setFileName(fileName);
+		reg.setFilePath(files.save("quotes", document));
 		reg.setDoc("pdf".equals(kind) ? AdminEstimates.pdfDocument() : AdminEstimates.recognizePhoto());
 		reg.setStep("pdf".equals(kind) ? 3 : 2);
 		AdminState.of(session).setRegistration(reg);
@@ -159,7 +172,7 @@ public class AdminEstimateController {
 		return "redirect:/admin/estimates/new";
 	}
 
-	/** Step 4 → 견적 관리에 등록 */
+	/** Step 4 → TBL_QUOTE 등록 (SOURCE_TYPE 02 사진 / 03 PDF) */
 	@PostMapping("/new/complete")
 	public String complete(@RequestParam(defaultValue = "") String name, @RequestParam(defaultValue = "") String date,
 			@RequestParam(defaultValue = "견적 검토") String status, HttpSession session) {
@@ -179,13 +192,10 @@ public class AdminEstimateController {
 			doc.setCustomer(finalName);
 			doc.setEstimateDate(finalDate);
 		}
-		EstimateRecord record = new EstimateRecord(System.currentTimeMillis(), status, finalName, finalDate,
-				"견적 검토".equals(status) ? null : AdminEstimates.today(), null);
-		record.setPhone(doc.getPhone());
-		record.setDoc(doc);
-		state.getEstimates().add(0, record);
+		Quote q = quotes.register(doc, pdf ? "03" : "02", reg.getFilePath(), QuoteService.statusCode(status),
+				AdminSession.adminId(session));
 		state.setRegistration(new Registration());
-		state.fire("견적서 등록 · 견적서를 등록했을 시");
+		state.toast(notifications.fire("견적서 등록 · 견적서를 등록했을 시", q.getMemberId(), q.getContactName()));
 		return "redirect:/admin/estimates";
 	}
 }

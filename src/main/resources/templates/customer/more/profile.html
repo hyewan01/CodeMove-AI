@@ -29,18 +29,24 @@
 				</div>
 				<button type="button" class="action personal-change-button" aria-label="휴대폰 번호 변경" data-modal-open="phone-change">변경</button>
 			</div>
+			<p class="form-error" role="alert" th:if="${phoneError}" th:text="${phoneError}"></p>
 		</div>
 
 		<div class="linked-login-card">
 			<strong>간편 로그인</strong>
 			<div class="linked-login-provider">
-				<img alt="네이버" class="linked-login-logo" th:src="@{/assets/4a055.svg}">
+				<th:block th:each="p : ${cs.providers}" th:switch="${p}">
+					<img th:case="'kakao'" alt="카카오" class="linked-login-logo" th:src="@{/assets/2a814.svg}">
+					<img th:case="'naver'" alt="네이버" class="linked-login-logo" th:src="@{/assets/4a055.svg}">
+					<img th:case="*" alt="애플" class="linked-login-logo" th:src="@{/assets/38175.png}">
+				</th:block>
+				<span th:if="${#lists.isEmpty(cs.providers)}" class="linked-login-none">연결된 계정 없음</span>
 				<img th:replace="~{customer/fragments/common :: chevron}">
 			</div>
 		</div>
 
 		<div class="account-meta">
-			<div><strong>가입일</strong><b>2026. 02. 16</b></div>
+			<div><strong>가입일</strong><b th:text="${cs.joinedLabel}">2026. 02. 16</b></div>
 		</div>
 		<button type="button" class="action withdraw-link">회원 탈퇴</button>
 

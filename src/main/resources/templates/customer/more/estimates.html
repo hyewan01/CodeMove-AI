@@ -7,19 +7,19 @@
 <div class="screen form-page">
 	<div th:replace="~{customer/fragments/common :: formHead('/more', '견적내역')}"></div>
 	<div class="form-content estimate-history-page">
-		<a class="action estimate-arrived-card" aria-label="도착한 견적 상세" th:href="@{/move/estimate}" th:if="${cs.estimateStatus != 'none'}">
+		<a class="action estimate-arrived-card" aria-label="도착한 견적 상세" th:href="@{/move/estimate}" th:if="${cs.estimateStatus == 'approved'}">
 			<div class="estimate-arrived-top">
 				<span>견적 도착</span>
 				<b>
 					<svg aria-hidden="true" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5"/><path d="M10 5.7v4.7l3.2 1.8"/></svg>
-					2일 13시간 남음
+					<th:block th:text="${mv.expiresLabel}">2일 13시간 남음</th:block>
 				</b>
 			</div>
 			<div class="estimate-arrived-route">
-				<strong>서초구 → 강동구</strong>
+				<strong th:text="${mv.routeLabel}">서초구 → 강동구</strong>
 				<img th:replace="~{customer/fragments/common :: chevron}">
 			</div>
-			<small>5월 2일 (토) 이사 · 380,000원</small>
+			<small th:text="${mv.arrivedSummary}">5월 2일 (토) 이사 · 380,000원</small>
 		</a>
 
 		<div class="estimate-list-head">
@@ -38,6 +38,8 @@
 					<div class="reservation-filter-options">
 						<button type="button" class="action selected" data-filter-option="all" data-label="전체">전체<span>✓</span></button>
 						<button type="button" class="action" data-filter-option="reviewing" data-label="검토 중">검토 중<span hidden>✓</span></button>
+						<button type="button" class="action" data-filter-option="arrived" data-label="견적 도착">견적 도착<span hidden>✓</span></button>
+						<button type="button" class="action" data-filter-option="confirmed" data-label="확정">확정<span hidden>✓</span></button>
 						<button type="button" class="action" data-filter-option="expired" data-label="만료">만료<span hidden>✓</span></button>
 					</div>
 				</div>

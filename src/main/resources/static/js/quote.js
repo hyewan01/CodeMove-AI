@@ -284,6 +284,7 @@
 		const pick = (addr) => {
 			state.address[key] = addr.road;
 			$('[data-addr-value]', wrap).value = addr.road;
+			$('[data-addr-zip]', wrap).value = addr.zonecode || '';
 			$('[data-addr-road]', wrap).textContent = (addr.zonecode ? `[${addr.zonecode}] ` : '') + addr.road;
 			$('[data-addr-jibun]', wrap).textContent = addr.jibun ? `지번 ${addr.jibun}` : '';
 			$('[data-addr-search]', wrap).hidden = true;
@@ -385,8 +386,17 @@
 	renderCalendar();
 
 	/* ---------- 6. 예상 견적 ---------- */
+	/* 예상 견적: 서버(MoveService.estimate)와 같은 식. 기본요금 + 부피 × 단가, 반포장은 할증, 만원 단위 반올림 */
+	function estimate() {
+		const p = DATA.estimate || {};
+		const cbm = state.items.reduce((sum, it) => sum + itemCbm(it), 0);
+		const raw = (p.base || 0) + cbm * (p.perCbm || 0);
+		const amount = Math.round((state.options.packType === '02' ? raw * (p.partialRate || 1) : raw) / 10000) * 10000;
+		return { amount, min: amount - (p.minus || 0), max: amount + (p.plus || 0) };
+	}
+
 	function renderSummary() {
-		const est = DATA.estimate || {};
+		const est = estimate();
 		$('[data-est-kicker]').textContent = state.dateSkipped ? '예상 견적 범위' : 'AI 예상 견적';
 		$('[data-est-amount]').textContent = state.dateSkipped
 			? `${(est.min || 0).toLocaleString('ko-KR')} ~ ${fmtWon(est.max || 0)}`

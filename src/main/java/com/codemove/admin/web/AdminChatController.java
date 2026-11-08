@@ -12,6 +12,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.codemove.chat.ChatMessage;
+import com.codemove.chat.ChatRoomLine;
+import com.codemove.chat.ChatService;
+
 import jakarta.servlet.http.HttpSession;
 
 /**
@@ -22,12 +26,23 @@ import jakarta.servlet.http.HttpSession;
 @RequestMapping("/admin")
 public class AdminChatController {
 
+	private final ChatService chats;
+
+	public AdminChatController(ChatService chats) {
+		this.chats = chats;
+	}
+
+	private List<AdminChat.ChatRoom> rooms() {
+		return chats.rooms().stream().map(AdminChat.ChatRoom::of).toList();
+	}
+
 	/* ---------- 채팅 관리 홈 ---------- */
 
 	@GetMapping("/chat-management")
 	public String home(Model model) {
-		model.addAttribute("waitingCount", AdminChat.ROOMS.stream().filter(r -> r.waiting()).count());
-		model.addAttribute("unreadCount", AdminChat.ROOMS.stream().mapToInt(r -> r.unread()).sum());
+		List<AdminChat.ChatRoom> rooms = rooms();
+		model.addAttribute("waitingCount", rooms.stream().filter(AdminChat.ChatRoom::waiting).count());
+		model.addAttribute("unreadCount", rooms.stream().mapToInt(AdminChat.ChatRoom::unread).sum());
 		return "admin/chat-home";
 	}
 
@@ -37,11 +52,11 @@ public class AdminChatController {
 	@GetMapping("/chats")
 	public String list(@RequestParam(defaultValue = "all") String filter, @RequestParam(defaultValue = "latest") String sort,
 			@RequestParam(defaultValue = "") String from, Model model) {
-		Comparator<AdminChat.ChatRoom> byActivity = Comparator.comparingInt(r -> -r.activity());
+		Comparator<AdminChat.ChatRoom> byActivity = Comparator.comparingLong(r -> -r.activity());
 		Comparator<AdminChat.ChatRoom> order = "unread".equals(sort)
 				? Comparator.<AdminChat.ChatRoom>comparingInt(r -> -r.unread()).thenComparing(byActivity)
 				: byActivity;
-		List<AdminChat.ChatRoom> rooms = AdminChat.ROOMS.stream()
+		List<AdminChat.ChatRoom> rooms = rooms().stream()
 				.filter(r -> "waiting".equals(filter) ? r.waiting() : !"unread".equals(filter) || r.unread() > 0)
 				.sorted(order)
 				.toList();
@@ -53,11 +68,18 @@ public class AdminChatController {
 	}
 
 	@GetMapping("/chats/{id}")
-	public String detail(@PathVariable String id, @RequestParam(defaultValue = "") String from, HttpSession session,
-			Model model) {
-		AdminChat.ChatRoom room = AdminChat.room(id);
+	public String detail(@PathVariable long id, @RequestParam(defaultValue = "") String from, Model model) {
+		ChatRoomLine line = chats.room(id);
+		if (line == null) {
+			return "redirect:/admin/chats";
+		}
+		AdminChat.ChatRoom room = AdminChat.ChatRoom.of(line);
+		List<ChatMessage> messages = chats.openRoom(id);
+		long lastCustomer = messages.stream().filter(m -> "01".equals(m.getSenderType()))
+				.mapToLong(ChatMessage::getMessageId).max().orElse(-1);
 		model.addAttribute("room", room);
-		model.addAttribute("messages", AdminState.of(session).messagesOf(room.id()));
+		model.addAttribute("messages", messages.stream()
+				.map(m -> AdminChat.Message.of(m, room.waiting() && m.getMessageId() == lastCustomer)).toList());
 		model.addAttribute("from", from);
 		// 화면설계서 SCR-A-007 ①: 뒤로 → 채팅 목록 (채팅 관리에서 왔으면 목록에서도 채팅 관리로 돌아갈 수 있게 from 유지)
 		model.addAttribute("backUrl", "management".equals(from) ? "/admin/chats?from=management" : "/admin/chats");
@@ -65,21 +87,17 @@ public class AdminChatController {
 	}
 
 	@PostMapping("/chats/{id}/messages")
-	public String send(@PathVariable String id, @RequestParam String text, @RequestParam(defaultValue = "") String replyTo,
+	public String send(@PathVariable long id, @RequestParam String text, @RequestParam(defaultValue = "") String replyTo,
 			@RequestParam(defaultValue = "") String from, HttpSession session) {
-		if (!text.isBlank()) {
-			AdminChat.ChatRoom room = AdminChat.room(id);
-			AdminState.of(session).messagesOf(room.id()).add(new AdminChat.Message(System.currentTimeMillis(), "admin",
-					text.trim(), false, replyTo.isBlank() ? null : replyTo));
-		}
+		chats.adminSend(id, text, replyTo, AdminSession.adminId(session));
 		return "redirect:/admin/chats/" + id + (from.isEmpty() ? "" : "?from=" + from);
 	}
 
 	/* ---------- 채팅 운영 설정 ---------- */
 
 	@GetMapping("/chat-management/operation")
-	public String operation(HttpSession session, Model model) {
-		model.addAttribute("settings", AdminState.of(session).getChatSettings());
+	public String operation(Model model) {
+		model.addAttribute("settings", AdminChat.Settings.of(chats.settings()));
 		return "admin/chat-operation";
 	}
 
@@ -89,50 +107,46 @@ public class AdminChatController {
 			@RequestParam(required = false) Boolean operatingHoursEnabled, @RequestParam(required = false) String startTime,
 			@RequestParam(required = false) String endTime, @RequestParam(required = false) String fallbackMessage,
 			HttpSession session) {
-		AdminChat.Settings s = AdminState.of(session).getChatSettings();
-		if (enabled != null) s.setEnabled(enabled);
-		if (operatingHoursEnabled != null) s.setOperatingHoursEnabled(operatingHoursEnabled);
-		if (startTime != null && startTime.matches("\\d{2}:\\d{2}")) s.setStartTime(startTime);
-		if (endTime != null && endTime.matches("\\d{2}:\\d{2}")) s.setEndTime(endTime);
-		if (fallbackMessage != null && !fallbackMessage.isBlank()) s.setFallbackMessage(fallbackMessage.trim());
+		chats.updateSettings(enabled, operatingHoursEnabled, startTime, endTime, fallbackMessage, null,
+				AdminSession.adminId(session));
 		return "redirect:/admin/chat-management/operation";
 	}
 
 	/* ---------- 첫 화면 / 퀵메뉴 설정 ---------- */
 
 	@GetMapping("/chat-management/entry")
-	public String entry(HttpSession session, Model model) {
-		AdminState state = AdminState.of(session);
-		model.addAttribute("greeting", state.getChatGreeting());
-		model.addAttribute("quickMenus", state.getQuickMenus());
-		model.addAttribute("candidates", state.getAnswerTopics().stream()
-				.map(t -> new AdminChat.QuickMenu("topic-" + t.getId(), t.getTitle(), t.getIntroduction())).toList());
-		model.addAttribute("settings", state.getChatSettings());
+	public String entry(Model model) {
+		model.addAttribute("greeting", chats.settings().getGreeting());
+		model.addAttribute("quickMenus", chats.quickMenus().stream()
+				.map(q -> new AdminChat.QuickMenu(String.valueOf(q.getMenuId()), q.getMenuName(), q.getIntro())).toList());
+		model.addAttribute("candidates", chats.topics().stream()
+				.map(t -> new AdminChat.QuickMenu("topic-" + t.getTopicId(), t.getTitle(), t.getIntro())).toList());
+		model.addAttribute("usedTopics", chats.quickMenus().stream().map(q -> "topic-" + q.getTopicId()).toList());
+		model.addAttribute("settings", AdminChat.Settings.of(chats.settings()));
 		return "admin/chat-entry";
 	}
 
 	@PostMapping("/chat-management/entry/greeting")
 	public String saveGreeting(@RequestParam String greeting, HttpSession session) {
-		if (!greeting.isBlank()) {
-			AdminState.of(session).setChatGreeting(greeting.trim());
-		}
+		chats.updateSettings(null, null, null, null, null, greeting, AdminSession.adminId(session));
 		return "redirect:/admin/chat-management/entry";
 	}
 
+	/** topicId: topic-주제번호 */
 	@PostMapping("/chat-management/entry/menus")
 	public String addMenu(@RequestParam String topicId, HttpSession session) {
-		AdminState state = AdminState.of(session);
-		List<AdminChat.QuickMenu> menus = state.getQuickMenus();
-		if (menus.size() < 4 && menus.stream().noneMatch(m -> m.getId().equals(topicId))) {
-			state.getAnswerTopics().stream().filter(t -> ("topic-" + t.getId()).equals(topicId)).findFirst()
-					.ifPresent(t -> menus.add(new AdminChat.QuickMenu(topicId, t.getTitle(), t.getIntroduction())));
+		String id = topicId.replace("topic-", "");
+		if (id.matches("\\d+")) {
+			chats.addQuickMenu(Long.parseLong(id), AdminSession.adminId(session));
 		}
 		return "redirect:/admin/chat-management/entry";
 	}
 
 	@PostMapping("/chat-management/entry/menus/delete")
-	public String deleteMenu(@RequestParam String menuId, HttpSession session) {
-		AdminState.of(session).getQuickMenus().removeIf(m -> m.getId().equals(menuId));
+	public String deleteMenu(@RequestParam String menuId) {
+		if (menuId.matches("\\d+")) {
+			chats.deleteQuickMenu(Long.parseLong(menuId));
+		}
 		return "redirect:/admin/chat-management/entry";
 	}
 
@@ -141,8 +155,8 @@ public class AdminChatController {
 	/** edit: 주제 ID 또는 new (편집 화면 열기) */
 	@GetMapping("/chat-management/answers")
 	public String answers(@RequestParam(required = false) String edit, @RequestParam(required = false) Long open,
-			HttpSession session, Model model) {
-		List<AdminChat.Topic> topics = AdminState.of(session).getAnswerTopics();
+			Model model) {
+		List<AdminChat.Topic> topics = chats.topics().stream().map(AdminChat.Topic::of).toList();
 		model.addAttribute("topics", topics);
 		model.addAttribute("expandedId", open != null ? open : (topics.isEmpty() ? null : topics.get(0).getId()));
 		if ("new".equals(edit)) {
@@ -161,31 +175,19 @@ public class AdminChatController {
 
 	@PostMapping("/chat-management/answers")
 	public String saveTopic(@ModelAttribute AdminChat.Topic form, HttpSession session) {
-		if (form.getTitle().isBlank() || form.getIntroduction().isBlank()) {
+		if (form.getTitle() == null || form.getTitle().isBlank() || form.getIntroduction() == null
+				|| form.getIntroduction().isBlank()) {
 			return "redirect:/admin/chat-management/answers";
 		}
-		List<AdminChat.Topic> topics = AdminState.of(session).getAnswerTopics();
-		form.setTitle(form.getTitle().trim());
-		form.setIntroduction(form.getIntroduction().trim());
-		long now = System.currentTimeMillis();
-		for (int i = 0; i < form.getLorebooks().size(); i++) {
-			AdminChat.Lorebook lb = form.getLorebooks().get(i);
-			if (lb.getId() == 0) lb.setId(now + i);
-			if (lb.getKeywords() == null) lb.setKeywords("");
-			if (lb.getContent() == null) lb.setContent("");
-		}
-		if (form.getId() == 0) {
-			form.setId(now);
-			topics.add(0, form);
-		} else {
-			topics.replaceAll(t -> t.getId() == form.getId() ? form : t);
-		}
-		return "redirect:/admin/chat-management/answers?open=" + form.getId();
+		long id = chats.saveTopic(form.getId(), form.getTitle(), form.getIntroduction(),
+				form.getLorebooks().stream().map(l -> new String[] { l.getKeywords(), l.getContent() }).toList(),
+				AdminSession.adminId(session));
+		return "redirect:/admin/chat-management/answers?open=" + id;
 	}
 
 	@PostMapping("/chat-management/answers/{id}/delete")
-	public String deleteTopic(@PathVariable long id, HttpSession session) {
-		AdminState.of(session).getAnswerTopics().removeIf(t -> t.getId() == id);
+	public String deleteTopic(@PathVariable long id) {
+		chats.deleteTopic(id);
 		return "redirect:/admin/chat-management/answers";
 	}
 }

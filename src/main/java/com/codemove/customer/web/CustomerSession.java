@@ -1,18 +1,14 @@
 package com.codemove.customer.web;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 고객 화면 개발 단계용 세션 상태.
- * 프로토타입(App.tsx)의 화면 전환 상태를 서버 세션으로 옮긴 것으로, 회원·견적 API 연동 시 실제 데이터로 대체합니다.
+ * 로그인한 고객 (세션 보관). 회원 정보·이사 진행 상태는 매 요청 DB 에서 읽습니다 (CustomerView).
+ * Spring Security 도입 시 대체합니다.
  */
 @Getter
 @Setter
@@ -20,21 +16,17 @@ public class CustomerSession implements Serializable {
 
 	private static final String KEY = "customerSession";
 
-	private boolean loggedIn;
-	private String userName = "김무브";
-	private String phone = "010-1234-5678";
-	/** 견적 진행 상태: none / waiting-approval / approved / confirmed */
-	private String estimateStatus = "approved";
-	/** 내 이사 탭: booking / estimate / done */
-	private String moveTab = "estimate";
+	/** 간편 로그인했지만 아직 회원이 아닌 소셜 계정 → 회원가입을 마치면 연결 */
+	public record PendingSocial(String provider, String socialNo, String name) implements Serializable {
+	}
+
+	private Long memberId;
+	private String userName;
+	/** 내 이사 탭: booking / estimate / done (null 이면 진행 상태로 정함) */
+	private String moveTab;
 	/** 화면 모드: standard / easy */
 	private String mode = "standard";
-	private Set<Integer> unreadNotifications = new LinkedHashSet<>(Set.of(1, 4, 6));
-	private Set<String> connectedSocials = new LinkedHashSet<>();
-	/** 예약 요청사항 (TBL_RESERVATION.REQUEST_NOTE) */
-	private String requestNote = "냉장고는 전날 비워둘게요. 도착지 주차는 지하 2층에 가능합니다.";
-	/** 이번 세션에서 작성한 후기 */
-	private List<CustomerMockData.MyReview> submittedReviews = new ArrayList<>();
+	private PendingSocial pendingSocial;
 
 	/** 고객 로그인 후에는 항상 고객 홈 */
 	public static String redirectAfterLogin(HttpSession session) {
@@ -55,44 +47,25 @@ public class CustomerSession implements Serializable {
 		return state;
 	}
 
+	public boolean isLoggedIn() {
+		return memberId != null;
+	}
+
 	public boolean isEasy() {
 		return "easy".equals(mode);
 	}
 
-	public int getNotificationCount() {
-		return loggedIn ? unreadNotifications.size() : 0;
+	public void login(long memberId, String name) {
+		this.memberId = memberId;
+		this.userName = name;
+		this.moveTab = null;
+		this.pendingSocial = null;
 	}
 
-	/** 프로토타입 테스트 계정: 김코드(예약 확정) / 김무브(견적 도착) */
-	public void loginAs(String account, String provider) {
-		boolean kimCode = "kimCode".equals(account);
-		userName = kimCode ? "김코드" : "김무브";
-		estimateStatus = kimCode ? "confirmed" : "approved";
-		moveTab = kimCode ? "booking" : "estimate";
-		if (provider != null) {
-			connectedSocials.add(provider);
-		}
-		loggedIn = true;
-	}
-
-	/** 간편 로그인: 제공자에서 받은 이름이 있으면 그 이름으로 */
-	public void loginWithSocial(String provider, String name) {
-		loginAs("kimMove", provider);
-		if (name != null && !name.isBlank()) {
-			userName = name;
-		}
-	}
-
-	public void signupComplete(String name, String phone) {
-		if (name != null && !name.isBlank()) {
-			this.userName = name;
-		}
-		if (phone != null && !phone.isBlank()) {
-			this.phone = phone;
-		}
-		estimateStatus = "none";
-		moveTab = "estimate";
-		unreadNotifications.clear();
-		loggedIn = true;
+	public void logout() {
+		memberId = null;
+		userName = null;
+		moveTab = null;
+		pendingSocial = null;
 	}
 }

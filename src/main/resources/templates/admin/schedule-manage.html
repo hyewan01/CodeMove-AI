@@ -89,7 +89,7 @@
 		const events = /*[[${events}]]*/ {};
 		let draft = { ...saved };
 		let editing = false;
-		let year = 2026, month = 9;
+		let year = /*[[${startYear}]]*/ 2026, month = /*[[${startMonth}]]*/ 9;
 		let selectedKey = '';
 		let focusKey = '';
 		const key = (d) => `${String(year).slice(-2)}.${String(month).padStart(2, '0')}.${String(d).padStart(2, '0')}`;

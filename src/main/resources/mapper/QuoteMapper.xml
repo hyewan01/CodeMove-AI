@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.codemove.move.QuoteMapper">
+
+	<select id="listQuoteLines" resultType="com.codemove.move.QuoteLine">
+		SELECT q.QUOTE_ID, q.QUOTE_NO, q.STATUS, q.CONTACT_NAME, q.CONTACT_PHONE, q.COMPANY_NAME, q.ESTIMATE_DATE,
+		       q.APPROVED_AT, q.REQUEST_ID, q.MEMBER_ID, v.FILE_PATH AS VIDEO_PATH, v.FILE_NAME AS VIDEO_NAME,
+		       v.UPLOADED_AT AS VIDEO_UPLOADED_AT
+		  FROM TBL_QUOTE q
+		  LEFT JOIN (SELECT REQUEST_ID, FILE_PATH, FILE_NAME, UPLOADED_AT,
+		                    ROW_NUMBER() OVER (PARTITION BY REQUEST_ID ORDER BY UPLOADED_AT DESC) AS RN
+		               FROM TBL_RE_VIDEO) v ON v.REQUEST_ID = q.REQUEST_ID AND v.RN = 1
+		 WHERE q.STATUS != '04'
+		 ORDER BY q.ESTIMATE_DATE DESC, q.QUOTE_ID DESC
+	</select>
+
+	<select id="findQuote" resultType="com.codemove.move.Quote">
+		SELECT * FROM TBL_QUOTE WHERE QUOTE_ID = #{quoteId}
+	</select>
+
+	<select id="findQuoteByRequest" resultType="com.codemove.move.Quote">
+		SELECT * FROM TBL_QUOTE WHERE REQUEST_ID = #{requestId}
+	</select>
+
+	<select id="listItems" resultType="com.codemove.move.QuoteItem">
+		SELECT * FROM TBL_QUOTE_ITEM WHERE QUOTE_ID = #{quoteId} ORDER BY SORT_ORDER
+	</select>
+
+	<select id="listOptions" resultType="com.codemove.move.QuoteOption">
+		SELECT * FROM TBL_QUOTE_OPTION WHERE QUOTE_ID = #{quoteId} ORDER BY OPTION_CODE
+	</select>
+
+	<sql id="docColumnsSet">
+		COMPANY_NAME = #{companyName}, CONTACT_NAME = #{contactName}, CONTACT_PHONE = #{contactPhone,jdbcType=VARCHAR},
+		ESTIMATE_DATE = #{estimateDate}, FROM_ADDRESS = #{fromAddress,jdbcType=VARCHAR}, TO_ADDRESS = #{toAddress,jdbcType=VARCHAR},
+		WORK_DATE = #{workDate,jdbcType=DATE}, TRANSPORT_DATE = #{transportDate,jdbcType=DATE}, WORK_TYPE = #{workType,jdbcType=CHAR},
+		FROM_LADDER_USE = #{fromLadderUse}, TO_LADDER_USE = #{toLadderUse}, FROM_ELEVATOR_USE = #{fromElevatorUse},
+		TO_ELEVATOR_USE = #{toElevatorUse}, FROM_STAIRS_USE = #{fromStairsUse}, TO_STAIRS_USE = #{toStairsUse},
+		VOLUME_TON = #{volumeTon,jdbcType=NUMERIC}, NOTE = #{note,jdbcType=VARCHAR}, MOVING_COST = #{movingCost,jdbcType=NUMERIC},
+		FROM_LADDER_FLOOR = #{fromLadderFloor,jdbcType=NUMERIC}, FROM_LADDER_COST = #{fromLadderCost},
+		TO_LADDER_FLOOR = #{toLadderFloor,jdbcType=NUMERIC}, TO_LADDER_COST = #{toLadderCost},
+		TOTAL_AMOUNT = #{totalAmount,jdbcType=NUMERIC}, DEPOSIT_AMOUNT = #{depositAmount,jdbcType=NUMERIC},
+		BALANCE_AMOUNT = #{balanceAmount,jdbcType=NUMERIC},
+		ITEM_GROUP1 = #{itemGroup1,jdbcType=VARCHAR}, ITEM_GROUP2 = #{itemGroup2,jdbcType=VARCHAR},
+		ITEM_GROUP3 = #{itemGroup3,jdbcType=VARCHAR}, ITEM_GROUP4 = #{itemGroup4,jdbcType=VARCHAR}
+	</sql>
+
+	<insert id="insertQuote" parameterType="com.codemove.move.Quote">
+		<selectKey keyProperty="quoteId" resultType="long" order="BEFORE">
+			SELECT SEQ_QUOTE.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO TBL_QUOTE (QUOTE_ID, QUOTE_NO, REQUEST_ID, MEMBER_ID, ADMIN_ID, SOURCE_TYPE, STATUS, COMPANY_NAME,
+		       CONTACT_NAME, ESTIMATE_DATE, FROM_LADDER_USE, TO_LADDER_USE, FROM_ELEVATOR_USE, TO_ELEVATOR_USE,
+		       FROM_STAIRS_USE, TO_STAIRS_USE, FROM_LADDER_COST, TO_LADDER_COST, DOCUMENT_PATH, APPROVED_AT, UPDATED_AT)
+		VALUES (#{quoteId}, 'QT-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' || LPAD(MOD(#{quoteId}, 10000), 4, '0'),
+		       #{requestId,jdbcType=NUMERIC}, #{memberId,jdbcType=NUMERIC}, #{adminId,jdbcType=NUMERIC}, #{sourceType}, #{status},
+		       #{companyName}, #{contactName}, #{estimateDate}, 'N', 'N', 'N', 'N', 'N', 'N', 0, 0,
+		       #{documentPath,jdbcType=VARCHAR}, CASE WHEN #{status} = '01' THEN NULL ELSE SYSDATE END, SYSDATE)
+	</insert>
+
+	<update id="updateQuote" parameterType="com.codemove.move.Quote">
+		UPDATE TBL_QUOTE SET <include refid="docColumnsSet"/>, UPDATED_AT = SYSDATE
+		 WHERE QUOTE_ID = #{quoteId}
+	</update>
+
+	<delete id="deleteItems">DELETE FROM TBL_QUOTE_ITEM WHERE QUOTE_ID = #{quoteId}</delete>
+
+	<insert id="insertItem" parameterType="com.codemove.move.QuoteItem">
+		INSERT INTO TBL_QUOTE_ITEM (QT_ITEM_ID, QUOTE_ID, CATEGORY, ITEM_NAME, QUANTITY, UNIT, SORT_ORDER)
+		VALUES (SEQ_QUOTE_ITEM.NEXTVAL, #{quoteId}, #{category}, #{itemName}, #{quantity}, #{unit}, #{sortOrder})
+	</insert>
+
+	<delete id="deleteOptions">DELETE FROM TBL_QUOTE_OPTION WHERE QUOTE_ID = #{quoteId}</delete>
+
+	<insert id="insertOption" parameterType="com.codemove.move.QuoteOption">
+		INSERT INTO TBL_QUOTE_OPTION (QT_OPTION_ID, QUOTE_ID, OPTION_CODE, CHOICE1_YN, CHOICE2_YN, OPTION_COST)
+		VALUES (SEQ_QUOTE_OPTION.NEXTVAL, #{quoteId}, #{optionCode}, #{choice1Yn}, #{choice2Yn}, #{optionCost})
+	</insert>
+
+	<update id="updateStatus">
+		UPDATE TBL_QUOTE SET STATUS = #{status}, UPDATED_AT = SYSDATE WHERE QUOTE_ID = #{quoteId}
+	</update>
+
+	<update id="approve">
+		UPDATE TBL_QUOTE
+		   SET STATUS = '02', APPROVED_AT = SYSDATE, EXPIRES_AT = SYSDATE + 30, UPDATED_AT = SYSDATE,
+		       ADMIN_ID = NVL(#{adminId,jdbcType=NUMERIC}, ADMIN_ID)
+		 WHERE QUOTE_ID = #{quoteId} AND STATUS = '01'
+	</update>
+
+	<delete id="deleteQuote">DELETE FROM TBL_QUOTE WHERE QUOTE_ID = #{quoteId}</delete>
+</mapper>

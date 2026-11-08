@@ -10,12 +10,12 @@
 
 		<!-- 후기 목록 -->
 		<th:block th:unless="${writing}">
-			<a class="action review-prompt" aria-label="3월 18일 이사 후기 작성" th:href="@{/more/reviews(write=1)}">
+			<a class="action review-prompt" th:if="${target}" th:aria-label="${target.monthDay} + ' 이사 후기 작성'" th:href="@{/more/reviews(write=1)}">
 				<div class="review-prompt-meta">
 					<span>후기 작성</span>
-					<small>3월 18일 이사</small>
+					<small th:text="${target.monthDay} + ' 이사'">3월 18일 이사</small>
 				</div>
-				<strong>강남구 <i>→</i> 서초구</strong>
+				<strong><th:block th:text="${target.fromArea}">강남구</th:block> <i>→</i> <th:block th:text="${target.toArea}">서초구</th:block></strong>
 				<p>서비스는 만족스러우셨나요?</p>
 				<img th:replace="~{customer/fragments/common :: chevron}">
 			</a>
@@ -47,12 +47,12 @@
 			<div class="review-auto-info">
 				<div>
 					<span>예약 정보에서 자동 적용</span>
-					<strong>강남구 → 서초구</strong>
+					<strong th:text="${target.fromArea} + ' → ' + ${target.toArea}">강남구 → 서초구</strong>
 				</div>
 				<div class="review-auto-tags">
-					<span>이용 3회차</span>
-					<span>원룸(일반포장)</span>
-					<span>2026. 03. 18</span>
+					<span th:text="${target.usage}">이용 3회차</span>
+					<span th:text="${target.moveType}">원룸(일반포장)</span>
+					<span th:text="${target.date}">2026. 03. 18</span>
 				</div>
 			</div>
 			<div class="rating-row" data-rating>

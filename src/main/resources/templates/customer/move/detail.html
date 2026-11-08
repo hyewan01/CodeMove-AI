@@ -3,14 +3,14 @@
 <head th:replace="~{customer/fragments/common :: head('예약 상세')}"></head>
 <body>
 <div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
-<!-- SCR-U-015 예약 상세 (결제 금액 · 요청사항 · 예약 취소) - TBL_RESERVATION / TBL_PAYMENT -->
+<!-- SCR-U-015 예약 상세 (결제 금액 · 요청사항 · 예약 취소) - TBL_RESERVATION / TBL_QUOTE -->
 <div class="screen form-page">
 	<div th:replace="~{customer/fragments/common :: formHead('/move', '예약 상세')}"></div>
 	<div class="form-content reservation-detail-page">
 		<div class="reservation-detail-hero">
-			<span>확정 · D-30</span>
+			<span th:text="'확정 · ' + ${mv.dday}">확정 · D-30</span>
 			<strong>안전하고 편안한 이사를 준비할게요</strong>
-			<small>예약 번호 ME-20260318-1042</small>
+			<small th:text="'예약 번호 ' + ${booking.reservationNo}">예약 번호 RSV-20260318-1042</small>
 		</div>
 
 		<div class="reservation-info-card">
@@ -18,29 +18,29 @@
 				<i class="reservation-address-dot from"></i>
 				<div>
 					<span>출발지</span>
-					<strong>서울 강남구 테헤란로 123, 301호</strong>
+					<strong th:text="${booking.fromFull}">서울 강남구 테헤란로 123, 301호</strong>
 				</div>
 			</div>
 			<div class="reservation-address-row">
 				<i class="reservation-address-dot to"></i>
 				<div>
 					<span>도착지</span>
-					<strong>서울 서초구 서초대로 456, 804호</strong>
+					<strong th:text="${booking.toFull}">서울 서초구 서초대로 456, 804호</strong>
 				</div>
 			</div>
 			<div class="reservation-info-row">
 				<span>이사 일시</span>
-				<b>2026. 03. 18 (수) 오전 10:00</b>
+				<b th:text="${booking.scheduleLabel}">2026. 03. 18 (수) 오전 10:00</b>
 			</div>
 			<div class="reservation-info-row">
 				<span>이사 유형</span>
-				<b>원룸 · 일반포장</b>
+				<b th:text="${booking.typeLabel}">원룸 · 일반포장</b>
 			</div>
 			<div class="reservation-payment" data-payment>
 				<button type="button" class="action reservation-payment-toggle" aria-label="결제 금액 상세 펼치기" aria-expanded="false" data-payment-toggle>
 					<span>결제 금액</span>
 					<div>
-						<b>410,000원</b>
+						<b th:text="${mv.totalLabel}">410,000원</b>
 						<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
 					</div>
 				</button>
@@ -51,11 +51,11 @@
 					</div>
 					<div class="reservation-payment-status">
 						<span>계약금</span>
-						<b>41,000원 · 결제 완료</b>
+						<b th:text="${mv.depositLabel}">41,000원 · 결제 완료</b>
 					</div>
 					<div>
 						<span>잔금</span>
-						<b>369,000원 · 이사 당일 결제</b>
+						<b th:text="${mv.balanceLabel}">369,000원 · 이사 당일 결제</b>
 					</div>
 				</div>
 			</div>
@@ -97,7 +97,7 @@
 			</span>
 			<div class="reservation-cancel-summary">
 				<span>취소할 예약</span>
-				<b>3월 18일 오전 10:00</b>
+				<b th:text="${booking.shortSchedule}">3월 18일 오전 10:00</b>
 			</div>
 			<div class="reservation-cancel-actions">
 				<button type="button" class="action reservation-cancel-back" aria-label="예약 취소하지 않고 돌아가기" data-modal-close>유지하기</button>

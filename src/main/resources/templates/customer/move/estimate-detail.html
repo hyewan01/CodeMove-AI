@@ -3,7 +3,7 @@
 <head th:replace="~{customer/fragments/common :: head('견적 상세')}"></head>
 <body>
 <div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'" th:with="confirmed=${cs.estimateStatus == 'confirmed'}">
-<!-- SCR-U-013 견적 상세 (견적 금액 · AI 분석 · 이사 정보) - TBL_ESTIMATE / TBL_REQUEST_ITEM -->
+<!-- SCR-U-013 견적 상세 (견적 금액 · AI 분석 · 이사 정보) - TBL_QUOTE / TBL_REQUEST_ITEM -->
 <div class="screen form-page">
 	<div th:replace="~{customer/fragments/common :: formHead('/more/estimates', '견적 상세')}"></div>
 	<div class="form-content estimate-detail-page">
@@ -16,11 +16,11 @@
 			<div class="estimate-detail-primary">
 				<div>
 					<strong>명품익스프레스</strong>
-					<p>강남구 → 서초구</p>
+					<p th:text="${mv.routeLabel}">강남구 → 서초구</p>
 				</div>
-				<b>410,000원</b>
+				<b th:text="${mv.totalLabel}">410,000원</b>
 			</div>
-			<div class="estimate-detail-date">2026. 03. 18 (수) · 오전 10:00</div>
+			<div class="estimate-detail-date" th:text="${mv.scheduleLabel}">2026. 03. 18 (수) · 오전 10:00</div>
 		</div>
 
 		<div class="estimate-detail-tabs" data-tabs role="tablist">
@@ -61,14 +61,14 @@
 				<div class="ai-cbm-result">
 					<div class="ai-cbm-main">
 						<span>총 산출 부피</span>
-						<b>7.7 CBM</b>
+						<b th:text="${mv.cbmLabel}">7.7 CBM</b>
 					</div>
 					<div class="ai-cbm-sub">
 						<div><small>인식 품목</small><b th:text="${detectedItems.size()} + '종'">6종</b></div>
 						<div class="ai-cbm-divider"></div>
-						<div><small>분석 시간</small><b>38초</b></div>
+						<div><small>분석 시간</small><b th:text="${mv.analysisSec}">38초</b></div>
 						<div class="ai-cbm-divider"></div>
-						<div><small>정확도</small><b>94%</b></div>
+						<div><small>정확도</small><b th:text="${mv.confidence}">94%</b></div>
 					</div>
 				</div>
 				<div class="ai-items-label">인식된 품목</div>
@@ -99,7 +99,7 @@
 				</div>
 				<div class="estimate-receipt-meta">
 					<span th:text="'No. ' + ${vendorDoc.quoteNo}">No. QT-20260310-0042</span>
-					<span>2026. 03. 10 발행</span>
+					<span th:text="${mv.issuedLabel}">2026. 03. 10 발행</span>
 				</div>
 				<div class="estimate-receipt-rule"></div>
 				<div class="estimate-receipt-row" th:each="r : ${receiptRows}">
@@ -108,11 +108,11 @@
 				</div>
 				<div class="estimate-receipt-total">
 					<span>최종 견적 금액<small>부가세 포함</small></span>
-					<b>410,000원</b>
+					<b th:text="${mv.totalLabel}">410,000원</b>
 				</div>
 				<div class="estimate-receipt-foot">
 					<svg fill="none" height="13" viewBox="0 0 16 16" width="13" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3.5L10 10" stroke="currentColor" stroke-linecap="round" stroke-width="1.3"/></svg>
-					CBM 기반 자동 산출 · 7.7 CBM
+					CBM 기반 자동 산출 · <th:block th:text="${mv.cbmLabel}">7.7 CBM</th:block>
 				</div>
 			</section>
 			<button type="button" class="action estimate-document-button" aria-label="업체 견적서 원본 보기" data-modal-open="quote-doc">

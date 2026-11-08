@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.codemove.chat.ChatMapper">
+
+	<sql id="roomLine">
+		SELECT c.ROOM_ID, c.MEMBER_ID, m.MEMBER_NAME, c.STATUS, c.STARTED_AT, c.WAITING_AT,
+		       (SELECT MAX(NVL(x.CONTENT, x.ATTACHMENT_NAME)) KEEP (DENSE_RANK LAST ORDER BY x.SENT_AT, x.MESSAGE_ID)
+		          FROM TBL_CHAT_MESSAGE x WHERE x.ROOM_ID = c.ROOM_ID AND x.SENDER_TYPE = '01') AS LAST_MESSAGE,
+		       (SELECT MAX(x.SENT_AT) FROM TBL_CHAT_MESSAGE x WHERE x.ROOM_ID = c.ROOM_ID) AS LAST_AT,
+		       (SELECT COUNT(*) FROM TBL_CHAT_MESSAGE x WHERE x.ROOM_ID = c.ROOM_ID AND x.SENDER_TYPE = '01' AND x.IS_READ = 'N') AS UNREAD
+		  FROM TBL_CHAT_ROOM c JOIN TBL_MEMBER m ON m.MEMBER_ID = c.MEMBER_ID
+	</sql>
+
+	<select id="listRooms" resultType="com.codemove.chat.ChatRoomLine">
+		<include refid="roomLine"/>
+		 WHERE c.STATUS != '04'
+		 ORDER BY LAST_AT DESC NULLS LAST, c.ROOM_ID DESC
+	</select>
+
+	<select id="findRoom" resultType="com.codemove.chat.ChatRoomLine">
+		<include refid="roomLine"/>
+		 WHERE c.ROOM_ID = #{roomId}
+	</select>
+
+	<select id="findOpenRoom" resultType="com.codemove.chat.ChatRoomLine">
+		SELECT * FROM (
+			<include refid="roomLine"/>
+			 WHERE c.MEMBER_ID = #{memberId} AND c.STATUS != '04'
+			 ORDER BY c.STARTED_AT DESC, c.ROOM_ID DESC)
+		 WHERE ROWNUM = 1
+	</select>
+
+	<insert id="insertRoom">
+		<selectKey keyProperty="room.roomId" resultType="long" order="BEFORE">
+			SELECT SEQ_CHAT_ROOM.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO TBL_CHAT_ROOM (ROOM_ID, MEMBER_ID, STATUS, STARTED_AT) VALUES (#{room.roomId}, #{memberId}, '01', SYSDATE)
+	</insert>
+
+	<update id="updateRoomStatus">
+		UPDATE TBL_CHAT_ROOM
+		   SET STATUS = #{status},
+		       WAITING_AT = CASE WHEN #{status} = '02' THEN SYSDATE ELSE WAITING_AT END,
+		       ADMIN_ID = CASE WHEN #{status} = '03' THEN NVL(#{adminId,jdbcType=NUMERIC}, ADMIN_ID) ELSE ADMIN_ID END,
+		       ENDED_AT = CASE WHEN #{status} = '04' THEN SYSDATE ELSE NULL END
+		 WHERE ROOM_ID = #{roomId}
+	</update>
+
+	<select id="listMessages" resultType="com.codemove.chat.ChatMessage">
+		SELECT * FROM TBL_CHAT_MESSAGE WHERE ROOM_ID = #{roomId} AND MESSAGE_ID &gt; #{after}
+		 ORDER BY SENT_AT, MESSAGE_ID
+	</select>
+
+	<insert id="insertMessage" parameterType="com.codemove.chat.ChatMessage">
+		<selectKey keyProperty="messageId" resultType="long" order="BEFORE">
+			SELECT SEQ_CHAT_MESSAGE.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO TBL_CHAT_MESSAGE (MESSAGE_ID, ROOM_ID, ADMIN_ID, TOPIC_ID, SENDER_TYPE, MESSAGE_TYPE, CONTENT,
+		       ATTACHMENT_PATH, ATTACHMENT_NAME, IS_READ, SENT_AT)
+		VALUES (#{messageId}, #{roomId}, #{adminId,jdbcType=NUMERIC}, #{topicId,jdbcType=NUMERIC}, #{senderType}, #{messageType},
+		       #{content,jdbcType=VARCHAR}, #{attachmentPath,jdbcType=VARCHAR}, #{attachmentName,jdbcType=VARCHAR},
+		       NVL(#{isRead,jdbcType=CHAR}, 'N'), SYSDATE)
+	</insert>
+
+	<update id="markCustomerRead">
+		UPDATE TBL_CHAT_MESSAGE SET IS_READ = 'Y' WHERE ROOM_ID = #{roomId} AND SENDER_TYPE = '01' AND IS_READ = 'N'
+	</update>
+
+	<select id="findSetting" resultType="com.codemove.chat.ChatSetting">
+		SELECT * FROM (SELECT * FROM TBL_CHAT_SETTING ORDER BY SETTING_ID) WHERE ROWNUM = 1
+	</select>
+
+	<insert id="insertSetting">
+		INSERT INTO TBL_CHAT_SETTING (SETTING_ID, BOT_ENABLED, CONSULT_ENABLED, START_TIME, END_TIME, GREETING, DELAY_MESSAGE, UPDATED_AT)
+		VALUES (SEQ_CHAT_SETTING.NEXTVAL, 'Y', 'Y', '09:00', '18:00',
+		        '안녕하세요! 명품익스프레스 AI 상담 챗봇입니다. 이사와 관련해 궁금한 내용을 편하게 물어보세요.',
+		        '현재 상담원 연결이 지연되고 있습니다. 조금만 기다려주세요.', SYSDATE)
+	</insert>
+
+	<update id="updateSetting">
+		UPDATE TBL_CHAT_SETTING
+		   SET BOT_ENABLED = #{s.botEnabled}, CONSULT_ENABLED = #{s.consultEnabled}, START_TIME = #{s.startTime},
+		       END_TIME = #{s.endTime}, GREETING = #{s.greeting}, DELAY_MESSAGE = #{s.delayMessage,jdbcType=VARCHAR},
+		       UPDATED_AT = SYSDATE, ADMIN_ID = NVL(#{adminId,jdbcType=NUMERIC}, ADMIN_ID)
+		 WHERE SETTING_ID = #{s.settingId}
+	</update>
+
+	<select id="listTopics" resultType="com.codemove.chat.Topic">
+		SELECT TOPIC_ID, TITLE, INTRO, TOPIC_TYPE, IS_ACTIVE FROM TBL_CHATBOT_TOPIC WHERE IS_ACTIVE = 'Y'
+		 ORDER BY UPDATED_AT DESC, TOPIC_ID DESC
+	</select>
+
+	<select id="listLorebooks" resultType="com.codemove.chat.Lorebook">
+		SELECT * FROM TBL_LOREBOOK ORDER BY TOPIC_ID, SORT_ORDER, LOREBOOK_ID
+	</select>
+
+	<insert id="insertTopic" parameterType="com.codemove.chat.Topic">
+		<selectKey keyProperty="topicId" resultType="long" order="BEFORE">
+			SELECT SEQ_CHATBOT_TOPIC.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO TBL_CHATBOT_TOPIC (TOPIC_ID, TITLE, INTRO, TOPIC_TYPE, IS_ACTIVE, UPDATED_AT)
+		VALUES (#{topicId}, #{title}, #{intro,jdbcType=VARCHAR}, '01', 'Y', SYSDATE)
+	</insert>
+
+	<update id="updateTopic" parameterType="com.codemove.chat.Topic">
+		UPDATE TBL_CHATBOT_TOPIC SET TITLE = #{title}, INTRO = #{intro,jdbcType=VARCHAR}, UPDATED_AT = SYSDATE
+		 WHERE TOPIC_ID = #{topicId}
+	</update>
+
+	<delete id="deleteTopic">DELETE FROM TBL_CHATBOT_TOPIC WHERE TOPIC_ID = #{topicId}</delete>
+
+	<delete id="deleteLorebooks">DELETE FROM TBL_LOREBOOK WHERE TOPIC_ID = #{topicId}</delete>
+
+	<insert id="insertLorebook" parameterType="com.codemove.chat.Lorebook">
+		INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+		VALUES (SEQ_LOREBOOK.NEXTVAL, #{topicId}, #{keywords}, #{content}, #{sortOrder}, SYSDATE)
+	</insert>
+
+	<delete id="deleteActions">DELETE FROM TBL_CHATBOT_ACTION WHERE TOPIC_ID = #{topicId}</delete>
+
+	<update id="clearMessageTopic">UPDATE TBL_CHAT_MESSAGE SET TOPIC_ID = NULL WHERE TOPIC_ID = #{topicId}</update>
+
+	<select id="listQuickMenus" resultType="com.codemove.chat.QuickMenu">
+		SELECT q.MENU_ID, q.TOPIC_ID, q.MENU_NAME, q.SORT_ORDER, t.INTRO
+		  FROM TBL_QUICK_MENU q JOIN TBL_CHATBOT_TOPIC t ON t.TOPIC_ID = q.TOPIC_ID
+		 WHERE q.IS_ACTIVE = 'Y'
+		 ORDER BY q.SORT_ORDER, q.MENU_ID
+	</select>
+
+	<insert id="insertQuickMenu">
+		INSERT INTO TBL_QUICK_MENU (MENU_ID, TOPIC_ID, MENU_NAME, SORT_ORDER, IS_ACTIVE, ADMIN_ID)
+		VALUES (SEQ_QUICK_MENU.NEXTVAL, #{topicId}, #{name}, #{sortOrder}, 'Y', #{adminId,jdbcType=NUMERIC})
+	</insert>
+
+	<delete id="deleteQuickMenu">DELETE FROM TBL_QUICK_MENU WHERE MENU_ID = #{menuId}</delete>
+
+	<delete id="deleteQuickMenusByTopic">DELETE FROM TBL_QUICK_MENU WHERE TOPIC_ID = #{topicId}</delete>
+</mapper>

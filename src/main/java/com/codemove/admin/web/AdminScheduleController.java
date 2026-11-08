@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,120 +16,148 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.codemove.common.Fmt;
+import com.codemove.notification.NotificationService;
+import com.codemove.schedule.ClosedDay;
+import com.codemove.schedule.Schedule;
+import com.codemove.schedule.ScheduleMapper;
+
 import jakarta.servlet.http.HttpSession;
 
 /**
  * 일정 캘린더 (SCR-A-020) · 일정 등록 (SCR-A-021) · 일정 관리 (SCR-A-022)
- * 날짜 키는 프로토타입과 같은 yy.MM.dd 형식입니다.
+ * 날짜 키는 프로토타입과 같은 yy.MM.dd 형식입니다. 이사 일정 = 예약(취소 제외), 일정 등록 = TBL_SCHEDULE,
+ * 업체 휴무일·이사 예약 불가능 = TBL_CLOSED_DAY
  */
 @Controller
 @RequestMapping("/admin/schedule")
 public class AdminScheduleController {
 
-	/** 달력에 표시하는 예약 상태 (프로토타입 activeRecords) */
-	private static final Set<String> ACTIVE = Set.of("승인 대기", "예약 확정", "이사 완료");
 	/** 손 없는 날 (프로토타입: 매월 같은 날짜) */
 	private static final Set<Integer> NO_MOVE_DAYS = Set.of(7, 8, 17, 18, 27, 28);
 
-	public record CalendarCell(Integer day, String key, int weekday, AdminMockData.Reservation event,
-			AdminState.ManualSchedule manual, String managed, boolean holiday, boolean noMove) {
+	/** date: yy.MM.dd, memberId: 회원 번호 */
+	public record ManualSchedule(long id, String date, String title, String category, String time, String place,
+			String memberId, Long reservationId) {
 	}
 
-	static String dateKey(int y, int m, int d) {
-		return String.format("%02d.%02d.%02d", y % 100, m, d);
+	public record CalendarCell(Integer day, String key, int weekday, AdminViews.Reservation event,
+			ManualSchedule manual, String managed, boolean holiday, boolean noMove) {
 	}
 
-	/** 프로토타입 공휴일: 9월 24~26일 (추석) */
-	private static boolean isHoliday(int month, int day) {
-		return month == 9 && day >= 24 && day <= 26;
+	private final AdminViews views;
+	private final ScheduleMapper schedules;
+	private final NotificationService notifications;
+
+	public AdminScheduleController(AdminViews views, ScheduleMapper schedules, NotificationService notifications) {
+		this.views = views;
+		this.schedules = schedules;
+		this.notifications = notifications;
 	}
 
-	/** 6주(42칸) 달력 */
-	private static List<CalendarCell> cells(int y, int m, AdminState state, List<AdminMockData.Reservation> active) {
-		LocalDate first = LocalDate.of(y, m, 1);
-		int firstDow = first.getDayOfWeek().getValue() % 7;
-		int days = first.lengthOfMonth();
-		List<CalendarCell> cells = new ArrayList<>();
-		for (int i = 0; i < 42; i++) {
-			int day = i - firstDow + 1;
-			if (day < 1 || day > days) {
-				cells.add(new CalendarCell(null, null, i % 7, null, null, null, false, false));
-				continue;
-			}
-			String key = dateKey(y, m, day);
-			cells.add(new CalendarCell(day, key, i % 7,
-					active.stream().filter(r -> r.movingDate().equals(key)).findFirst().orElse(null),
-					state.getManualSchedules().stream().filter(s -> s.date().equals(key)).findFirst().orElse(null),
-					state.getManagedDateStatuses().get(key), isHoliday(m, day), NO_MOVE_DAYS.contains(day)));
+	static String dateKey(LocalDate d) {
+		return Fmt.yy(d);
+	}
+
+	private static ManualSchedule manual(Schedule s) {
+		return new ManualSchedule(s.getScheduleId(), dateKey(s.getScheduleDate()), s.getTitle(), s.getCategory(),
+				s.getScheduleTime(), s.getPlace() == null ? "" : s.getPlace(),
+				s.getMemberId() == null ? null : String.valueOf(s.getMemberId()), s.getReservationId());
+	}
+
+	/** 날짜 → closed | unavailable */
+	private Map<String, String> managedStatuses() {
+		Map<String, String> map = new LinkedHashMap<>();
+		for (ClosedDay c : schedules.listClosedDays()) {
+			map.put(dateKey(c.getClosedDate()), "02".equals(c.getClosedType()) ? "unavailable" : "closed");
 		}
-		return cells;
+		return map;
 	}
 
-	private static List<AdminMockData.Reservation> activeReservations() {
-		return AdminMockData.reservations().stream().filter(r -> ACTIVE.contains(r.status())).toList();
+	/** 달력에 표시하는 예약 (취소 제외) */
+	private List<AdminViews.Reservation> active() {
+		return views.reservations().stream().filter(r -> !"예약 취소".equals(r.status())).toList();
 	}
 
 	/* ---------- 일정 캘린더 ---------- */
 
 	@GetMapping
-	public String calendar(@RequestParam(defaultValue = "2026") int y, @RequestParam(defaultValue = "9") int m,
-			@RequestParam(defaultValue = "27") int d, @RequestParam(required = false) Integer rsv,
+	public String calendar(@RequestParam(required = false) Integer y, @RequestParam(required = false) Integer m,
+			@RequestParam(required = false) Integer d, @RequestParam(required = false) Long rsv,
 			@RequestParam(required = false) Long manual, @RequestParam(required = false) Long del,
-			@RequestParam(required = false) String modal, HttpSession session, Model model) {
-		AdminState state = AdminState.of(session);
-		LocalDate first = LocalDate.of(y, m, 1);
-		int day = Math.min(Math.max(1, d), first.lengthOfMonth());
-		List<AdminMockData.Reservation> active = activeReservations();
-		String selectedKey = dateKey(y, m, day);
-		model.addAttribute("y", y);
-		model.addAttribute("m", m);
+			@RequestParam(required = false) String modal, Model model) {
+		LocalDate today = LocalDate.now();
+		int year = y != null ? y : today.getYear();
+		int month = m != null ? Math.min(12, Math.max(1, m)) : today.getMonthValue();
+		LocalDate first = LocalDate.of(year, month, 1);
+		int day = Math.min(Math.max(1, d != null ? d : (y == null && m == null ? today.getDayOfMonth() : 1)), first.lengthOfMonth());
+		List<AdminViews.Reservation> all = views.reservations();
+		List<AdminViews.Reservation> active = active();
+		List<ManualSchedule> manuals = schedules.listSchedules(first, first.plusMonths(1)).stream()
+				.map(AdminScheduleController::manual).toList();
+		Map<String, String> managed = managedStatuses();
+		LocalDate selected = LocalDate.of(year, month, day);
+		String selectedKey = dateKey(selected);
+
+		List<CalendarCell> cells = new ArrayList<>();
+		int firstDow = first.getDayOfWeek().getValue() % 7;
+		for (int i = 0; i < 42; i++) {
+			int dd = i - firstDow + 1;
+			if (dd < 1 || dd > first.lengthOfMonth()) {
+				cells.add(new CalendarCell(null, null, i % 7, null, null, null, false, false));
+				continue;
+			}
+			LocalDate date = first.withDayOfMonth(dd);
+			String key = dateKey(date);
+			cells.add(new CalendarCell(dd, key, i % 7,
+					active.stream().filter(r -> key.equals(r.movingDate())).findFirst().orElse(null),
+					manuals.stream().filter(s -> s.date().equals(key)).findFirst().orElse(null),
+					managed.get(key), Fmt.isHoliday(date), NO_MOVE_DAYS.contains(dd)));
+		}
+		model.addAttribute("y", year);
+		model.addAttribute("m", month);
 		model.addAttribute("d", day);
 		model.addAttribute("prev", first.minusMonths(1));
 		model.addAttribute("next", first.plusMonths(1));
-		model.addAttribute("cells", cells(y, m, state, active));
-		model.addAttribute("daySchedules", active.stream().filter(r -> r.movingDate().equals(selectedKey))
-				.sorted((a, b) -> a.movingTime().compareTo(b.movingTime())).toList());
-		model.addAttribute("dayManuals", state.getManualSchedules().stream().filter(s -> s.date().equals(selectedKey)).toList());
-		model.addAttribute("dayManaged", state.getManagedDateStatuses().get(selectedKey));
+		model.addAttribute("cells", cells);
+		model.addAttribute("daySchedules", active.stream().filter(r -> selectedKey.equals(r.movingDate()))
+				.sorted((a, b) -> String.valueOf(a.movingTime()).compareTo(String.valueOf(b.movingTime()))).toList());
+		model.addAttribute("dayManuals", manuals.stream().filter(s -> s.date().equals(selectedKey)).toList());
+		model.addAttribute("dayManaged", managed.get(selectedKey));
 		model.addAttribute("noMove", NO_MOVE_DAYS.contains(day));
-		model.addAttribute("holiday", isHoliday(m, day));
+		model.addAttribute("holiday", Fmt.isHoliday(selected));
 		model.addAttribute("modal", modal);
-		model.addAttribute("baseUrl", "/admin/schedule?y=" + y + "&m=" + m + "&d=" + day);
+		model.addAttribute("baseUrl", "/admin/schedule?y=" + year + "&m=" + month + "&d=" + day);
 		model.addAttribute("reservationTone", Map.of(
-				"승인 대기", "bg-[#f0f1f0] text-[#6f7771]", "반려", "bg-[#fbefed] text-[#b9574f]",
-				"예약 확정", "bg-[#edf4ed] text-[#346538]", "견적 협의", "bg-[#fff4e8] text-[#ad6d32]",
-				"견적 확정", "bg-[#eeeefa] text-[#6560a4]", "이사 완료", "bg-[#edf3f8] text-[#4b759b]"));
-		List<AdminMockData.Reservation> all = AdminMockData.reservations();
+				"예약 완료", "bg-[#edf4ed] text-[#346538]", "이사 완료", "bg-[#edf3f8] text-[#4b759b]",
+				"예약 취소", "bg-[#fbefed] text-[#b9574f]"));
 		if (rsv != null) {
-			all.stream().filter(r -> r.id() == rsv).findFirst().ifPresent(r -> {
-				model.addAttribute("selectedSchedule", r);
-				// 프로토타입: estimates[(id - 1) % estimates.length]
-				model.addAttribute("selectedEstimateId", AdminMockData.estimates().get((r.id() - 1) % AdminMockData.estimates().size()).id());
-			});
+			all.stream().filter(r -> r.id() == rsv).findFirst().ifPresent(r -> model.addAttribute("selectedSchedule", r));
 		}
 		if (manual != null) {
-			state.getManualSchedules().stream().filter(s -> s.id() == manual).findFirst().ifPresent(s -> {
-				model.addAttribute("selectedManual", s);
-				if (s.memberId() != null) {
-					AdminMockData.reservations().stream().filter(r -> r.userId().equals(s.memberId())).findFirst()
-							.ifPresent(r -> model.addAttribute("linkedMember", new String[] { r.name(), r.phone() }));
+			Schedule s = schedules.findSchedule(manual);
+			if (s != null) {
+				model.addAttribute("selectedManual", manual(s));
+				if (s.getMemberId() != null) {
+					model.addAttribute("linkedMember", new String[] { s.getMemberName(), s.getMemberPhone() });
 				}
-				if (s.reservationId() != null) {
-					all.stream().filter(r -> r.id() == s.reservationId()).findFirst()
+				if (s.getReservationId() != null) {
+					all.stream().filter(r -> r.id() == s.getReservationId()).findFirst()
 							.ifPresent(r -> model.addAttribute("linkedReservation", r));
 				}
-			});
+			}
 		}
 		if (del != null) {
-			state.getManualSchedules().stream().filter(s -> s.id() == del).findFirst()
-					.ifPresent(s -> model.addAttribute("deletingManual", s));
+			Schedule s = schedules.findSchedule(del);
+			if (s != null) {
+				model.addAttribute("deletingManual", manual(s));
+			}
 		}
 		if ("new".equals(modal)) {
-			model.addAttribute("newDate", String.format("%04d-%02d-%02d", y, m, day));
-			// 회원·예약 연결 검색용 (프로토타입 reservationCustomers / records)
-			Map<String, String[]> customers = new LinkedHashMap<>();
-			all.forEach(r -> customers.putIfAbsent(r.userId(), new String[] { r.name(), r.userId(), r.phone() }));
-			model.addAttribute("linkCustomers", new ArrayList<>(customers.values()));
+			model.addAttribute("newDate", Fmt.dash(selected));
+			// 회원·예약 연결 검색용 [이름, 회원 번호, 연락처]
+			model.addAttribute("linkCustomers", views.members().stream().filter(x -> x.id() > 0)
+					.map(x -> new String[] { x.name(), String.valueOf(x.id()), x.phone() }).toList());
 			model.addAttribute("linkReservations", all.stream().map(r -> Map.<String, Object>of("id", r.id(),
 					"userId", r.userId(), "name", r.name(), "phone", r.phone(), "origin", r.origin(),
 					"destination", r.destination())).toList());
@@ -139,51 +168,74 @@ public class AdminScheduleController {
 	@PostMapping("/manual")
 	public String addManual(@RequestParam String title, @RequestParam String category, @RequestParam String date,
 			@RequestParam String time, @RequestParam(defaultValue = "") String place,
-			@RequestParam(defaultValue = "") String memberId, @RequestParam(required = false) Integer reservationId,
+			@RequestParam(defaultValue = "") String memberId, @RequestParam(required = false) Long reservationId,
 			HttpSession session) {
 		LocalDate day = LocalDate.parse(date);
-		AdminState.of(session).getManualSchedules().add(new AdminState.ManualSchedule(System.currentTimeMillis(),
-				dateKey(day.getYear(), day.getMonthValue(), day.getDayOfMonth()), title.trim(), category.trim(), time,
-				place.trim(), memberId.isBlank() ? null : memberId, reservationId));
+		Schedule s = new Schedule();
+		s.setTitle(cut(title.trim(), 50));
+		s.setCategory(cut(category.trim(), 20));
+		s.setScheduleDate(day);
+		s.setScheduleTime(time.matches("\\d{2}:\\d{2}") ? time : null);
+		s.setPlace(place.isBlank() ? null : cut(place.trim(), 200));
+		s.setMemberId(memberId.matches("\\d+") ? Long.valueOf(memberId) : null);
+		s.setReservationId(reservationId);
+		s.setAdminId(AdminSession.adminId(session));
+		schedules.insertSchedule(s);
 		return "redirect:/admin/schedule?y=" + day.getYear() + "&m=" + day.getMonthValue() + "&d=" + day.getDayOfMonth();
 	}
 
 	@PostMapping("/manual/{id}/delete")
-	public String deleteManual(@PathVariable long id, @RequestParam(defaultValue = "") String back, HttpSession session) {
-		AdminState.of(session).getManualSchedules().removeIf(s -> s.id() == id);
+	public String deleteManual(@PathVariable long id, @RequestParam(defaultValue = "") String back) {
+		schedules.deleteSchedule(id);
 		return "redirect:" + AdminPageController.safeBack(back, "/admin/schedule");
 	}
 
 	/* ---------- 일정 관리 (수정 모드는 화면 스크립트에서 초안 관리 후 한 번에 저장) ---------- */
 
 	@GetMapping("/manage")
-	public String manage(HttpSession session, Model model) {
+	public String manage(Model model) {
 		Map<String, String> events = new LinkedHashMap<>();
-		activeReservations().forEach(r -> events.putIfAbsent(r.movingDate(), r.name()));
-		model.addAttribute("statuses", AdminState.of(session).getManagedDateStatuses());
+		active().forEach(r -> events.putIfAbsent(r.movingDate(), r.name()));
+		LocalDate today = LocalDate.now();
+		model.addAttribute("statuses", managedStatuses());
 		model.addAttribute("events", events);
+		model.addAttribute("startYear", today.getYear());
+		model.addAttribute("startMonth", today.getMonthValue());
 		return "admin/schedule-manage";
 	}
 
 	/** entries: "yy.MM.dd:closed|unavailable" 목록 = 저장할 전체 상태 */
 	@PostMapping("/manage")
+	@Transactional
 	public String saveManage(@RequestParam(required = false) List<String> entries, HttpSession session) {
-		AdminState state = AdminState.of(session);
+		Map<String, String> before = managedStatuses();
 		Map<String, String> next = new LinkedHashMap<>();
 		if (entries != null) {
 			for (String entry : entries) {
 				String[] kv = entry.split(":");
-				if (kv.length == 2 && (kv[1].equals("closed") || kv[1].equals("unavailable"))) {
+				if (kv.length == 2 && (kv[1].equals("closed") || kv[1].equals("unavailable")) && Fmt.parseDate(kv[0]) != null) {
 					next.put(kv[0], kv[1]);
 				}
 			}
 		}
+		Long adminId = AdminSession.adminId(session);
+		for (String key : before.keySet()) {
+			if (!next.containsKey(key)) {
+				schedules.deleteClosedDay(Fmt.parseDate(key));
+			}
+		}
 		next.forEach((key, value) -> {
-			if (!value.equals(state.getManagedDateStatuses().get(key))) {
-				state.fire("closed".equals(value) ? "일정 관리 · 업체 휴무일을 등록했을 시" : "일정 관리 · 이사 예약이 불가능 할 시");
+			if (!value.equals(before.get(key))) {
+				schedules.deleteClosedDay(Fmt.parseDate(key));
+				schedules.insertClosedDay(Fmt.parseDate(key), "closed".equals(value) ? "01" : "02", adminId);
+				AdminState.of(session).toast(notifications.fire(
+						"closed".equals(value) ? "일정 관리 · 업체 휴무일을 등록했을 시" : "일정 관리 · 이사 예약이 불가능 할 시", null, null));
 			}
 		});
-		state.setManagedDateStatuses(next);
 		return "redirect:/admin/schedule/manage";
+	}
+
+	private static String cut(String s, int max) {
+		return s.length() > max ? s.substring(0, max) : s;
 	}
 }

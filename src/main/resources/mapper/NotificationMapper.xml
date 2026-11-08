@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.codemove.notification.NotificationMapper">
+
+	<insert id="insert" parameterType="com.codemove.notification.Notification">
+		INSERT INTO TBL_NOTIFICATION (NOTIFICATION_ID, RECEIVER_TYPE, MEMBER_ID, NTF_TYPE, NTF_DETAIL, NTF_TITLE, NTF_CONTENT,
+		       LINK_URL, IS_IMPORTANT, IS_READ, NTF_CHANNEL, CREATED_AT, SENT_AT)
+		VALUES (SEQ_NOTIFICATION.NEXTVAL, #{receiverType}, #{memberId,jdbcType=NUMERIC}, #{ntfType}, #{ntfDetail}, #{ntfTitle},
+		       #{ntfContent}, #{linkUrl,jdbcType=VARCHAR}, #{isImportant}, 'N', #{ntfChannel}, SYSDATE, SYSDATE)
+	</insert>
+
+	<select id="listAdmin" resultType="com.codemove.notification.Notification">
+		SELECT * FROM TBL_NOTIFICATION
+		 WHERE RECEIVER_TYPE = '02' AND CREATED_AT &gt;= TRUNC(SYSDATE) - #{days}
+		 ORDER BY CREATED_AT DESC, NOTIFICATION_ID DESC
+	</select>
+
+	<select id="countUnreadAdmin" resultType="int">
+		SELECT COUNT(*) FROM TBL_NOTIFICATION WHERE RECEIVER_TYPE = '02' AND IS_READ = 'N'
+	</select>
+
+	<update id="markAllAdminRead">
+		UPDATE TBL_NOTIFICATION SET IS_READ = 'Y' WHERE RECEIVER_TYPE = '02' AND IS_READ = 'N'
+	</update>
+
+	<select id="listMember" resultType="com.codemove.notification.Notification">
+		SELECT * FROM TBL_NOTIFICATION
+		 WHERE RECEIVER_TYPE = '01' AND MEMBER_ID = #{memberId}
+		 ORDER BY CREATED_AT DESC, NOTIFICATION_ID DESC
+	</select>
+
+	<select id="countUnreadMember" resultType="int">
+		SELECT COUNT(*) FROM TBL_NOTIFICATION WHERE RECEIVER_TYPE = '01' AND MEMBER_ID = #{memberId} AND IS_READ = 'N'
+	</select>
+
+	<update id="markMemberRead">
+		UPDATE TBL_NOTIFICATION SET IS_READ = 'Y' WHERE NOTIFICATION_ID = #{id} AND MEMBER_ID = #{memberId}
+	</update>
+
+	<update id="markAllMemberRead">
+		UPDATE TBL_NOTIFICATION SET IS_READ = 'Y' WHERE RECEIVER_TYPE = '01' AND MEMBER_ID = #{memberId} AND IS_READ = 'N'
+	</update>
+
+	<select id="listHistory" resultType="com.codemove.notification.Notification">
+		SELECT * FROM (
+			SELECT n.*, m.MEMBER_NAME
+			  FROM TBL_NOTIFICATION n LEFT JOIN TBL_MEMBER m ON m.MEMBER_ID = n.MEMBER_ID
+			 ORDER BY n.CREATED_AT DESC, n.NOTIFICATION_ID DESC)
+		 WHERE ROWNUM &lt;= #{limit}
+	</select>
+
+	<select id="findSetting" resultType="com.codemove.notification.NotificationSetting">
+		SELECT * FROM (SELECT * FROM TBL_NOTIFICATION_SETTING ORDER BY SETTING_ID) WHERE ROWNUM = 1
+	</select>
+
+	<insert id="insertSetting">
+		INSERT INTO TBL_NOTIFICATION_SETTING (SETTING_ID, IS_ACTIVE, QUIET_ENABLED, QUIET_START, QUIET_END, SMS_FALLBACK, UPDATED_AT)
+		VALUES (SEQ_NOTIFICATION_SETTING.NEXTVAL, 'Y', 'Y', '22:00', '08:00', 'Y', SYSDATE)
+	</insert>
+
+	<update id="updateSetting" parameterType="com.codemove.notification.NotificationSetting">
+		UPDATE TBL_NOTIFICATION_SETTING
+		   SET IS_ACTIVE = #{isActive}, QUIET_ENABLED = #{quietEnabled}, QUIET_START = #{quietStart},
+		       QUIET_END = #{quietEnd}, SMS_FALLBACK = #{smsFallback}, UPDATED_AT = SYSDATE
+		 WHERE SETTING_ID = #{settingId}
+	</update>
+</mapper>

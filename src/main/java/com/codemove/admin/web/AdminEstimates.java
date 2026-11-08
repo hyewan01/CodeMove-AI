@@ -6,89 +6,26 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import com.codemove.common.Fmt;
+import com.codemove.move.EstimateDoc;
+import com.codemove.move.QuoteLine;
+import com.codemove.move.QuoteService;
+
 import lombok.Data;
 
 /**
- * 견적 관리 · 견적서 등록 모델 (프로토타입 EstimateRecord / EstimateDocumentData / getEstimateDocument).
- * 백엔드 개발 시 TBL_QUOTE · TBL_QUOTE_ITEM · TBL_QUOTE_OPTION 으로 대체합니다.
+ * 견적 관리 목록 행 · 견적서 등록 단계 (SCR-A-001~004).
+ * 사진·PDF 인식은 AI 모듈 연동 전이라 시연값을 채우고, 관리자가 고친 뒤 등록하면 TBL_QUOTE 에 저장합니다.
  */
 public final class AdminEstimates {
 
 	private AdminEstimates() {
 	}
 
-	/** 옵션 비용 행: 라벨, 선택지 2개 (견적서 양식 순서) */
-	public static final String[][] OPTION_ROWS = { { "피아노", "일반", "그랜드" }, { "돌침대", "분해", "조립" },
-			{ "조립장", "분해", "조립" }, { "벽걸이TV", "탈착", "설치" }, { "홈씨어터", "분리", "설치" }, { "수작업", "계단", "승강기" },
-			{ "안마의자", "분리", "설치" }, { "에어컨", "탈착", "설치" } };
+	/** 옵션 비용 행 (견적서 양식, 템플릿 optionRows) */
+	public static final String[][] OPTION_ROWS = EstimateDoc.OPTION_ROWS;
 
-	/** 견적서 양식 데이터 (items 는 행 순서대로 4칸씩: itemNames[i] / itemQuantities[i]) */
-	@Data
-	public static class EstimateDoc {
-		private String companyName = "명품익스프레스";
-		private String customer = "";
-		private String phone = "010-1234-5678";
-		private String estimateDate = "";
-		private String moveDate = "";
-		private String transportDate = "";
-		private String moveType = "포장이사";
-		private String origin = "서울 강남구 테헤란로 123";
-		private String destination = "경기 성남시 분당구 판교로 45";
-		private String volume = "3.5톤";
-		private String note = "파손 주의 물품은 별도 포장하며, 현장 상황에 따라 추가 비용이 발생할 수 있습니다.";
-		private String movingCost = "1,050,000";
-		private String extraCost = "270,000";
-		private String total = "1,320,000";
-		private String deposit = "132,000";
-		private String balance = "1,188,000";
-		private List<String> itemGroups = new ArrayList<>(List.of("전자기기", "가구", "", ""));
-		private List<String> optionCosts = new ArrayList<>(Collections.nCopies(8, ""));
-		private List<String> optionSelections = new ArrayList<>(Collections.nCopies(8, ""));
-		private String workMethod = "포장";
-		/** 운반방법: "" | 전 | 후 */
-		private String ladder = "전";
-		private String elevator = "후";
-		private String stairs = "";
-		/** 출발지·도착지 사다리 ( )층 */
-		private String departureFloor = "";
-		private String destinationFloor = "";
-		private String departureLadder = "150,000";
-		private String destinationLadder = "120,000";
-		private String ladderSubtotal = "270,000";
-		private int itemRowCount = 8;
-		private List<String> itemNames = new ArrayList<>(List.of("냉장고", "세탁기", "침대", "책상", "의자", "박스"));
-		private List<String> itemQuantities = new ArrayList<>(List.of("1대", "1대", "1개", "2개", "4개", "25개"));
-
-		public String itemName(int index) {
-			return index < itemNames.size() && itemNames.get(index) != null ? itemNames.get(index) : "";
-		}
-
-		public String itemQuantity(int index) {
-			return index < itemQuantities.size() && itemQuantities.get(index) != null ? itemQuantities.get(index) : "";
-		}
-
-		/** 폼 바인딩 후 크기·빈값 정리 */
-		public EstimateDoc normalized() {
-			itemRowCount = Math.min(14, Math.max(1, itemRowCount));
-			itemGroups = fit(itemGroups, 4);
-			optionCosts = fit(optionCosts, 8);
-			optionSelections = fit(optionSelections, 8);
-			itemNames = fit(itemNames, itemRowCount * 4);
-			itemQuantities = fit(itemQuantities, itemRowCount * 4);
-			return this;
-		}
-
-		private static List<String> fit(List<String> list, int size) {
-			List<String> out = new ArrayList<>();
-			for (int i = 0; i < size; i++) {
-				String v = list != null && i < list.size() ? list.get(i) : null;
-				out.add(v != null ? v : "");
-			}
-			return out;
-		}
-	}
-
-	/** 견적 기록 (견적 관리 목록 한 줄) */
+	/** 견적 관리 목록 한 줄 (TBL_QUOTE + 요청 영상) */
 	@Data
 	public static class EstimateRecord {
 		private long id;
@@ -98,19 +35,29 @@ public final class AdminEstimates {
 		private String approvedDate;
 		private String phone;
 		private String companyName;
+		private String quoteNo;
 		private String videoUrl;
 		private String videoFileName;
 		private String videoUploadedAt;
-		/** 등록·수정한 견적서. 없으면 기본 견적서(getEstimateDocument) */
-		private EstimateDoc doc;
 
-		EstimateRecord(long id, String status, String name, String date, String approvedDate, String companyName) {
-			this.id = id;
-			this.status = status;
-			this.name = name;
-			this.date = date;
-			this.approvedDate = approvedDate;
-			this.companyName = companyName;
+		public static EstimateRecord of(QuoteLine q) {
+			EstimateRecord r = new EstimateRecord();
+			r.id = q.getQuoteId();
+			r.status = QuoteService.statusLabel(q.getStatus());
+			r.name = q.getContactName();
+			r.date = Fmt.yy(q.getEstimateDate());
+			r.approvedDate = q.getApprovedAt() == null ? null : Fmt.yy(q.getApprovedAt());
+			r.phone = q.getContactPhone();
+			r.companyName = q.getCompanyName();
+			r.quoteNo = q.getQuoteNo();
+			r.videoUrl = q.getVideoPath();
+			r.videoFileName = q.getVideoName();
+			if (q.getVideoUploadedAt() != null) {
+				int h = q.getVideoUploadedAt().getHour();
+				r.videoUploadedAt = Fmt.yy(q.getVideoUploadedAt()) + (h < 12 ? " 오전 " : " 오후 ") + (h % 12 == 0 ? 12 : h % 12)
+						+ ":" + String.format("%02d", q.getVideoUploadedAt().getMinute()) + " 업로드";
+			}
+			return r;
 		}
 
 		/** 분류 배지 색 (red 견적 검토 / blue 견적 승인 / green 견적 확정) */
@@ -121,43 +68,6 @@ public final class AdminEstimates {
 				default -> "bg-[#fbefed] text-[#b9574f]";
 			};
 		}
-
-		/** 프로토타입 getEstimateDocument */
-		public EstimateDoc document() {
-			if (doc != null) {
-				return doc;
-			}
-			EstimateDoc d = new EstimateDoc();
-			d.setCompanyName(companyName != null ? companyName : "명품익스프레스");
-			d.setCustomer(name);
-			d.setPhone(phone != null ? phone : "010-1234-5678");
-			d.setEstimateDate(date);
-			d.setMoveDate(date);
-			d.setTransportDate(date);
-			return d.normalized();
-		}
-	}
-
-	public static List<EstimateRecord> initialRecords() {
-		List<EstimateRecord> list = new ArrayList<>(List.of(
-				new EstimateRecord(1, "견적 검토", "홍길동", "26.03.25", null, null),
-				new EstimateRecord(2, "견적 승인", "김명품", "25.11.08", "25.11.10", "한빛테크"),
-				new EstimateRecord(3, "견적 확정", "이서준", "25.04.17", "25.04.19", null),
-				new EstimateRecord(4, "견적 검토", "박서준", "24.12.02", null, null),
-				new EstimateRecord(5, "견적 승인", "최유진", "24.06.21", "24.06.24", "세림물류"),
-				new EstimateRecord(6, "견적 확정", "정도현", "23.09.14", "23.09.16", null),
-				new EstimateRecord(7, "견적 검토", "한지민", "23.02.28", null, null),
-				new EstimateRecord(8, "견적 승인", "윤서아", "22.10.05", "22.10.07", "더블유컴퍼니"),
-				new EstimateRecord(9, "견적 확정", "강민준", "22.01.19", "22.01.21", null),
-				new EstimateRecord(10, "견적 검토", "송하윤", "21.07.30", null, null),
-				new EstimateRecord(11, "견적 승인", "임지호", "21.03.12", "21.03.15", "미래오피스")));
-		list.get(0).setVideoUrl("https://assets.mixkit.co/videos/15149/15149-360.mp4");
-		list.get(0).setVideoFileName("거실_주방_이삿짐.mp4");
-		list.get(0).setVideoUploadedAt("26.03.25 오후 2:18 업로드");
-		list.get(1).setVideoUrl("https://assets.mixkit.co/videos/2302/2302-360.mp4");
-		list.get(1).setVideoFileName("대형가구_이동동선.mp4");
-		list.get(1).setVideoUploadedAt("25.11.08 오전 10:42 업로드");
-		return list;
 	}
 
 	/** 오늘 날짜 YY.MM.DD (프로토타입 getTodayShortDate) */
@@ -170,9 +80,11 @@ public final class AdminEstimates {
 
 	/** 등록 진행 상태: kind photo|pdf, step 1~4 */
 	@Data
-	public static class Registration {
+	public static class Registration implements java.io.Serializable {
 		private String kind;
 		private String fileName;
+		/** 올린 견적서 파일 (/uploads/quotes/...) → TBL_QUOTE.DOCUMENT_PATH */
+		private String filePath;
 		private int step = 1;
 		private EstimateDoc doc;
 		private String name = "";
@@ -192,9 +104,9 @@ public final class AdminEstimates {
 		d.setCompanyName("명품익스프레스");
 		d.setCustomer(customers[random.nextInt(customers.length)]);
 		d.setPhone(String.format("010-%04d-%04d", 1000 + random.nextInt(9000), 1000 + random.nextInt(9000)));
-		d.setEstimateDate("26.09.04");
-		d.setMoveDate("2026.09.04");
-		d.setTransportDate("26.09.04");
+		d.setEstimateDate(today());
+		d.setMoveDate(today());
+		d.setTransportDate(today());
 		d.setOrigin("출발지 미인식");
 		d.setDestination("도착지 미인식");
 		d.setVolume("3.5톤");

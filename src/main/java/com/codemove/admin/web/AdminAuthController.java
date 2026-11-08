@@ -17,7 +17,7 @@ public class AdminAuthController {
 	@PostMapping("/admin/logout")
 	public String logout(HttpSession session) {
 		AdminSession.logout(session);
-		CustomerSession.of(session).setLoggedIn(false);
+		CustomerSession.of(session).logout();
 		return "redirect:/";
 	}
 }

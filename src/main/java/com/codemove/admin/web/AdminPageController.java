@@ -11,11 +11,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.codemove.common.Fmt;
+import com.codemove.member.MemberService;
+import com.codemove.move.MoveLine;
+import com.codemove.move.MoveMapper;
+import com.codemove.move.QuoteService;
+import com.codemove.notification.NotificationService;
+
 import jakarta.servlet.http.HttpSession;
 
 /**
- * 관리자 화면 (SCR-A-001~023). 프로토타입 App의 page 상태를 URL로 나눴습니다.
- * 데이터는 AdminMockData 목업 + AdminState(세션)이며, 백엔드 개발 시 서비스 계층으로 대체합니다.
+ * 관리자 화면 (SCR-A-011 예약 · 012 리뷰 · 016 홈 · 023 회원). 프로토타입 App의 page 상태를 URL로 나눴습니다.
  * 목록의 필터·검색·페이지는 쿼리 파라미터, 상세/수정 모달은 modal·id 파라미터로 엽니다.
  */
 @Controller
@@ -25,66 +31,86 @@ public class AdminPageController {
 	/** 목록 한 페이지 행 수 (프로토타입 4건) */
 	private static final int PAGE_SIZE = 4;
 
+	private final AdminViews views;
+	private final MoveMapper moves;
+	private final MemberService members;
+	private final QuoteService quotes;
+	private final NotificationService notifications;
+
+	public AdminPageController(AdminViews views, MoveMapper moves, MemberService members, QuoteService quotes,
+			NotificationService notifications) {
+		this.views = views;
+		this.moves = moves;
+		this.members = members;
+		this.quotes = quotes;
+		this.notifications = notifications;
+	}
+
 	/** 헤더 알림 패널을 열면 빨간 점 제거 */
 	@PostMapping("/notifications/panel-read")
-	public ResponseEntity<Void> notificationPanelRead(HttpSession session) {
-		AdminState.of(session).setNotificationsRead(true);
+	public ResponseEntity<Void> notificationPanelRead() {
+		notifications.markAdminRead();
 		return ResponseEntity.noContent().build();
 	}
 
 	/** 홈 · 대시보드 (SCR-A-016) */
 	@GetMapping({ "", "/" })
-	public String home(HttpSession session, Model model) {
-		model.addAttribute("stats", AdminMockData.stats(AdminState.of(session).getEstimates().stream()
-				.filter(e -> "견적 검토".equals(e.getStatus())).count()));
-		model.addAttribute("recentReservations", AdminMockData.recentReservations(3));
+	public String home(Model model) {
+		List<AdminViews.Reservation> rs = views.reservations();
+		long reviewing = quotes.listLines().stream().filter(q -> QuoteService.REVIEWING.equals(q.getStatus())).count();
+		model.addAttribute("stats", List.of(
+				new AdminViews.Stat("전체 예약 신청", rs.size(), "calendar", "/admin/reservations"),
+				new AdminViews.Stat("리뷰 등록 현황", views.reviews().size(), "star", "/admin/reviews"),
+				new AdminViews.Stat("견적 검토", reviewing, "document", "/admin/estimates"),
+				new AdminViews.Stat("예약 완료", rs.stream().filter(r -> "예약 완료".equals(r.displayStatus())).count(), "truck",
+						"/admin/reservations")));
+		model.addAttribute("recentReservations", rs.stream().limit(3).toList());
 		return "admin/home";
 	}
 
 	/* ---------- 예약 관리 (SCR-A-011) ---------- */
 
-	public record ReservationRow(AdminMockData.Reservation record, String displayStatus, String paymentStatus) {
-	}
-
-	private static String paymentStatus(AdminMockData.Reservation r, AdminState state) {
-		if ("반려".equals(r.status())) return "결제 취소";
-		return state.getPaidReservations().contains(r.id()) ? "결제 완료" : "결제 대기";
+	public record ReservationRow(AdminViews.Reservation record, String displayStatus, String paymentStatus) {
 	}
 
 	@GetMapping("/reservations")
 	public String reservations(@RequestParam(defaultValue = "전체") String status,
 			@RequestParam(defaultValue = "") String q, @RequestParam(defaultValue = "1") int page,
-			@RequestParam(required = false) Integer id, HttpSession session, Model model) {
-		AdminState state = AdminState.of(session);
-		List<ReservationRow> all = AdminMockData.reservations().stream()
-				.map(r -> new ReservationRow(r, r.displayStatus(), paymentStatus(r, state)))
+			@RequestParam(required = false) Long id, Model model) {
+		List<ReservationRow> all = views.reservations().stream()
+				.map(r -> new ReservationRow(r, r.displayStatus(), r.paymentStatus()))
 				.toList();
 		String query = q.trim().toLowerCase();
+		String digits = Fmt.digits(query);
 		List<ReservationRow> filtered = all.stream()
 				.filter(row -> "전체".equals(status) || row.displayStatus().equals(status))
-				.filter(row -> query.isEmpty()
-						|| (row.record().name() + row.record().phone() + row.record().appliedDate()).toLowerCase().contains(query))
-				.sorted((a, b) -> b.record().appliedDate().compareTo(a.record().appliedDate()))
+				.filter(row -> query.isEmpty() || row.record().name().toLowerCase().contains(query)
+						|| row.record().appliedDate().contains(query)
+						|| (!digits.isEmpty() && Fmt.digits(row.record().phone()).contains(digits)))
 				.toList();
 		addPage(model, filtered, page);
 		model.addAttribute("status", status);
 		model.addAttribute("q", q);
 		long done = all.stream().filter(row -> "예약 완료".equals(row.displayStatus())).count();
+		long size = Math.max(1, all.size());
 		model.addAttribute("statusCounts", List.of(
-				new long[] { done, Math.round(done * 100.0 / all.size()) },
-				new long[] { all.size() - done, Math.round((all.size() - done) * 100.0 / all.size()) }));
+				new long[] { done, Math.round(done * 100.0 / size) },
+				new long[] { all.size() - done, Math.round((all.size() - done) * 100.0 / size) }));
 		if (id != null) {
 			all.stream().filter(row -> row.record().id() == id).findFirst()
 					.ifPresent(row -> model.addAttribute("selected", row));
 		}
-		model.addAttribute("deposit", "132,000원");
 		return "admin/reservations";
 	}
 
+	/** 계약금 결제 완료 처리 → 고객 알림 */
 	@PostMapping("/reservations/{id}/paid")
-	public String reservationPaid(@PathVariable int id, @RequestParam(defaultValue = "") String back,
-			HttpSession session) {
-		AdminState.of(session).getPaidReservations().add(id);
+	public String reservationPaid(@PathVariable long id, @RequestParam(defaultValue = "") String back) {
+		MoveLine line = moves.findMoveLine(id);
+		if (line != null && moves.markPaid(id) > 0 && !"02".equals(line.getPayStatus())) {
+			notifications.toMember(line.getMemberId(), "10", "예약금 결제가 완료되었어요", "결제 내역과 남은 결제 일정을 확인할 수 있어요.",
+					"/move/reservation");
+		}
 		return "redirect:" + safeBack(back, "/admin/reservations?id=" + id);
 	}
 
@@ -93,20 +119,22 @@ public class AdminPageController {
 	@GetMapping("/members")
 	public String members(@RequestParam(defaultValue = "전체") String type, @RequestParam(defaultValue = "") String q,
 			@RequestParam(defaultValue = "1") int page, @RequestParam(required = false) String modal,
-			@RequestParam(required = false) Long id, HttpSession session, Model model) {
-		AdminState state = AdminState.of(session);
+			@RequestParam(required = false) Long id, @RequestParam(required = false) String error, Model model) {
+		List<AdminViews.Member> all = views.members();
 		String query = q.trim().toLowerCase();
-		List<AdminMockData.Member> filtered = state.getMembers().stream()
+		String digits = Fmt.digits(query);
+		List<AdminViews.Member> filtered = all.stream()
 				.filter(m -> "전체".equals(type) || m.type().equals(type))
-				.filter(m -> query.isEmpty() || m.name().toLowerCase().contains(query) || m.phone().contains(query))
+				.filter(m -> query.isEmpty() || m.name().toLowerCase().contains(query)
+						|| (!digits.isEmpty() && Fmt.digits(m.phone()).contains(digits)))
 				.toList();
 		addPage(model, filtered, page);
 		model.addAttribute("type", type);
 		model.addAttribute("q", q);
 		model.addAttribute("modal", modal);
+		model.addAttribute("registerError", "exists".equals(error) ? "이미 등록된 연락처예요." : null);
 		if (id != null) {
-			state.getMembers().stream().filter(m -> m.id() == id).findFirst()
-					.ifPresent(m -> model.addAttribute("selected", m));
+			all.stream().filter(m -> m.id() == id).findFirst().ifPresent(m -> model.addAttribute("selected", m));
 		}
 		return "admin/members";
 	}
@@ -114,26 +142,26 @@ public class AdminPageController {
 	@PostMapping("/members")
 	public String registerMember(@RequestParam String name, @RequestParam String phone, @RequestParam String joined,
 			@RequestParam(defaultValue = "고객") String type, HttpSession session) {
-		AdminState state = AdminState.of(session);
-		long id = System.currentTimeMillis();
-		state.getMembers().add(new AdminMockData.Member(id, name.trim(), "member" + id, type, "고객".equals(type),
-				phone.trim(), joined.trim(), ""));
-		state.fire("회원 관리 · 신규 회원이 가입되었을 시");
+		if (name.isBlank() || Fmt.digits(phone).length() < 10) {
+			return "redirect:/admin/members?modal=register";
+		}
+		if (!members.register(name, phone, Fmt.parseDate(joined), "관리자".equals(type))) {
+			return "redirect:/admin/members?modal=register&error=exists";
+		}
+		AdminState.of(session).toast(notifications.fire("회원 관리 · 신규 회원이 가입되었을 시", null, name.trim()));
 		return "redirect:/admin/members";
 	}
 
 	@PostMapping("/members/{id}/type")
 	public String changeMemberType(@PathVariable long id, @RequestParam String type,
-			@RequestParam(defaultValue = "") String back, HttpSession session) {
-		List<AdminMockData.Member> members = AdminState.of(session).getMembers();
-		members.replaceAll(m -> m.id() == id ? m.withType(type) : m);
+			@RequestParam(defaultValue = "") String back) {
+		members.changeType(id, "관리자".equals(type));
 		return "redirect:" + safeBack(back, "/admin/members");
 	}
 
 	@PostMapping("/members/{id}/delete")
-	public String deleteMember(@PathVariable long id, @RequestParam(defaultValue = "") String back,
-			HttpSession session) {
-		AdminState.of(session).getMembers().removeIf(m -> m.id() == id);
+	public String deleteMember(@PathVariable long id, @RequestParam(defaultValue = "") String back) {
+		members.delete(id);
 		return "redirect:" + safeBack(back, "/admin/members");
 	}
 
@@ -141,38 +169,40 @@ public class AdminPageController {
 
 	@GetMapping("/reviews")
 	public String reviews(@RequestParam(defaultValue = "전체") String rating,
-			@RequestParam(required = false) Integer reply, @RequestParam(required = false) Integer edit,
-			HttpSession session, Model model) {
-		AdminState state = AdminState.of(session);
-		List<AdminMockData.Review> all = AdminMockData.reviews();
-		List<AdminMockData.Review> visible = "전체".equals(rating) ? all
+			@RequestParam(required = false) Long reply, @RequestParam(required = false) Long edit, Model model) {
+		List<AdminViews.Review> all = views.reviews();
+		List<AdminViews.Review> visible = "전체".equals(rating) ? all
 				: all.stream().filter(r -> String.valueOf(r.rating()).equals(rating)).toList();
-		double average = all.stream().mapToInt(r -> r.rating()).average().orElse(0);
+		double average = all.stream().mapToInt(AdminViews.Review::rating).average().orElse(0);
+		long size = Math.max(1, all.size());
 		model.addAttribute("reviews", visible);
 		model.addAttribute("reviewCount", all.size());
 		model.addAttribute("average", String.format("%.1f", average));
 		model.addAttribute("averageStars", (int) Math.round(Double.parseDouble(String.format("%.1f", average))));
 		model.addAttribute("distribution", java.util.stream.IntStream.of(5, 4, 3, 2, 1).mapToObj(star -> {
 			long count = all.stream().filter(r -> r.rating() == star).count();
-			return new long[] { star, count, Math.round(count * 100.0 / all.size()) };
+			return new long[] { star, count, Math.round(count * 100.0 / size) };
 		}).toList());
 		model.addAttribute("rating", rating);
-		model.addAttribute("replies", state.getReviewReplies());
-		// 프로토타입은 처음에 2번 리뷰의 답변 입력창이 열린 상태
-		model.addAttribute("replyingTo", reply != null ? reply : (edit == null ? 2 : -1));
+		java.util.Map<Long, String> replies = new java.util.LinkedHashMap<>();
+		all.stream().filter(AdminViews.Review::answered).forEach(r -> replies.put(r.id(), r.reply()));
+		model.addAttribute("replies", replies);
+		// 프로토타입은 처음에 답변 안 한 첫 리뷰의 입력창이 열린 상태
+		long firstOpen = visible.stream().filter(r -> !r.answered()).mapToLong(AdminViews.Review::id).findFirst().orElse(-1);
+		model.addAttribute("replyingTo", reply != null ? reply : (edit == null ? firstOpen : -1));
 		model.addAttribute("editing", edit);
 		return "admin/reviews";
 	}
 
 	@PostMapping("/reviews/{id}/reply")
-	public String replyReview(@PathVariable int id, @RequestParam String content,
+	public String replyReview(@PathVariable long id, @RequestParam String content,
 			@RequestParam(defaultValue = "전체") String rating, HttpSession session) {
-		AdminState state = AdminState.of(session);
-		boolean isNew = !state.getReviewReplies().containsKey(id);
 		if (!content.isBlank()) {
-			state.getReviewReplies().put(id, content.trim());
+			boolean isNew = views.reviews().stream().noneMatch(r -> r.id() == id && r.answered());
+			moves.updateReply(id, content.trim().length() > 500 ? content.trim().substring(0, 500) : content.trim(),
+					AdminSession.adminId(session));
 			if (isNew) {
-				state.fire("리뷰 관리 · 관리자가 답변 할 시");
+				AdminState.of(session).toast(notifications.fire("리뷰 관리 · 관리자가 답변 할 시", null, null));
 			}
 		}
 		return "redirect:/admin/reviews?reply=-1&rating=" + java.net.URLEncoder.encode(rating, java.nio.charset.StandardCharsets.UTF_8);
@@ -193,6 +223,6 @@ public class AdminPageController {
 
 	/** 같은 관리자 화면 안의 주소로만 되돌아가기 */
 	static String safeBack(String back, String fallback) {
-		return back.startsWith("/admin") ? back : fallback;
+		return back.startsWith("/admin") && !back.startsWith("//") ? back : fallback;
 	}
 }

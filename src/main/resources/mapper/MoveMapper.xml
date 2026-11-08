@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.codemove.move.MoveMapper">
+
+	<!-- ========== 견적 요청 ========== -->
+
+	<insert id="insertRequest" parameterType="com.codemove.move.MoveRequest">
+		<selectKey keyProperty="requestId" resultType="long" order="BEFORE">
+			SELECT SEQ_MOVE_REQUEST.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO TBL_MOVE_REQUEST (REQUEST_ID, MEMBER_ID, HOUSE_TYPE, PACK_TYPE, MOVE_DATE, PREFER_TIME, MOVE_TIME,
+		       FROM_ADDRESS, FROM_DETAIL, FROM_ZIPCODE, TO_ADDRESS, TO_DETAIL, TO_ZIPCODE,
+		       AI_CBM, AI_EST_AMOUNT, AI_EST_MIN, AI_EST_MAX, AI_ANALYSIS_SEC, AI_CONFIDENCE, REQUESTED_AT)
+		VALUES (#{requestId}, #{memberId}, #{houseType}, #{packType}, #{moveDate,jdbcType=DATE}, #{preferTime,jdbcType=CHAR}, #{moveTime,jdbcType=VARCHAR},
+		       #{fromAddress}, #{fromDetail,jdbcType=VARCHAR}, #{fromZipcode,jdbcType=VARCHAR}, #{toAddress}, #{toDetail,jdbcType=VARCHAR}, #{toZipcode,jdbcType=VARCHAR},
+		       #{aiCbm,jdbcType=NUMERIC}, #{aiEstAmount,jdbcType=NUMERIC}, #{aiEstMin,jdbcType=NUMERIC}, #{aiEstMax,jdbcType=NUMERIC},
+		       #{aiAnalysisSec,jdbcType=NUMERIC}, #{aiConfidence,jdbcType=NUMERIC}, SYSDATE)
+	</insert>
+
+	<insert id="insertRequestItem" parameterType="com.codemove.move.RequestItem">
+		INSERT INTO TBL_REQUEST_ITEM (RE_ITEM_ID, REQUEST_ID, CATEGORY, ITEM_NAME, ITEM_SIZE, QUANTITY, VOLUME, CONFIDENCE, NEEDS_REVIEW, SOURCE)
+		VALUES (SEQ_REQUEST_ITEM.NEXTVAL, #{requestId}, #{category,jdbcType=CHAR}, #{itemName}, #{itemSize}, #{quantity}, #{volume},
+		       #{confidence,jdbcType=NUMERIC}, #{needsReview}, #{source})
+	</insert>
+
+	<insert id="insertVideo" parameterType="com.codemove.move.ReVideo">
+		INSERT INTO TBL_RE_VIDEO (VIDEO_ID, REQUEST_ID, FILE_NAME, FILE_PATH, UPLOADED_AT)
+		VALUES (SEQ_RE_VIDEO.NEXTVAL, #{requestId}, #{fileName}, #{filePath}, SYSDATE)
+	</insert>
+
+	<select id="findRequest" resultType="com.codemove.move.MoveRequest">
+		SELECT * FROM TBL_MOVE_REQUEST WHERE REQUEST_ID = #{requestId}
+	</select>
+
+	<select id="listRequests" resultType="com.codemove.move.MoveRequest">
+		SELECT * FROM TBL_MOVE_REQUEST WHERE MEMBER_ID = #{memberId} ORDER BY REQUESTED_AT DESC, REQUEST_ID DESC
+	</select>
+
+	<select id="listRequestItems" resultType="com.codemove.move.RequestItem">
+		SELECT * FROM TBL_REQUEST_ITEM WHERE REQUEST_ID = #{requestId} ORDER BY RE_ITEM_ID
+	</select>
+
+	<select id="findVideo" resultType="com.codemove.move.ReVideo">
+		SELECT * FROM (SELECT * FROM TBL_RE_VIDEO WHERE REQUEST_ID = #{requestId} ORDER BY UPLOADED_AT DESC) WHERE ROWNUM = 1
+	</select>
+
+	<!-- ========== 예약 ========== -->
+
+	<select id="findReservationByRequest" resultType="com.codemove.move.Reservation">
+		SELECT * FROM TBL_RESERVATION WHERE REQUEST_ID = #{requestId}
+	</select>
+
+	<insert id="insertReservation" parameterType="com.codemove.move.Reservation">
+		<selectKey keyProperty="reservationId" resultType="long" order="BEFORE">
+			SELECT SEQ_RESERVATION.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO TBL_RESERVATION (RESERVATION_ID, RESERVATION_NO, REQUEST_ID, STATUS, PAY_STATUS, MOVE_DATE, MOVE_TIME, MOVE_MEMO, APPLIED_AT)
+		VALUES (#{reservationId}, 'RSV-' || TO_CHAR(SYSDATE, 'YYYYMMDD') || '-' || LPAD(MOD(#{reservationId}, 10000), 4, '0'),
+		       #{requestId}, '01', '01', #{moveDate}, #{moveTime,jdbcType=VARCHAR}, #{moveMemo,jdbcType=VARCHAR}, SYSDATE)
+	</insert>
+
+	<update id="reopenReservation">
+		UPDATE TBL_RESERVATION
+		   SET STATUS = '01', PAY_STATUS = '01', MOVE_DATE = #{moveDate}, MOVE_TIME = #{moveTime,jdbcType=VARCHAR},
+		       APPLIED_AT = SYSDATE, DEPOSIT_PAID_AT = NULL, CANCELLED_AT = NULL, CANCELLED_BY = NULL
+		 WHERE RESERVATION_ID = #{reservationId}
+	</update>
+
+	<update id="cancelReservation">
+		UPDATE TBL_RESERVATION
+		   SET STATUS = '03', PAY_STATUS = '03', CANCELLED_AT = SYSDATE, CANCELLED_BY = #{cancelledBy}
+		 WHERE RESERVATION_ID = #{reservationId} AND STATUS = '01'
+	</update>
+
+	<update id="updateMemo">
+		UPDATE TBL_RESERVATION SET MOVE_MEMO = #{memo,jdbcType=VARCHAR} WHERE RESERVATION_ID = #{reservationId}
+	</update>
+
+	<update id="markPaid">
+		UPDATE TBL_RESERVATION SET PAY_STATUS = '02', DEPOSIT_PAID_AT = SYSDATE
+		 WHERE RESERVATION_ID = #{reservationId} AND STATUS != '03'
+	</update>
+
+	<sql id="moveLineColumns">
+		SELECT v.RESERVATION_ID, v.RESERVATION_NO, v.STATUS, v.PAY_STATUS, v.MOVE_DATE, v.MOVE_TIME, v.MOVE_MEMO,
+		       v.APPLIED_AT, v.DEPOSIT_PAID_AT, r.REQUEST_ID, m.MEMBER_ID, m.MEMBER_NAME, m.PHONE, r.HOUSE_TYPE, r.PACK_TYPE,
+		       r.FROM_ADDRESS, r.FROM_DETAIL, r.TO_ADDRESS, r.TO_DETAIL, q.QUOTE_ID, q.QUOTE_NO, q.TOTAL_AMOUNT,
+		       q.DEPOSIT_AMOUNT, q.VOLUME_TON,
+		       CASE WHEN q.FROM_LADDER_USE = 'Y' OR q.TO_LADDER_USE = 'Y' THEN 'Y' ELSE 'N' END AS LADDER_USE,
+		       CASE WHEN q.FROM_ELEVATOR_USE = 'Y' OR q.TO_ELEVATOR_USE = 'Y' THEN 'Y' ELSE 'N' END AS ELEVATOR_USE
+		  FROM TBL_RESERVATION v
+		  JOIN TBL_MOVE_REQUEST r ON r.REQUEST_ID = v.REQUEST_ID
+		  JOIN TBL_MEMBER m ON m.MEMBER_ID = r.MEMBER_ID
+		  LEFT JOIN TBL_QUOTE q ON q.REQUEST_ID = r.REQUEST_ID
+	</sql>
+
+	<select id="listMoveLines" resultType="com.codemove.move.MoveLine">
+		<include refid="moveLineColumns"/>
+		<where>
+			<if test="memberId != null">m.MEMBER_ID = #{memberId}</if>
+		</where>
+		 ORDER BY v.APPLIED_AT DESC, v.RESERVATION_ID DESC
+	</select>
+
+	<select id="findMoveLine" resultType="com.codemove.move.MoveLine">
+		<include refid="moveLineColumns"/>
+		 WHERE v.RESERVATION_ID = #{reservationId}
+	</select>
+
+	<!-- ========== 후기 ========== -->
+
+	<insert id="insertReview" parameterType="com.codemove.move.Review">
+		<selectKey keyProperty="reviewId" resultType="long" order="BEFORE">
+			SELECT SEQ_REVIEW.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO TBL_REVIEW (REVIEW_ID, RESERVATION_ID, RATING, CONTENT, CREATED_AT)
+		VALUES (#{reviewId}, #{reservationId}, #{rating}, #{content}, SYSDATE)
+	</insert>
+
+	<insert id="insertReviewPhoto">
+		INSERT INTO TBL_REVIEW_PHOTO (PHOTO_ID, REVIEW_ID, FILE_PATH, SORT_ORDER)
+		VALUES (SEQ_REVIEW_PHOTO.NEXTVAL, #{reviewId}, #{filePath}, #{sortOrder})
+	</insert>
+
+	<select id="listReviews" resultType="com.codemove.move.Review">
+		SELECT w.REVIEW_ID, w.RESERVATION_ID, w.RATING, w.CONTENT, w.CREATED_AT, w.REPLY_CONTENT, w.REPLIED_AT, w.ADMIN_ID,
+		       m.MEMBER_NAME, m.MEMBER_ID, r.HOUSE_TYPE, r.PACK_TYPE, r.FROM_ADDRESS, r.TO_ADDRESS, v.MOVE_DATE,
+		       (SELECT COUNT(*) FROM TBL_RESERVATION v2 JOIN TBL_MOVE_REQUEST r2 ON r2.REQUEST_ID = v2.REQUEST_ID
+		         WHERE r2.MEMBER_ID = m.MEMBER_ID AND v2.STATUS = '02' AND v2.MOVE_DATE &lt;= v.MOVE_DATE) AS USAGE_COUNT,
+		       (SELECT COUNT(*) FROM TBL_REVIEW_PHOTO p WHERE p.REVIEW_ID = w.REVIEW_ID) AS PHOTO_COUNT,
+		       (SELECT MIN(p.FILE_PATH) KEEP (DENSE_RANK FIRST ORDER BY p.SORT_ORDER) FROM TBL_REVIEW_PHOTO p
+		         WHERE p.REVIEW_ID = w.REVIEW_ID) AS FIRST_PHOTO
+		  FROM TBL_REVIEW w
+		  JOIN TBL_RESERVATION v ON v.RESERVATION_ID = w.RESERVATION_ID
+		  JOIN TBL_MOVE_REQUEST r ON r.REQUEST_ID = v.REQUEST_ID
+		  JOIN TBL_MEMBER m ON m.MEMBER_ID = r.MEMBER_ID
+		<where>
+			<if test="memberId != null">m.MEMBER_ID = #{memberId}</if>
+			<if test="minRating != null">AND w.RATING &gt;= #{minRating}</if>
+		</where>
+		 ORDER BY w.CREATED_AT DESC, w.REVIEW_ID DESC
+	</select>
+
+	<update id="updateReply">
+		UPDATE TBL_REVIEW SET REPLY_CONTENT = #{content}, REPLIED_AT = SYSDATE, ADMIN_ID = #{adminId,jdbcType=NUMERIC}
+		 WHERE REVIEW_ID = #{reviewId}
+	</update>
+</mapper>

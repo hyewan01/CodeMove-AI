@@ -15,6 +15,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.codemove.admin.web.AdminSession;
 import com.codemove.customer.web.CustomerSession;
+import com.codemove.member.Member;
+import com.codemove.member.MemberService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -41,9 +43,11 @@ public class SocialLoginController {
 	}
 
 	private final SocialLoginService social;
+	private final MemberService members;
 
-	public SocialLoginController(SocialLoginService social) {
+	public SocialLoginController(SocialLoginService social, MemberService members) {
 		this.social = social;
+		this.members = members;
 	}
 
 	@GetMapping("/login/social/{code}")
@@ -123,12 +127,19 @@ public class SocialLoginController {
 		return complete(result.profile(), session);
 	}
 
+	/** 연결된 회원이면 로그인, 처음 보는 소셜 계정이면 회원가입(가입을 마치면 TBL_SOCIAL 연결) */
 	private String complete(SocialLoginService.SocialProfile profile, HttpSession session) {
 		session.removeAttribute(STATE_KEY);
 		AdminSession.logout(session);
-		// 회원 테이블 연동 전: 제공자 이름으로 고객 로그인 (백엔드에서 TBL_SOCIAL.SOCIAL_ID 로 회원 조회·가입)
-		CustomerSession.of(session).loginWithSocial(profile.provider().code(), profile.name());
-		return CustomerSession.redirectAfterLogin(session);
+		CustomerSession cs = CustomerSession.of(session);
+		Member member = members.findBySocial(profile.provider().code(), profile.id());
+		if (member != null) {
+			cs.login(member.getMemberId(), member.getMemberName());
+			return CustomerSession.redirectAfterLogin(session);
+		}
+		cs.logout();
+		cs.setPendingSocial(new CustomerSession.PendingSocial(profile.provider().code(), profile.id(), profile.name()));
+		return "redirect:/signup?notice=social";
 	}
 
 	/** 로그인 방법 선택 화면으로 돌아가 안내 문구 표시 */

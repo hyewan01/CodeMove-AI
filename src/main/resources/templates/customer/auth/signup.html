@@ -8,6 +8,7 @@
 		<div th:replace="~{customer/fragments/common :: formHead('/', null)}"></div>
 		<form class="form-content" method="post" th:action="@{/signup}" th:object="${signup}" data-signup>
 			<div class="signup-copy">본인인증을 위해<br>이름과 전화번호를 입력해주세요.</div>
+			<p class="form-error" role="alert" th:if="${notice}" th:text="${notice}"></p>
 			<div class="field-wrap">
 				<div class="field-label">이름</div>
 				<input class="field" th:field="*{name}" type="text" aria-label="이름" placeholder="이름을 입력해주세요." autocomplete="name">

@@ -4,7 +4,7 @@
 <body>
 <div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
 <!-- SCR-U-017~019 AI 챗봇 · 상담원 연결 · 파일 첨부 -->
-<div class="screen chat-screen" data-chat th:data-status="${cs.estimateStatus}" th:data-user="${cs.userName}"
+<div class="screen chat-screen" data-chat th:data-url="@{/chat/messages}"
 	 th:data-assets="@{/assets/}" th:data-link-move="@{/move}" th:data-link-quote="@{/quote}" th:data-link-estimates="@{/more/estimates}">
 	<div class="chat-header">
 		<a th:replace="~{customer/fragments/common :: back('/home')}"></a>
@@ -22,12 +22,12 @@
 		</div>
 		<div class="chat-menu-card">
 			<!-- 인사말 · 퀵메뉴: TBL_CHAT_SETTING.GREETING / TBL_QUICK_MENU -->
-			<div class="chat-greeting">안녕하세요, 명품익스프레스입니다.<br>궁금하신 내용을 선택해주세요.</div>
+			<div class="chat-greeting" th:text="${greeting}">안녕하세요, 명품익스프레스입니다. 궁금하신 내용을 선택해주세요.</div>
 			<div class="chat-topic-list">
 				<button type="button" class="action chat-topic" th:each="t, st : ${topics}" th:classappend="${st.last} ? 'chat-topic-accent'"
 						th:text="${t}" th:data-ask="${t}"></button>
 			</div>
-			<div class="chat-hours">상담 운영시간　평일 09:00–18:00</div>
+			<div class="chat-hours" th:text="'상담 운영시간　' + ${hours}">상담 운영시간　09:00–18:00</div>
 		</div>
 		<div class="chat-restart-label" data-chat-restart hidden>상담 내용</div>
 		<div class="chat-thread" aria-live="polite" data-chat-thread></div>
@@ -51,6 +51,10 @@
 		</div>
 	</div>
 </div>
+<script th:inline="javascript">
+	/* 이전 상담 내용 (진행 중인 채팅방) */
+	window.CHAT_HISTORY = /*[[${history}]]*/ [];
+</script>
 <script defer th:src="@{/js/chat.js}"></script>
 </div>
 </body>

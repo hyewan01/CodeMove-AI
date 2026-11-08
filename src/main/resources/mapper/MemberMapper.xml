@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.codemove.member.MemberMapper">
+
+	<select id="findActiveAdminByPhone" resultType="com.codemove.member.Admin">
+		SELECT ADMIN_ID, ADMIN_NAME, PHONE, IS_ACTIVE
+		  FROM TBL_ADMIN
+		 WHERE REPLACE(PHONE, '-', '') = #{digits}
+		   AND IS_ACTIVE = 'Y'
+	</select>
+
+	<select id="findAdmin" resultType="com.codemove.member.Admin">
+		SELECT ADMIN_ID, ADMIN_NAME, PHONE, IS_ACTIVE FROM TBL_ADMIN WHERE ADMIN_ID = #{adminId}
+	</select>
+
+	<select id="findActiveMemberByPhone" resultType="com.codemove.member.Member">
+		SELECT * FROM TBL_MEMBER
+		 WHERE REPLACE(PHONE, '-', '') = #{digits}
+		   AND IS_ACTIVE = 'Y'
+	</select>
+
+	<select id="findMember" resultType="com.codemove.member.Member">
+		SELECT * FROM TBL_MEMBER WHERE MEMBER_ID = #{memberId}
+	</select>
+
+	<insert id="insertMember" parameterType="com.codemove.member.Member">
+		<selectKey keyProperty="memberId" resultType="long" order="BEFORE">
+			SELECT SEQ_MEMBER.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO TBL_MEMBER (MEMBER_ID, MEMBER_NAME, PHONE, IS_VERIFIED, IS_ACTIVE, JOINED_AT, TERMS_AGREED_AT)
+		VALUES (#{memberId}, #{memberName}, #{phone}, 'Y', 'Y', SYSDATE, SYSDATE)
+	</insert>
+
+	<select id="findMemberIdBySocial" resultType="long">
+		SELECT s.MEMBER_ID
+		  FROM TBL_SOCIAL s JOIN TBL_MEMBER m ON m.MEMBER_ID = s.MEMBER_ID
+		 WHERE s.LOGIN_TYPE = #{loginType} AND s.SOCIAL_NO = #{socialNo} AND m.IS_ACTIVE = 'Y'
+	</select>
+
+	<insert id="insertSocial">
+		INSERT INTO TBL_SOCIAL (SOCIAL_ID, MEMBER_ID, LOGIN_TYPE, SOCIAL_NO, CONNECTED_AT)
+		VALUES (SEQ_SOCIAL.NEXTVAL, #{memberId}, #{loginType}, #{socialNo}, SYSDATE)
+	</insert>
+
+	<select id="findSocialTypes" resultType="string">
+		SELECT LOGIN_TYPE FROM TBL_SOCIAL WHERE MEMBER_ID = #{memberId} ORDER BY LOGIN_TYPE
+	</select>
+
+	<update id="updatePhone">
+		UPDATE TBL_MEMBER SET PHONE = #{phone} WHERE MEMBER_ID = #{memberId}
+	</update>
+
+	<!-- 회원 + (회원 정보 없는) 관리자. 관리자만 있는 계정은 id = -ADMIN_ID -->
+	<select id="listForAdmin" resultType="com.codemove.member.MemberListRow">
+		SELECT m.MEMBER_ID AS id, m.MEMBER_NAME AS name, m.PHONE, m.JOINED_AT,
+		       CASE WHEN EXISTS (SELECT 1 FROM TBL_ADMIN a
+		                          WHERE REPLACE(a.PHONE, '-', '') = REPLACE(m.PHONE, '-', '') AND a.IS_ACTIVE = 'Y')
+		            THEN 'Y' ELSE 'N' END AS is_admin,
+		       (SELECT MAX(r.FROM_ADDRESS) KEEP (DENSE_RANK LAST ORDER BY r.REQUESTED_AT)
+		          FROM TBL_MOVE_REQUEST r WHERE r.MEMBER_ID = m.MEMBER_ID) AS last_address
+		  FROM TBL_MEMBER m
+		 WHERE m.IS_ACTIVE = 'Y'
+		UNION ALL
+		SELECT -a.ADMIN_ID, a.ADMIN_NAME, a.PHONE, NULL, 'Y', NULL
+		  FROM TBL_ADMIN a
+		 WHERE a.IS_ACTIVE = 'Y'
+		   AND NOT EXISTS (SELECT 1 FROM TBL_MEMBER m
+		                    WHERE REPLACE(m.PHONE, '-', '') = REPLACE(a.PHONE, '-', '') AND m.IS_ACTIVE = 'Y')
+		 ORDER BY 4 DESC NULLS LAST, 1 DESC
+	</select>
+
+	<insert id="insertMemberByAdmin">
+		INSERT INTO TBL_MEMBER (MEMBER_ID, MEMBER_NAME, PHONE, IS_VERIFIED, IS_ACTIVE, JOINED_AT, TERMS_AGREED_AT)
+		VALUES (SEQ_MEMBER.NEXTVAL, #{name}, #{phone}, 'N', 'Y', #{joined}, #{joined})
+	</insert>
+
+	<update id="activateAdminByPhone">
+		UPDATE TBL_ADMIN SET IS_ACTIVE = 'Y' WHERE REPLACE(PHONE, '-', '') = #{digits}
+	</update>
+
+	<insert id="insertAdmin">
+		INSERT INTO TBL_ADMIN (ADMIN_ID, ADMIN_NAME, PHONE, IS_ACTIVE, PUSH_ENABLED, CREATED_AT)
+		VALUES (SEQ_ADMIN.NEXTVAL, #{name}, #{phone}, 'Y', 'Y', SYSDATE)
+	</insert>
+
+	<update id="deactivateAdminByPhone">
+		UPDATE TBL_ADMIN SET IS_ACTIVE = 'N' WHERE REPLACE(PHONE, '-', '') = #{digits}
+	</update>
+
+	<update id="deactivateAdmin">
+		UPDATE TBL_ADMIN SET IS_ACTIVE = 'N' WHERE ADMIN_ID = #{adminId}
+	</update>
+
+	<update id="withdrawMember">
+		UPDATE TBL_MEMBER SET IS_ACTIVE = 'N', WITHDRAWN_AT = SYSDATE WHERE MEMBER_ID = #{memberId}
+	</update>
+</mapper>

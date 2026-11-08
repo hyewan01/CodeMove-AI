@@ -9,13 +9,13 @@
 	<div class="form-content reservation-history-page">
 		<a class="action upcoming-reservation-card" aria-label="다가오는 예약 상세" th:href="@{/move/reservation}" th:if="${cs.estimateStatus == 'confirmed'}">
 			<div class="upcoming-reservation-top">
-				<div><span>확정</span><b>D-30</b></div>
+				<div><span>확정</span><b th:text="${mv.dday}">D-30</b></div>
 			</div>
 			<div class="upcoming-reservation-route">
-				<strong>강남구 → 서초구</strong>
+				<strong th:text="${mv.routeLabel}">강남구 → 서초구</strong>
 				<img th:replace="~{customer/fragments/common :: chevron}">
 			</div>
-			<small>3월 18일 (수) 오전 10:00 · 원룸 일반포장</small>
+			<small th:text="${booking.dateLabel} + ' ' + ${booking.timeLabel} + ' · ' + ${booking.typeLabel}">3월 18일 (수) 오전 10:00 · 원룸 일반포장</small>
 		</a>
 		<div class="reservation-empty" th:unless="${cs.estimateStatus == 'confirmed'}">
 			<strong>예정된 예약이 없습니다.</strong>
