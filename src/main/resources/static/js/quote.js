@@ -97,9 +97,16 @@
 	/* ---------- 1. 영상 업로드 ---------- */
 	const videoInput = $('[data-video-input]');
 	$$('[data-video-pick]').forEach((b) => b.addEventListener('click', () => videoInput.click()));
+	const MAX_VIDEO_BYTES = 1024 * 1024 * 1024; // application.yml max-file-size(1GB)와 같게
+	const videoError = $('[data-video-error]');
 	videoInput.addEventListener('change', () => {
 		const file = videoInput.files && videoInput.files[0];
 		if (!file) return;
+		videoError.hidden = file.size <= MAX_VIDEO_BYTES;
+		if (file.size > MAX_VIDEO_BYTES) {
+			videoInput.value = '';
+			return;
+		}
 		state.videoReady = true;
 		state.analysisDone = false;
 		$('[data-upload-card]').classList.add('uploaded');
