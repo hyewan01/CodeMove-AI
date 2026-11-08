@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.codemove.admin.web.AdminMockData;
+import com.codemove.admin.web.AdminSession;
+
 import jakarta.servlet.http.HttpSession;
 import lombok.Data;
 
@@ -46,6 +49,9 @@ public class CustomerPageController {
 	@GetMapping("/")
 	public String onboarding(HttpSession session, Model model) {
 		CustomerSession cs = CustomerSession.of(session);
+		if (AdminSession.isLoggedIn(session)) {
+			return "redirect:/admin";
+		}
 		if (cs.isLoggedIn()) {
 			return "redirect:/home";
 		}
@@ -80,6 +86,9 @@ public class CustomerPageController {
 	@GetMapping("/login")
 	public String login(@RequestParam(defaultValue = "onboarding") String backdrop, HttpSession session, Model model) {
 		CustomerSession cs = CustomerSession.of(session);
+		if (AdminSession.isLoggedIn(session)) {
+			return "redirect:/admin";
+		}
 		if (cs.isLoggedIn()) {
 			return "redirect:/home";
 		}
@@ -92,6 +101,8 @@ public class CustomerPageController {
 	/** 간편 로그인 (화면 시연: 카카오 → 김코드, 네이버·애플 → 김무브) */
 	@PostMapping("/login/social")
 	public String socialLogin(@RequestParam String provider, HttpSession session) {
+		// 백엔드 개발 시: 소셜 계정에 연결된 관리자가 있으면 AdminSession 로그인 후 redirectAfterAdminLogin
+		AdminSession.logout(session);
 		CustomerSession.of(session).loginAs("kakao".equals(provider) ? "kimCode" : "kimMove", provider);
 		return CustomerSession.redirectAfterLogin(session);
 	}
@@ -101,11 +112,18 @@ public class CustomerPageController {
 		return "customer/auth/phone-login";
 	}
 
-	/** 휴대전화 로그인 (화면 시연: 010-5678-1234 → 김코드) */
+	/** 휴대전화 로그인 (화면 시연: 010-5678-1234 → 김코드, 010-9445-8224 → 관리자 김선국) */
 	@PostMapping("/login/phone")
 	public String phoneLogin(@RequestParam String phone, HttpSession session) {
 		CustomerSession cs = CustomerSession.of(session);
 		String digits = phone.replaceAll("\\D", "");
+		AdminMockData.AdminAccount admin = AdminMockData.findAdminByPhone(digits);
+		if (admin != null) {
+			cs.setLoggedIn(false);
+			AdminSession.login(session, admin);
+			return CustomerSession.redirectAfterAdminLogin(session);
+		}
+		AdminSession.logout(session);
 		cs.loginAs("01056781234".equals(digits) ? "kimCode" : "kimMove", null);
 		cs.setPhone(phone);
 		return CustomerSession.redirectAfterLogin(session);

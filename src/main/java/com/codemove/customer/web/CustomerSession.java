@@ -38,11 +38,22 @@ public class CustomerSession implements Serializable {
 	/** 이번 세션에서 작성한 후기 */
 	private List<CustomerMockData.MyReview> submittedReviews = new ArrayList<>();
 
-	/** 로그인 후 이동할 주소: 저장된 원래 주소가 있으면 그곳, 없으면 홈 */
+	/** 고객 로그인 후 이동할 주소: 저장된 원래 주소(관리자 화면 제외)가 있으면 그곳, 없으면 고객 홈 */
 	public static String redirectAfterLogin(HttpSession session) {
+		String target = popLoginRedirect(session);
+		return "redirect:" + (target != null && !target.startsWith("/admin") ? target : "/home");
+	}
+
+	/** 관리자 로그인 후 이동할 주소: 저장된 관리자 화면 주소가 있으면 그곳, 없으면 관리자 홈 */
+	public static String redirectAfterAdminLogin(HttpSession session) {
+		String target = popLoginRedirect(session);
+		return "redirect:" + (target != null && target.startsWith("/admin") ? target : "/admin");
+	}
+
+	private static String popLoginRedirect(HttpSession session) {
 		Object target = session.getAttribute(LOGIN_REDIRECT_KEY);
 		session.removeAttribute(LOGIN_REDIRECT_KEY);
-		return "redirect:" + (target != null ? target : "/home");
+		return target != null ? target.toString() : null;
 	}
 
 	public static CustomerSession of(HttpSession session) {

@@ -16,13 +16,16 @@ public final class AdminMockData {
 
 	/* ---------- 관리자 계정 (TBL_ADMIN) ---------- */
 
-	public record AdminAccount(String loginId, String password, String name) {
+	public record AdminAccount(String name, String phone) {
 	}
 
-	/** 목업 로그인 계정. 백엔드 개발 시 TBL_ADMIN(LOGIN_ID, PASSWORD 해시) 조회로 대체 */
-	public static AdminAccount findAdmin(String loginId) {
-		AdminAccount admin = new AdminAccount("admin", "admin1234", "김선국");
-		return admin.loginId().equals(loginId) ? admin : null;
+	/**
+	 * 관리자도 고객과 같은 로그인 화면(휴대전화·소셜)을 쓰고, 로그인한 계정이 관리자면 관리자 화면으로 보냅니다.
+	 * 목업: 이 번호로 휴대전화 로그인하면 관리자. 백엔드 개발 시 TBL_ADMIN.PHONE 조회로 대체
+	 */
+	public static AdminAccount findAdminByPhone(String phoneDigits) {
+		AdminAccount admin = new AdminAccount("김선국", "01094458224");
+		return admin.phone().equals(phoneDigits) ? admin : null;
 	}
 
 	/* ---------- 예약 ---------- */
