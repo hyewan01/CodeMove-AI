@@ -20,9 +20,13 @@
 			<input type="hidden" th:field="*{termsAccepted}" data-terms>
 			<div class="signup-bottom">
 				<div class="terms-row">
-					<span th:classappend="*{termsAccepted} ? 'terms-checked'" th:text="*{termsAccepted} ? '✓' : ''"></span>
-					<u>본인인증을 위한 개인정보 수집</u>
-					<!-- 입력값을 세션에 저장한 뒤 약관 화면으로 이동 -->
+					<!-- 체크·문구·> 모두 입력값을 세션에 저장한 뒤 약관 화면으로 이동 (동의한 뒤 체크를 누르면 동의 해제) -->
+					<button class="action terms-open" aria-label="개인정보 수집 동의" th:formaction="@{/signup/draft}" data-terms-check>
+						<span th:classappend="*{termsAccepted} ? 'terms-checked'" th:text="*{termsAccepted} ? '✓' : ''"></span>
+					</button>
+					<button class="action terms-open" th:formaction="@{/signup/draft}">
+						<u>본인인증을 위한 개인정보 수집</u>
+					</button>
 					<button class="action terms-arrow" aria-label="개인정보 수집 내용 보기" th:formaction="@{/signup/draft}">
 						<img alt="" th:src="@{/assets/ce2ac.svg}">
 					</button>

@@ -259,6 +259,17 @@
 		const refresh = () => setEnabled(submit, name.value.trim().length > 0 && digitsOf(phone).length === 11 && terms.value === 'true');
 		name.addEventListener('input', refresh);
 		phone.addEventListener('input', refresh);
+		/* 동의 전: 버튼 기본 동작으로 약관 화면 이동 / 동의 후: 체크 해제 */
+		const check = $('[data-terms-check]', signup);
+		check.addEventListener('click', (e) => {
+			if (terms.value !== 'true') return;
+			e.preventDefault();
+			terms.value = 'false';
+			const mark = $('span', check);
+			mark.classList.remove('terms-checked');
+			mark.textContent = '';
+			refresh();
+		});
 		refresh();
 	}
 
