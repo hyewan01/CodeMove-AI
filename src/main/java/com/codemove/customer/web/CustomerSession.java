@@ -75,6 +75,14 @@ public class CustomerSession implements Serializable {
 		loggedIn = true;
 	}
 
+	/** 간편 로그인: 제공자에서 받은 이름이 있으면 그 이름으로 */
+	public void loginWithSocial(String provider, String name) {
+		loginAs("kimMove", provider);
+		if (name != null && !name.isBlank()) {
+			userName = name;
+		}
+	}
+
 	public void signupComplete(String name, String phone) {
 		if (name != null && !name.isBlank()) {
 			this.userName = name;

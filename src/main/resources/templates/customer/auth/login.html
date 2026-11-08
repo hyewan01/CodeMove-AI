@@ -18,17 +18,19 @@
 				<div class="sheet-handle"></div>
 			</div>
 			<div class="sheet-title">로그인 방법 선택</div>
-			<form class="social-row" method="post" th:action="@{/login/social}">
-				<button class="action social kakao" name="provider" value="kakao" aria-label="카카오 로그인">
+			<!-- 간편 로그인: 각 제공자의 로그인 화면으로 이동 (SocialLoginController) -->
+			<div class="social-row">
+				<a class="action social kakao" aria-label="카카오 로그인" th:href="@{/login/social/kakao}">
 					<img alt="카카오" th:src="@{/assets/2a814.svg}">
-				</button>
-				<button class="action social naver" name="provider" value="naver" aria-label="네이버 로그인">
+				</a>
+				<a class="action social naver" aria-label="네이버 로그인" th:href="@{/login/social/naver}">
 					<img alt="네이버" th:src="@{/assets/4a055.svg}">
-				</button>
-				<button class="action social apple" name="provider" value="apple" aria-label="애플 로그인">
+				</a>
+				<a class="action social apple" aria-label="애플 로그인" th:href="@{/login/social/apple}">
 					<img alt="애플" th:src="@{/assets/38175.png}">
-				</button>
-			</form>
+				</a>
+			</div>
+			<p class="form-error social-error" role="alert" th:if="${socialError}" th:text="${socialError}"></p>
 			<a class="action phone-button" th:href="@{/login/phone}">
 				<img alt="" th:src="@{/assets/1513d.svg}">
 				<span>휴대전화로 로그인</span>

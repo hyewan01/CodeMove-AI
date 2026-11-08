@@ -220,6 +220,19 @@ codemove-myungpum-express/
 3. 브랜치를 나눠 작업하고 Pull Request로 리뷰 후 병합합니다.
 4. 구현·검증 결과에 따라 문서와 소스코드를 함께 업데이트합니다.
 
+### 간편 로그인 설정 (카카오 · 네이버 · 애플)
+
+간편 로그인 버튼은 각 제공자의 실제 로그인 화면으로 이동합니다. 앱 키는 `application-local.yml`(Git 제외)의 `codemove.social`에 넣습니다. 형식은 `application-local.yml.example`을 참고하세요. 키가 없는 제공자는 "준비 중" 안내만 표시합니다.
+
+| 제공자 | 등록하는 곳 | 필요한 값 | 콜백 주소(Redirect URI) |
+| --- | --- | --- | --- |
+| 카카오 | Kakao Developers → 내 애플리케이션 → 카카오 로그인 활성화 | REST API 키, (사용 시) Client Secret | `http://localhost:8080/login/oauth/kakao/callback` |
+| 네이버 | NAVER Developers → 애플리케이션 등록 → 네이버 로그인 | Client ID, Client Secret | `http://localhost:8080/login/oauth/naver/callback` |
+| 애플 | Apple Developer(유료 멤버십) → Services ID + Sign in with Apple 키(.p8) | Services ID, 팀 ID, 키 ID, .p8 | `https://<도메인>/login/oauth/apple/callback` |
+
+- 애플은 `localhost`·`http` 주소를 허용하지 않으므로 배포 도메인이나 https 터널 주소를 `redirect-base`에 적어야 합니다.
+- 현재는 로그인 성공 시 제공자 이름으로 고객 세션만 만듭니다. 회원 조회·가입(TBL_SOCIAL 연동)은 백엔드 개발 때 연결합니다.
+
 **주의:** 화면 시연(Figma Make) 구현과 최종 서버·DB 연동 완료는 구분합니다. 이 README의 기능 목록은 프로젝트 목표를 포함하며 전체 기능 구현 완료를 의미하지 않습니다.
 
 ## 14. 변경 이력

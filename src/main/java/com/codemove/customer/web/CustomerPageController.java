@@ -19,6 +19,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.codemove.admin.web.AdminMockData;
 import com.codemove.admin.web.AdminSession;
+import com.codemove.customer.social.SocialProvider;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.Data;
@@ -84,7 +85,9 @@ public class CustomerPageController {
 	/* ---------- 로그인 · 회원가입 (SCR-U-022~027) ---------- */
 
 	@GetMapping("/login")
-	public String login(@RequestParam(defaultValue = "onboarding") String backdrop, HttpSession session, Model model) {
+	public String login(@RequestParam(defaultValue = "onboarding") String backdrop,
+			@RequestParam(required = false) String social, @RequestParam(required = false) String error,
+			HttpSession session, Model model) {
 		CustomerSession cs = CustomerSession.of(session);
 		if (AdminSession.isLoggedIn(session)) {
 			return "redirect:/admin";
@@ -94,17 +97,14 @@ public class CustomerPageController {
 		}
 		model.addAttribute("backdrop", backdrop);
 		model.addAttribute("showSplash", false);
+		// 간편 로그인(SocialLoginController)에서 돌아온 경우 안내 문구
+		SocialProvider.of(social).ifPresent(p -> model.addAttribute("socialError", switch (String.valueOf(error)) {
+			case "cancel" -> p.label() + " 로그인을 취소했어요.";
+			case "unconfigured" -> p.label() + " 로그인은 아직 준비 중이에요. 휴대전화로 로그인해 주세요.";
+			default -> p.label() + " 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.";
+		}));
 		addHomeModel(model, cs);
 		return "customer/auth/login";
-	}
-
-	/** 간편 로그인 (화면 시연: 카카오 → 김코드, 네이버·애플 → 김무브) */
-	@PostMapping("/login/social")
-	public String socialLogin(@RequestParam String provider, HttpSession session) {
-		// 관리자는 휴대전화 인증으로만 로그인 (소셜 로그인은 항상 고객)
-		AdminSession.logout(session);
-		CustomerSession.of(session).loginAs("kakao".equals(provider) ? "kimCode" : "kimMove", provider);
-		return CustomerSession.redirectAfterLogin(session);
 	}
 
 	@GetMapping("/login/phone")

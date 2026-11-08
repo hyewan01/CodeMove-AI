@@ -149,7 +149,7 @@
 	$$('select[data-auto-submit]').forEach((sel) => sel.addEventListener('change', () => sel.form.submit()));
 
 	/*
-	 * ---------- 견적서 뷰어: 확대/축소(60~300%) · 두 손가락 확대 ----------
+	 * ---------- 견적서 뷰어: 확대/축소(60~400%) · 두 손가락 확대 ----------
 	 * 확대하면 종이 크기 자체가 커지고(cqw 글자도 같이 커져 선명함) 영역 안 스크롤바로 이동.
 	 * 휠은 견적서만 스크롤 (Shift = 좌우, Ctrl = 확대/축소). 글자는 끌어서 선택하되 한 칸 안에서만, 두 번 누르면 그 칸 복사
 	 */
@@ -158,7 +158,7 @@
 		const pageEl = $('[data-doc-page]', viewer);
 		const label = $('[data-zoom-reset]', viewer);
 		let zoom = 100, pinch = null, base = { w: 0, h: 0 };
-		const clamp = (v) => Math.min(300, Math.max(60, v));
+		const clamp = (v) => Math.min(400, Math.max(60, v));
 		const size = () => {
 			pageEl.style.width = `${base.w * zoom / 100}px`;
 			pageEl.style.height = `${base.h * zoom / 100}px`;
