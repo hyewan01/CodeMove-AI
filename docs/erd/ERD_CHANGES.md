@@ -58,6 +58,13 @@ DDL은 [`db/schema.sql`](../../db/schema.sql), 공통코드 데이터는 [`db/da
 - `SEQ_CHATBOT_TOPIC`, `SEQ_LOREBOOK`, `SEQ_CHATBOT_ACTION`, `SEQ_SAVED_REPLY`, `SEQ_RESERVATION_SETTING` 추가
 - 모두 `INCREMENT BY 1 NOCACHE`. `schema.sql`은 1부터 시작합니다. TEAM03 DB의 시퀀스는 이미 값이 올라가 있습니다.
 
+## 로그인 방식 (2026-11-08 결정)
+
+- 고객과 관리자가 **같은 로그인 화면**을 쓰고, 로그인한 계정의 권한에 따라 고객 화면(`/home`)이나 관리자 화면(`/admin`)으로 이동합니다.
+- 관리자는 **휴대전화 본인인증으로만** 로그인합니다. 인증한 번호를 `TBL_ADMIN.PHONE`(`IS_ACTIVE = 'Y'`)에서 찾습니다.
+- 소셜 로그인(카카오·네이버·애플)은 고객 전용이므로 `TBL_SOCIAL`은 지금처럼 `MEMBER_ID`만 연결합니다.
+- 검토 필요: 이 방식에서는 `TBL_ADMIN.LOGIN_ID`, `PASSWORD`, `PW_CHANGED_AT`를 쓰지 않습니다. 화면·DB 대조 때 삭제 여부를 정합니다.
+
 ## 명명 규칙
 
 - 테이블: `TBL_` 접두사 (예: `TBL_MEMBER`)

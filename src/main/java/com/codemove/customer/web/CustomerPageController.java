@@ -101,7 +101,7 @@ public class CustomerPageController {
 	/** 간편 로그인 (화면 시연: 카카오 → 김코드, 네이버·애플 → 김무브) */
 	@PostMapping("/login/social")
 	public String socialLogin(@RequestParam String provider, HttpSession session) {
-		// 백엔드 개발 시: 소셜 계정에 연결된 관리자가 있으면 AdminSession 로그인 후 redirectAfterAdminLogin
+		// 관리자는 휴대전화 인증으로만 로그인 (소셜 로그인은 항상 고객)
 		AdminSession.logout(session);
 		CustomerSession.of(session).loginAs("kakao".equals(provider) ? "kimCode" : "kimMove", provider);
 		return CustomerSession.redirectAfterLogin(session);

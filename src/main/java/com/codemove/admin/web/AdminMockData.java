@@ -20,8 +20,9 @@ public final class AdminMockData {
 	}
 
 	/**
-	 * 관리자도 고객과 같은 로그인 화면(휴대전화·소셜)을 쓰고, 로그인한 계정이 관리자면 관리자 화면으로 보냅니다.
-	 * 목업: 이 번호로 휴대전화 로그인하면 관리자. 백엔드 개발 시 TBL_ADMIN.PHONE 조회로 대체
+	 * 관리자도 고객과 같은 로그인 화면을 쓰되, 휴대전화 인증으로만 로그인합니다 (소셜 로그인은 고객 전용).
+	 * 인증한 번호가 관리자 번호면 관리자 화면으로 보냅니다.
+	 * 목업: 아래 번호가 관리자. 백엔드 개발 시 TBL_ADMIN.PHONE (+ IS_ACTIVE = 'Y') 조회로 대체
 	 */
 	public static AdminAccount findAdminByPhone(String phoneDigits) {
 		AdminAccount admin = new AdminAccount("김선국", "01094458224");
