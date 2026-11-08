@@ -560,9 +560,6 @@ img { display: block; }
 .cal-time-slot { min-width: 0; min-height: 50px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: #555; font-family: "Pretendard:SemiBold"; font-size: 15px; display: flex; align-items: center; justify-content: center; white-space: nowrap; transition: background-color .12s ease; }
 .cal-time-slot:hover { background: var(--green-pale); }
 .cal-time-slot.active { background: var(--green); color: var(--white); }
-@media (min-width: 720px) {
-  .cal-time-sheet { left: 50%; right: auto; width: min(760px, calc(100vw - 48px)); transform: translateX(-50%); }
-}
 .flow-stack { margin-top: 36px; display: flex; flex-direction: column; gap: 28px; }
 .addr-wrap { display: flex; flex-direction: column; gap: 0; }
 .addr-label { font-family: "Pretendard:SemiBold"; font-size: 13px; color: var(--green); margin-bottom: 8px; }
@@ -661,9 +658,6 @@ img { display: block; }
 .item-edit-actions .action { min-height: 52px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-family: "Pretendard:Bold"; font-size: 15px; }
 .item-delete { width: 82px; border: 1px solid #eccfc8; color: #c55b49; }
 .item-save { flex: 1; background: var(--green); color: var(--white); }
-@media (min-width: 720px) {
-  .item-edit-sheet { left: 50%; right: auto; width: min(760px, calc(100vw - 48px)); transform: translateX(-50%); }
-}
 .calendar-skip { width: fit-content; min-height: 44px; margin: 18px auto 0; padding: 0 12px; color: var(--muted); font-family: "Pretendard:SemiBold"; font-size: 13px; text-decoration: underline; }
 .estimate-result-card { margin-top: 30px; padding: 24px 20px; border-radius: 20px; background: var(--green); color: var(--white); display: flex; flex-direction: column; gap: 7px; box-shadow: 0 7px 18px rgb(52 101 56 / .15); }
 .estimate-result-card > span { color: var(--cream); font-family: "Pretendard:Bold"; font-size: 13px; }
@@ -1681,11 +1675,10 @@ img { display: block; }
 .easy-quote .summary-value { font-size: 16px; }
 .easy-quote .summary-edit { height: 40px; font-size: 14px; }
 
-@media (max-width: 719px) {
-  .flow-screen { padding-bottom: max(132px, calc(var(--safe-bottom) + 112px)); }
-  .flow-screen::after { content: ""; position: fixed; z-index: 9; left: 0; right: 0; bottom: 0; height: max(128px, calc(var(--safe-bottom) + 106px)); background: linear-gradient(180deg, rgb(255 255 255 / 0), var(--white) 28%); pointer-events: none; }
-  .flow-screen .flow-next { bottom: max(44px, calc(var(--safe-bottom) + 24px)); }
-}
+/* 스마트폰 레이아웃 고정: 원래 max-width: 719px 조건이었으나 PC에서도 스마트폰 프레임으로 보이도록 항상 적용 */
+.flow-screen { padding-bottom: max(132px, calc(var(--safe-bottom) + 112px)); }
+.flow-screen::after { content: ""; position: fixed; z-index: 9; left: 0; right: 0; bottom: 0; height: max(128px, calc(var(--safe-bottom) + 106px)); background: linear-gradient(180deg, rgb(255 255 255 / 0), var(--white) 28%); pointer-events: none; }
+.flow-screen .flow-next { bottom: max(44px, calc(var(--safe-bottom) + 24px)); }
 
 @media (max-width: 380px) {
   .move-state-card { margin-inline: 16px; padding: 21px 18px; }
@@ -1718,17 +1711,3 @@ img { display: block; }
   .quote-doc-close { width: 28px; }
 }
 
-@media (min-width: 720px) {
-  .app-shell { background: #eef2ed; padding: 24px; box-sizing: border-box; }
-  .screen { max-width: 760px; min-height: calc(100dvh - 48px); margin: auto; border-radius: 28px; box-shadow: 0 12px 50px rgb(27 59 31 / .1); }
-  .bottom-nav { left: 50%; right: auto; width: min(760px, calc(100vw - 48px)); transform: translateX(-50%); bottom: 24px; }
-  .flow-next, .signup-bottom, .terms-accept { left: 50%; right: auto; width: min(520px, calc(100vw - 100px)); transform: translateX(-50%); }
-  .flow-next { bottom: 80px; }
-  .signup-bottom { bottom: 80px; }
-  .terms-accept { bottom: 80px; }
-  .verify-submit { left: 50%; right: auto; width: min(520px, calc(100vw - 100px)); transform: translateX(-50%); bottom: 80px; }
-  .chat-input { left: 50%; right: auto; width: min(650px, calc(100vw - 110px)); transform: translateX(-50%); bottom: 48px; box-sizing: border-box; }
-  .notification-filter-sheet { left: 50%; right: auto; width: min(760px, calc(100vw - 48px)); box-sizing: border-box; transform: translateX(-50%); }
-  .quick-grid { max-width: 560px; }
-  .login-hero .primary { max-width: 100%; }
-}

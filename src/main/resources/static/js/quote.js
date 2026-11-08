@@ -77,6 +77,7 @@
 		refreshNext();
 		speakStep();
 		window.scrollTo(0, 0);
+		document.querySelector('.screen')?.scrollTo(0, 0); // PC 스마트폰 프레임에서는 .screen이 스크롤됨
 	};
 
 	const goStep = (n) => { state.step = n; render(); };

@@ -40,3 +40,30 @@ textarea.reservation-request-card { display: block; width: 100%; border: 0; font
 /* 관리자 로그인 (고객 로그인 화면과 같은 형식) */
 .admin-login-link { display: block; margin-top: 8px; text-decoration: underline; }
 .form-error { margin-top: 14px; color: var(--orange); font-family: "Pretendard:Medium"; font-size: var(--text-caption); }
+
+/*
+ * PC에서도 스마트폰 크기로 보기 (화면 폭 480px 이상)
+ * .app-shell을 430×874 프레임으로 만들고 transform으로 position: fixed 요소(하단 탭·시트·모달)의 기준을 프레임으로 바꿉니다.
+ * 스크롤은 프레임 안의 .screen이 담당합니다.
+ */
+@media (min-width: 480px) {
+  html, body { height: 100%; }
+  body { display: grid; place-items: center; min-height: 100dvh; background: #eef2ed; }
+  .app-shell {
+    --frame-h: min(874px, calc(100dvh - 48px));
+    position: relative;
+    width: 430px;
+    height: var(--frame-h);
+    min-height: 0;
+    overflow: hidden;
+    border-radius: 32px;
+    box-shadow: 0 18px 60px rgb(39 61 43 / .18);
+    transform: translateZ(0);
+  }
+  .app-shell > .screen { height: 100%; min-height: 0; overflow-y: auto; }
+  .login-scene { height: 100%; }
+  .terms-content { max-height: calc(var(--frame-h) - 245px); }
+  .quote-success, .easy-quote-success { min-height: 100%; }
+  .easy-mode .date-skip-modal, .easy-mode .reservation-cancel-modal { width: min(380px, calc(100% - 24px)); max-height: calc(var(--frame-h) - 32px); }
+  .reservation-detail-page { min-height: calc(var(--frame-h) - 56px - 59px); }
+}
