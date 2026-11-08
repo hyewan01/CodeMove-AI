@@ -1,8 +1,40 @@
 # ERD 변경 사항
 
-TEAM03 DB에 **2026-11-03** 생성된 스키마(테이블 26개)가 기준입니다.
-DDL은 [`db/schema.sql`](../../db/schema.sql), 공통코드 데이터는 [`db/data-code.sql`](../../db/data-code.sql)에 있습니다.
+TEAM03 DB에 **2026-11-03** 생성된 스키마(테이블 26개)에 **2026-11-08 화면 대조(V2)**를 더한 것이 기준입니다(테이블 27개).
+DDL은 [`db/schema.sql`](../../db/schema.sql), 공통코드 데이터는 [`db/data-code.sql`](../../db/data-code.sql), 그림은 [ERD.md](ERD.md)에 있습니다.
 아래는 `CodeMove_ERD.pdf`(2026-11-02, 테이블 20개)와 실제 DB가 다른 점입니다.
+
+## 2026-11-08 화면 대조 (V2)
+
+고객·관리자 화면(SCR-U, SCR-A)을 만든 뒤 화면에 필요한 값과 DB를 맞췄습니다. **추가만** 했고(새 테이블·컬럼·코드, 필수 해제) 기존 테이블·컬럼은 지우지 않았습니다.
+이미 V1이 있는 DB는 [`db/migration/V2__screen_alignment.sql`](../../db/migration/V2__screen_alignment.sql)을 한 번 실행하면 됩니다. 새 DB는 `schema.sql`에 V2까지 들어 있습니다.
+
+| 대상 | 변경 | 이유 (화면) |
+| --- | --- | --- |
+| TBL_SCHEDULE | **새 테이블** (일정명, 분류, 날짜, 시각, 장소, 연결 회원·예약, 등록 관리자) + `SEQ_SCHEDULE`, `IX_SCHEDULE_DATE` | 일정 등록(SCR-A-021)으로 만든 일정을 담을 곳이 없었음 |
+| TBL_ADMIN | `LOGIN_ID`, `PASSWORD` NULL 허용. `PHONE` UK 추가 | 관리자는 휴대전화 인증으로만 로그인 (아래 "로그인 방식") |
+| TBL_MOVE_REQUEST | `MOVE_TIME`(HH24:MI), `FROM_ZIPCODE`, `TO_ZIPCODE` 추가 | 날짜 선택(SCR-U-008)에서 시각을 고름 / 주소 검색이 우편번호를 줌. `PREFER_TIME`(오전·오후)은 시각에서 계산해 함께 저장 |
+| TBL_QUOTE | `ITEM_GROUP1`~`4` 추가 | 견적서 양식 품목표의 4칸 제목. 3·4번째는 관리자가 직접 쓰는 글자라 코드로 담을 수 없음 |
+| TBL_CLOSED_DAY | `CLOSED_TYPE CHAR(2)` 추가 (기본 `01`) | 일정 관리(SCR-A-022)의 날짜 상태가 "업체 휴무일"·"이사 예약 불가능" 2가지 |
+| 공통코드 | `CLOSED_TYPE`(01 업체 휴무일, 02 이사 예약 불가능), `NTF_DETAIL` 16 상태 변경, 17 데이터 삭제 | 관리자 알림 패널(SCR-A-019) 분류 |
+
+### 화면 값 ↔ 컬럼
+
+DB에 컬럼을 새로 만들지 않고 기존 컬럼으로 담거나 계산하는 값입니다.
+
+| 화면 값 | 저장·계산 |
+| --- | --- |
+| 견적서 사다리차·승강기·계단작업 "전/후" | 전 = `FROM_*_USE`, 후 = `TO_*_USE` |
+| 견적서 사다리비용(A), 사다리 소계(B) | `FROM_LADDER_COST + TO_LADDER_COST` |
+| 견적서 품목 수량 "1대", "25개", "1식" | 숫자 → `QUANTITY`, 나머지 글자 → `UNIT` |
+| 견적서 품목 칸 위치 | `SORT_ORDER` = 행 × 4 + 칸, 칸 제목이 가구·전자기기·생활용품이면 그 `CATEGORY`, 아니면 기타(04) |
+| 견적서 작업내용 포장·일반·보관 | `WORK_TYPE` = `PACK_TYPE` 코드 04·01·03 |
+| 견적 번호, 예약 번호 | `QUOTE_NO` = `QT-yyyyMMdd-0000`, `RESERVATION_NO` = `RSV-yyyyMMdd-0000` |
+| 채팅 운영 설정: 챗봇 사용 / 상담 운영 시간 사용 / 지연 안내 | `BOT_ENABLED` / `CONSULT_ENABLED` / `DELAY_MESSAGE` |
+| 회원 관리 분류 "관리자" | 같은 휴대폰 번호의 `TBL_ADMIN`(`IS_ACTIVE = 'Y'`)이 있으면 관리자. 관리자로 바꾸면 그 번호로 `TBL_ADMIN`을 만들거나 다시 사용, 고객으로 되돌리면 `IS_ACTIVE = 'N'` |
+| 회원 삭제 | `TBL_MEMBER.IS_ACTIVE = 'N'`, `WITHDRAWN_AT` (예약·견적 이력이 FK로 남아 있어 행은 지우지 않음) |
+| 회원 지역, 리뷰 이용 회차·이사 유형 | 회원의 견적 요청·예약에서 계산 |
+| 자동 메시징 루틴 | 테이블 없음. 편집 화면이 없고 "일정 기준 자동 알림 규칙 설정"은 제외 범위(README §6)라 코드에 고정. 루틴이 만든 알림은 `TBL_NOTIFICATION`에 저장 |
 
 ## 공통
 
@@ -53,7 +85,7 @@ DDL은 [`db/schema.sql`](../../db/schema.sql), 공통코드 데이터는 [`db/da
 
 ## 시퀀스
 
-- 23개. 코드·휴무일 테이블은 자연키라 시퀀스가 없습니다.
+- 24개 (V2에서 `SEQ_SCHEDULE` 추가). 코드·휴무일 테이블은 자연키라 시퀀스가 없습니다.
 - `SEQ_SCHEDULE`, `SEQ_CHATBOT_SCENARIO` 삭제
 - `SEQ_CHATBOT_TOPIC`, `SEQ_LOREBOOK`, `SEQ_CHATBOT_ACTION`, `SEQ_SAVED_REPLY`, `SEQ_RESERVATION_SETTING` 추가
 - 모두 `INCREMENT BY 1 NOCACHE`. `schema.sql`은 1부터 시작합니다. TEAM03 DB의 시퀀스는 이미 값이 올라가 있습니다.
@@ -63,7 +95,7 @@ DDL은 [`db/schema.sql`](../../db/schema.sql), 공통코드 데이터는 [`db/da
 - 고객과 관리자가 **같은 로그인 화면**을 쓰고, 로그인한 계정의 권한에 따라 고객 화면(`/home`)이나 관리자 화면(`/admin`)으로 이동합니다.
 - 관리자는 **휴대전화 본인인증으로만** 로그인합니다. 인증한 번호를 `TBL_ADMIN.PHONE`(`IS_ACTIVE = 'Y'`)에서 찾습니다.
 - 소셜 로그인(카카오·네이버·애플)은 고객 전용이므로 `TBL_SOCIAL`은 지금처럼 `MEMBER_ID`만 연결합니다.
-- 검토 필요: 이 방식에서는 `TBL_ADMIN.LOGIN_ID`, `PASSWORD`, `PW_CHANGED_AT`를 쓰지 않습니다. 화면·DB 대조 때 삭제 여부를 정합니다.
+- 이 방식에서는 `TBL_ADMIN.LOGIN_ID`, `PASSWORD`, `PW_CHANGED_AT`를 쓰지 않습니다. V2에서 컬럼은 남기고 필수만 풀었습니다(2026-11-08 결정).
 
 ## 명명 규칙
 
