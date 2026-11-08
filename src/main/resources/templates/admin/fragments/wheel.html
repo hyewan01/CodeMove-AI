@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+	년·월·일 휠 선택 (알람 시간 선택처럼 위아래로 넘김). 동작은 admin.js [data-wheel]
+	· ▲ 누르기 / 위로 쓸기 / 휠 아래로 / ↑ 키 → 증가, 반대는 감소 · 흐린 위·아래 값을 누르면 그 값 선택
+	· 값은 hidden input y·m·d 에 들어가고, 바뀔 때마다 wheelchange 이벤트 (detail: {y, m, d})
+-->
+<div th:fragment="wheel(y, m, d)" th:data-y="${y}" th:data-m="${m}" th:data-d="${d}" data-wheel>
+	<p class="text-center text-[16px] font-extrabold text-[#29312b]" aria-live="polite" data-wheel-label></p>
+	<div class="relative mt-3 grid select-none grid-cols-3">
+		<div class="pointer-events-none absolute inset-x-1 top-1/2 h-12 -translate-y-1/2 rounded-xl bg-[#f1f4f1]"></div>
+		<div class="relative flex flex-col items-center" th:each="c : ${ { {'y', '연도'}, {'m', '월'}, {'d', '일'} } }" th:data-wheel-col="${c[0]}">
+			<input type="hidden" th:name="${c[0]}" data-wheel-input>
+			<button class="grid h-8 w-14 place-items-center rounded-full text-[#9aa29c] transition hover:bg-[#edf3ed] hover:text-[#346538] active:scale-90"
+					type="button" th:aria-label="${c[1]} + ' 올리기'" data-wheel-step="1">
+				<svg th:replace="~{admin/fragments/icon :: icon('chevron', 18, 'rotate-180')}"></svg>
+			</button>
+			<div class="relative h-[144px] w-full cursor-grab touch-none overflow-hidden rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[#346538]/40 active:cursor-grabbing [mask-image:linear-gradient(transparent,#000_28%,#000_72%,transparent)]"
+				 role="spinbutton" tabindex="0" th:aria-label="${c[1]}" data-wheel-viewport>
+				<div class="will-change-transform" data-wheel-strip></div>
+			</div>
+			<button class="grid h-8 w-14 place-items-center rounded-full text-[#9aa29c] transition hover:bg-[#edf3ed] hover:text-[#346538] active:scale-90"
+					type="button" th:aria-label="${c[1]} + ' 내리기'" data-wheel-step="-1">
+				<svg th:replace="~{admin/fragments/icon :: icon('chevron', 18, '')}"></svg>
+			</button>
+		</div>
+	</div>
+</div>
+</body>
+</html>

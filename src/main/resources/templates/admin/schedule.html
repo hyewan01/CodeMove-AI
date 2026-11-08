@@ -100,27 +100,7 @@
 	<!-- 년·월 선택 -->
 	<div class="absolute inset-x-0 bottom-[82px] top-[68px] z-50 grid place-items-center bg-[#1f2d21]/45 p-5 backdrop-blur-[2px]" data-toggle-target="month-picker" hidden>
 		<form class="w-full rounded-[20px] bg-white p-5" method="get" th:action="@{/admin/schedule}" data-month-picker>
-			<button class="mx-auto flex items-center gap-1 text-[16px] font-extrabold" type="button" data-grid-mode>
-				<span data-picker-label th:text="${y} + '년 ' + ${m} + '월'"></span> <svg th:replace="~{admin/fragments/icon :: icon('chevron', 15, 'rotate-180')}"></svg>
-			</button>
-			<div class="mt-5 grid grid-cols-3 gap-2" data-grid hidden>
-				<button th:each="mm : ${#numbers.sequence(1, 12)}" type="button" th:data-month="${mm}" th:text="${mm} + '월'"
-						class="h-11 rounded-xl bg-[#f3f5f3] text-[11px] font-bold aria-pressed:bg-[#346538] aria-pressed:text-white" th:aria-pressed="${mm == m}"></button>
-			</div>
-			<div class="mt-5 grid grid-cols-3 gap-2" data-selects>
-				<label class="text-center"><span class="mb-1.5 block text-[9px] font-bold text-[#858d87]">년</span>
-					<select class="h-12 w-full rounded-xl bg-[#f5f6f5] px-2 text-center text-[12px] font-bold" name="y">
-						<option th:each="yy : ${ {2024, 2025, 2026, 2027, 2028} }" th:value="${yy}" th:text="${yy}" th:selected="${yy == y}"></option>
-					</select></label>
-				<label class="text-center"><span class="mb-1.5 block text-[9px] font-bold text-[#858d87]">월</span>
-					<select class="h-12 w-full rounded-xl bg-[#f5f6f5] px-2 text-center text-[12px] font-bold" name="m">
-						<option th:each="mm : ${#numbers.sequence(1, 12)}" th:value="${mm}" th:text="${mm}" th:selected="${mm == m}"></option>
-					</select></label>
-				<label class="text-center"><span class="mb-1.5 block text-[9px] font-bold text-[#858d87]">일</span>
-					<select class="h-12 w-full rounded-xl bg-[#f5f6f5] px-2 text-center text-[12px] font-bold" name="d">
-						<option th:each="dd : ${#numbers.sequence(1, 31)}" th:value="${dd}" th:text="${dd}" th:selected="${dd == d}"></option>
-					</select></label>
-			</div>
+			<div th:replace="~{admin/fragments/wheel :: wheel(${y}, ${m}, ${d})}"></div>
 			<div class="mt-5 grid grid-cols-2 gap-2">
 				<button class="h-11 rounded-xl border border-[#d9ded9] text-[11px] font-bold" type="button" data-toggle="month-picker">취소</button>
 				<button class="h-11 rounded-xl bg-[#346538] text-[11px] font-bold text-white" type="submit">완료</button>
@@ -283,20 +263,6 @@
 			const delta = touchY - e.changedTouches[0].clientY;
 			if (Math.abs(delta) > 45) setExpanded(delta > 0);
 		});
-
-		/* 년월 선택: 제목을 누르면 월 그리드 ↔ 년·월·일 선택 */
-		const picker = $('[data-month-picker]');
-		const grid = $('[data-grid]', picker);
-		const selects = $('[data-selects]', picker);
-		const label = $('[data-picker-label]', picker);
-		const refreshLabel = () => (label.textContent = `${picker.y.value}년 ${picker.m.value}월`);
-		$('[data-grid-mode]', picker).addEventListener('click', () => { grid.hidden = !grid.hidden; selects.hidden = !grid.hidden; });
-		$$('[data-month]', grid).forEach((b) => b.addEventListener('click', () => {
-			picker.m.value = b.dataset.month;
-			$$('[data-month]', grid).forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
-			refreshLabel();
-		}));
-		[picker.y, picker.m].forEach((s) => s.addEventListener('change', refreshLabel));
 
 		/* 일정 등록 */
 		const form = $('[data-manual-form]');

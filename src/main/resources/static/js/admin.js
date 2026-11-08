@@ -220,6 +220,107 @@
 		});
 	});
 
+	/* ---------- 년·월·일 휠 선택 (fragments/wheel.html): 위로 쓸기·▲·휠 아래·↑ = 증가 ---------- */
+	const ITEM = 48;
+	const daysIn = (y, m) => new Date(y, m, 0).getDate();
+	$$('[data-wheel]').forEach((wheel) => {
+		const v = { y: Number(wheel.dataset.y), m: Number(wheel.dataset.m), d: Number(wheel.dataset.d) };
+		const max = { y: 2100, m: 12, d: () => daysIn(v.y, v.m) };
+		const top = (k) => (k === 'd' ? max.d() : max[k]);
+		/* 연도는 1900~2100 에서 멈추고, 월·일은 끝에서 처음으로 돌아감 */
+		const at = (k, n) => (k === 'y' ? (n < 1900 || n > 2100 ? null : n) : ((n - 1) % top(k) + top(k)) % top(k) + 1);
+		const text = (k, n) => (k === 'y' ? `${n}년` : `${String(n).padStart(2, '0')}${k === 'm' ? '월' : '일'}`);
+		const label = $('[data-wheel-label]', wheel);
+		const cols = {};
+		const draw = (k, offset = 0, animate = false) => {
+			const { strip, viewport, input } = cols[k];
+			let html = '';
+			for (let i = -3; i <= 3; i++) {
+				const n = at(k, v[k] + i);
+				html += `<div class="grid h-12 place-items-center ${i === 0 ? 'text-[20px] font-extrabold text-[#222a24]' : 'text-[16px] font-bold text-[#b7beb9]'}">${n == null ? '' : text(k, n)}</div>`;
+			}
+			strip.innerHTML = html;
+			strip.style.transition = 'none';
+			strip.style.transform = `translateY(${offset - 2 * ITEM}px)`;
+			if (animate) {
+				void strip.offsetHeight;
+				strip.style.transition = 'transform .22s cubic-bezier(.2,.8,.3,1)';
+				strip.style.transform = `translateY(${-2 * ITEM}px)`;
+			}
+			input.value = v[k];
+			viewport.setAttribute('aria-valuenow', v[k]);
+			viewport.setAttribute('aria-valuetext', text(k, v[k]));
+		};
+		const refresh = () => {
+			label.textContent = `${v.y}년 ${v.m}월 ${v.d}일 (${'일월화수목금토'[new Date(v.y, v.m - 1, v.d).getDay()]})`;
+			wheel.dispatchEvent(new CustomEvent('wheelchange', { detail: { ...v } }));
+		};
+		/* dy: 끌던 거리 — 새 값으로 다시 그린 뒤 손을 뗀 자리에서 가운데로 미끄러지게 */
+		const step = (k, s, dy = 0) => {
+			const before = v[k];
+			v[k] = k === 'y' ? Math.min(2100, Math.max(1900, v.y + s)) : at(k, v[k] + s);
+			draw(k, dy + (k === 'y' ? v.y - before : s) * ITEM, true);
+			if (k !== 'd') {
+				v.d = Math.min(v.d, max.d());
+				draw('d');
+			}
+			refresh();
+		};
+		$$('[data-wheel-col]', wheel).forEach((col) => {
+			const k = col.dataset.wheelCol;
+			const viewport = $('[data-wheel-viewport]', col);
+			const strip = $('[data-wheel-strip]', col);
+			cols[k] = { strip, viewport, input: $('[data-wheel-input]', col) };
+			$$('[data-wheel-step]', col).forEach((b) => b.addEventListener('click', () => step(k, Number(b.dataset.wheelStep))));
+			let drag = null;
+			viewport.addEventListener('pointerdown', (e) => {
+				drag = { y: e.clientY, dy: 0 };
+				viewport.setPointerCapture(e.pointerId);
+				strip.style.transition = 'none';
+			});
+			viewport.addEventListener('pointermove', (e) => {
+				if (!drag) return;
+				drag.dy = Math.max(-2.5 * ITEM, Math.min(2.5 * ITEM, e.clientY - drag.y));
+				strip.style.transform = `translateY(${drag.dy - 2 * ITEM}px)`;
+			});
+			const end = (e) => {
+				if (!drag) return;
+				const { dy } = drag;
+				drag = null;
+				const s = Math.round(-dy / ITEM);
+				if (s) step(k, s, dy);
+				else if (Math.abs(dy) < 4 && e.type === 'pointerup') {
+					/* 흐린 위·아래 값을 누르면 그 값으로 */
+					const y = e.clientY - viewport.getBoundingClientRect().top;
+					if (y < ITEM) step(k, -1);
+					else if (y > 2 * ITEM) step(k, 1);
+				} else draw(k, dy, true);
+			};
+			viewport.addEventListener('pointerup', end);
+			viewport.addEventListener('pointercancel', end);
+			let acc = 0;
+			viewport.addEventListener('wheel', (e) => {
+				e.preventDefault();
+				acc += e.deltaY;
+				if (Math.abs(acc) >= 40) { step(k, acc > 0 ? 1 : -1); acc = 0; }
+			}, { passive: false });
+			viewport.addEventListener('keydown', (e) => {
+				if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+				e.preventDefault();
+				step(k, e.key === 'ArrowUp' ? 1 : -1);
+			});
+		});
+		/* 화면 스크립트에서 값 넣기 · 읽기 */
+		wheel.wheelSet = (val) => {
+			Object.assign(v, val);
+			v.d = Math.min(Math.max(1, v.d || 1), max.d());
+			['y', 'm', 'd'].forEach((k) => draw(k));
+			refresh();
+		};
+		wheel.wheelValue = () => ({ ...v });
+		wheel.wheelSet({});
+	});
+
 	/* ---------- 견적서 PDF 다운로드: 화면의 견적서를 원본 크기(1488px)로 복제해 이미지로 그린 뒤 A4 한 장에 담음 ---------- */
 	const loadScript = (src) => new Promise((resolve, reject) => {
 		if (document.querySelector(`script[src="${src}"]`)) return resolve();
