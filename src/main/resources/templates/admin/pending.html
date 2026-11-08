@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html th:replace="~{admin/fragments/layout :: layout(${pageName}, '', false, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 아직 프로토타입에서 옮기지 않은 관리자 화면 -->
+<th:block th:fragment="content">
+<div class="px-4 pb-28 pt-5">
+	<div class="rounded-[20px] bg-white p-8 text-center shadow-[0_5px_18px_rgba(36,58,39,.06)]">
+		<span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#edf3ed] text-[#346538]">
+			<svg th:replace="~{admin/fragments/icon :: icon('document', 21, '')}"></svg>
+		</span>
+		<p class="mt-4 text-[10px] font-bold tracking-[0.12em] text-[#809083]" th:text="${screenId}">SCR-A-000</p>
+		<h2 class="mt-1 text-[18px] font-extrabold text-[#253328]" th:text="${pageName}">화면</h2>
+		<p class="mt-2 text-[12px] text-[#7d847f]">화면을 준비하고 있어요.</p>
+	</div>
+</div>
+</th:block>
+</body>
+</html>

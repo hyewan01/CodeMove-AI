@@ -1,0 +1,13 @@
+{
+  "name": "codemove-frontend",
+  "private": true,
+  "description": "관리자 화면 Tailwind CSS 빌드 (Thymeleaf 템플릿 스캔)",
+  "scripts": {
+    "build:admin-css": "tailwindcss -i src/main/frontend/admin.css -o src/main/resources/static/css/admin.css --minify",
+    "watch:admin-css": "tailwindcss -i src/main/frontend/admin.css -o src/main/resources/static/css/admin.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.1.14",
+    "tailwindcss": "4.1.14"
+  }
+}

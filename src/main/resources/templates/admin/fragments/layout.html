@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<!--
+	관리자 공통 레이아웃 (프로토타입 App 셸)
+	사용: <html th:replace="~{admin/fragments/layout :: layout('홈', 'home', false, ~{::content})}">
+	      본문은 <th:block th:fragment="content"> 안에 작성
+	  active : 하단 탭 강조 (home | schedule | estimates | chat | '')
+	  fixed  : true면 본문 스크롤을 화면 안에서 직접 처리 (채팅·알림 관리 등)
+-->
+<html th:fragment="layout(title, active, fixed, content)" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+	<title th:text="${title} + ' | 명품익스프레스 관리자'">명품익스프레스 관리자</title>
+	<link rel="preload" th:href="@{/fonts/Pretendard-Regular.woff2}" as="font" type="font/woff2" crossorigin>
+	<link rel="preload" th:href="@{/fonts/Pretendard-Bold.woff2}" as="font" type="font/woff2" crossorigin>
+	<link rel="stylesheet" th:href="@{/css/admin.css}">
+	<script defer th:src="@{/js/admin.js}"></script>
+</head>
+<body>
+<main class="min-h-screen bg-[#e8ebe8] sm:grid sm:place-items-center sm:p-6">
+	<div class="relative mx-auto h-[100dvh] w-full max-w-[430px] overflow-hidden bg-[#f5f6f8] shadow-[0_18px_60px_rgba(39,61,43,.18)] sm:h-[min(874px,calc(100vh-48px))] sm:rounded-[32px]">
+		<div class="flex h-full flex-col">
+			<header class="z-20 flex h-[68px] shrink-0 items-center justify-between border-b border-[#e9ece9] bg-white px-5">
+				<a class="flex items-center gap-2.5" th:href="@{/admin}" aria-label="관리자 홈">
+					<div class="grid h-8 w-8 place-items-center rounded-lg bg-[#346538] text-white">
+						<svg th:replace="~{admin/fragments/icon :: icon('truck', 20, '')}"></svg>
+					</div>
+					<div>
+						<p class="text-[9px] font-bold leading-none tracking-[0.14em] text-[#809083]">ADMIN</p>
+						<h1 class="mt-1 text-[16px] font-extrabold leading-none tracking-[-0.04em] text-[#27372a]">명품익스프레스</h1>
+					</div>
+				</a>
+				<div class="flex items-center gap-1">
+					<button aria-label="메뉴 검색" class="grid h-10 w-10 place-items-center rounded-full text-[#465048] transition hover:bg-[#f2f5f2]"
+							data-open="search" type="button">
+						<svg th:replace="~{admin/fragments/icon :: icon('search', 21, '')}"></svg>
+					</button>
+					<button aria-label="최근 알림" class="relative grid h-10 w-10 place-items-center rounded-full text-[#465048] transition hover:bg-[#f2f5f2]"
+							data-open="notifications" type="button">
+						<svg th:replace="~{admin/fragments/icon :: icon('bell', 21, '')}"></svg>
+						<span class="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-[#d9824b]" data-unread-dot></span>
+					</button>
+				</div>
+			</header>
+
+			<div class="min-h-0 flex-1" th:classappend="${fixed} ? 'overflow-hidden pb-[82px]' : 'overflow-y-auto'">
+				<th:block th:replace="${content}"></th:block>
+			</div>
+
+			<nav class="absolute inset-x-0 bottom-0 z-30 grid h-[82px] grid-cols-5 border-t border-[#e7ebe7] bg-white/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md">
+				<th:block th:each="tab : ${ {
+						{'예약일정', 'calendar', 'schedule', '/admin/schedule'},
+						{'견적', 'document', 'estimates', '/admin/estimates'},
+						{'홈', 'home', 'home', '/admin'},
+						{'챗봇', 'chat', 'chat', '/admin/chats'},
+						{'전체', 'menu', 'menu', ''} } }">
+					<th:block th:with="isActive=${active == tab[2]}">
+						<a th:if="${tab[3] != ''}" th:href="@{${tab[3]}}" th:aria-label="${tab[0]}"
+						   class="flex flex-col items-center justify-start gap-1 text-[10px] font-semibold"
+						   th:classappend="${isActive} ? 'text-[#346538]' : 'text-[#899089]'">
+							<span class="grid h-9 w-11 place-items-center rounded-2xl" th:classappend="${isActive} ? 'bg-[#eaf1ea]'">
+								<svg th:replace="~{admin/fragments/icon :: icon(${tab[1]}, 20, '')}"></svg>
+							</span>
+							<th:block th:text="${tab[0]}"></th:block>
+						</a>
+						<button th:if="${tab[3] == ''}" th:aria-label="${tab[0]}" type="button" data-open="drawer"
+								class="flex flex-col items-center justify-start gap-1 text-[10px] font-semibold text-[#899089]">
+							<span class="grid h-9 w-11 place-items-center rounded-2xl">
+								<svg th:replace="~{admin/fragments/icon :: icon(${tab[1]}, 20, '')}"></svg>
+							</span>
+							<th:block th:text="${tab[0]}"></th:block>
+						</button>
+					</th:block>
+				</th:block>
+			</nav>
+		</div>
+
+		<!-- 알림 패널 (SCR-A-019) -->
+		<div aria-modal="true" class="absolute inset-0 z-[90] grid place-items-center bg-[#1f2d21]/50 p-4 backdrop-blur-[2px]"
+			 role="dialog" data-panel="notifications" hidden>
+			<div class="flex max-h-[calc(100%-32px)] w-full flex-col overflow-hidden rounded-[24px] bg-white shadow-[0_24px_70px_rgba(21,37,24,.3)]">
+				<header class="relative flex h-14 shrink-0 items-center justify-center border-b border-[#e9ece9] px-4">
+					<h2 class="text-[17px] font-extrabold text-[#29322b]">알림</h2>
+					<button aria-label="알림 닫기" class="absolute right-3 grid h-9 w-9 place-items-center rounded-full text-[#59625b] hover:bg-[#f2f5f2]"
+							data-close type="button">
+						<svg th:replace="~{admin/fragments/icon :: icon('x', 19, '')}"></svg>
+					</button>
+				</header>
+				<div class="flex-1 overflow-y-auto bg-[#f7f8f7] p-4">
+					<section class="mb-6 last:mb-0" th:each="entry : ${notificationGroups}">
+						<div class="mb-3 flex items-center gap-3">
+							<h3 class="shrink-0 text-[12px] font-extrabold text-[#59625b]" th:text="${entry.key}">최근 7일</h3>
+							<span class="h-px flex-1 bg-[#dfe4df]"></span>
+						</div>
+						<div class="space-y-2.5">
+							<a th:each="item : ${entry.value}" th:href="@{${item.href}}"
+							   class="relative flex w-full items-start gap-3 overflow-hidden rounded-2xl border bg-white p-3.5 text-left shadow-[0_3px_12px_rgba(36,58,39,.04)] transition active:scale-[.99]"
+							   th:classappend="${item.important} ? 'border-[#efcfca]' : 'border-[#edf0ed]'">
+								<span th:if="${item.important}" class="absolute inset-y-0 left-0 w-1 bg-[#cf5b51]"></span>
+								<span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl"
+									  th:classappend="${item.important} ? 'bg-[#fff0ee] text-[#b64b42]' : 'bg-[#edf3ed] text-[#346538]'">
+									<svg th:replace="~{admin/fragments/icon :: icon(${item.icon}, 18, '')}"></svg>
+								</span>
+								<span class="min-w-0 flex-1">
+									<span class="flex items-start justify-between gap-2">
+										<strong class="text-[12px]" th:classappend="${item.important} ? 'text-[#a8443c]' : 'text-[#343c36]'"
+												th:text="'[' + ${item.category} + ']'">[채팅 대기]</strong>
+										<span class="shrink-0 text-[9px] font-medium text-[#9aa09b]" th:text="${item.relativeTime()}">10분 전</span>
+									</span>
+									<span class="mt-1.5 block text-[11px] leading-[1.55] text-[#646c66]" th:text="${item.message}"></span>
+								</span>
+							</a>
+						</div>
+					</section>
+					<div class="py-20 text-center" th:if="${#maps.isEmpty(notificationGroups)}">
+						<span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-white text-[#9aa19b]">
+							<svg th:replace="~{admin/fragments/icon :: icon('bell', 21, '')}"></svg>
+						</span>
+						<p class="mt-3 text-xs font-semibold text-[#737b75]">최근 30일 알림이 없습니다.</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- 통합 메뉴 검색 (SCR-A-018) : 메뉴 이름 또는 초성 검색 -->
+		<div class="absolute inset-0 z-[80] bg-[#f5f6f8]" data-panel="search" hidden>
+			<div class="flex h-[68px] items-center gap-2 border-b border-[#e2e6e2] bg-white px-4">
+				<label class="relative flex-1">
+					<svg th:replace="~{admin/fragments/icon :: icon('search', 18, 'absolute left-3 top-3 text-[#7d857f]')}"></svg>
+					<input class="h-11 w-full rounded-[14px] bg-[#f2f3f5] pl-10 pr-4 text-[12px] font-medium text-[#353d37] outline-none placeholder:text-[#9ca29d] focus:ring-1 focus:ring-[#89a18b]"
+						   placeholder="검색어를 입력하세요" data-search-input>
+				</label>
+				<button aria-label="통합 검색 닫기" class="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#59625b] hover:bg-[#f2f5f2]"
+						data-close type="button">
+					<svg th:replace="~{admin/fragments/icon :: icon('x', 20, '')}"></svg>
+				</button>
+			</div>
+			<div class="h-[calc(100%-68px)] overflow-y-auto px-4 pb-8 pt-5">
+				<div class="mb-3 flex items-center justify-between px-1">
+					<h2 class="text-[14px] font-extrabold text-[#29312b]">전체 메뉴 조회</h2>
+					<span class="text-[9px] font-semibold text-[#8b928d]" data-search-count hidden></span>
+				</div>
+				<div class="overflow-hidden rounded-[18px] bg-white shadow-[0_5px_18px_rgba(36,58,39,.06)]">
+					<a th:each="item : ${searchMenus}" th:href="@{${item.href}}" th:data-label="${item.label}" data-search-item
+					   class="flex w-full items-center gap-3 border-b border-[#edf0ed] px-4 py-4 text-left last:border-none hover:bg-[#f7f9f7]">
+						<span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#edf3ed] text-[#346538]">
+							<svg th:replace="~{admin/fragments/icon :: icon(${item.icon}, 19, '')}"></svg>
+						</span>
+						<span class="min-w-0 flex-1">
+							<strong class="block text-[12px] text-[#353d37]" th:text="${item.label}"></strong>
+							<small class="mt-1 block text-[9px] text-[#8c938e]" th:text="${item.description}"></small>
+						</span>
+						<svg th:replace="~{admin/fragments/icon :: icon('chevron', 16, '-rotate-90 text-[#a0a6a1]')}"></svg>
+					</a>
+					<div class="py-16 text-center" data-search-empty hidden>
+						<svg th:replace="~{admin/fragments/icon :: icon('search', 27, 'mx-auto text-[#a3aaa4]')}"></svg>
+						<p class="mt-3 text-[11px] font-bold text-[#747c76]">일치하는 메뉴가 없습니다.</p>
+					</div>
+				</div>
+				<p class="mt-4 px-1 text-[9px] leading-4 text-[#969d98]" data-search-hint>메뉴 이름을 직접 입력하거나 초성으로 검색할 수 있습니다.</p>
+			</div>
+		</div>
+
+		<!-- 전체 메뉴 (SCR-A-017) -->
+		<div aria-hidden="true" class="invisible absolute inset-x-0 bottom-[82px] top-[68px] z-20 transition-visibility" data-drawer>
+			<aside class="absolute inset-0 flex h-full w-full translate-y-full flex-col bg-[#f5f6f8] transition-transform duration-300 ease-out" data-drawer-sheet>
+				<div class="flex shrink-0 items-center justify-between px-5 pb-2 pt-6">
+					<div>
+						<p class="text-[10px] font-bold tracking-[0.12em] text-[#809083]">SERVICE</p>
+						<h2 class="mt-0.5 text-[18px] font-extrabold text-[#253328]">전체 메뉴</h2>
+					</div>
+					<button aria-label="메뉴 닫기" class="grid h-10 w-10 place-items-center rounded-full bg-[#f2f5f2] text-[#346538]"
+							data-drawer-close type="button">
+						<svg th:replace="~{admin/fragments/icon :: icon('x', 21, '')}"></svg>
+					</button>
+				</div>
+				<nav class="flex-1 overflow-y-auto px-4 pb-6 pt-3">
+					<div class="overflow-hidden rounded-[20px] bg-white shadow-[0_5px_18px_rgba(36,58,39,.06)]">
+						<div class="flex items-center justify-between border-b border-[#edf0ed] px-5 py-5">
+							<span class="text-[16px] font-extrabold text-[#253328]">전체 서비스</span>
+							<svg th:replace="~{admin/fragments/icon :: icon('chevron', 18, 'text-[#346538]')}"></svg>
+						</div>
+						<a th:each="menu : ${drawerMenus}" th:href="@{${menu.href}}"
+						   class="flex w-full items-center gap-3 border-b border-[#f0f2f0] px-5 py-4 text-left text-[14px] font-semibold text-[#434b45] last:border-none hover:bg-[#f7f9f7]">
+							<span class="grid h-9 w-9 place-items-center rounded-xl bg-[#edf3ed] text-[#346538]">
+								<svg th:replace="~{admin/fragments/icon :: icon(${menu.icon}, 18, '')}"></svg>
+							</span>
+							<th:block th:text="${menu.label}"></th:block>
+						</a>
+					</div>
+					<!-- 로그아웃: 관리자 로그인(TBL_ADMIN) 구현 전까지 홈으로 이동 (프로토타입 동작) -->
+					<a class="mx-auto mt-4 flex h-10 w-fit items-center justify-center gap-2 rounded-xl px-5 text-[12px] font-bold text-[#747c76] transition hover:bg-[#e9ede9] hover:text-[#346538]"
+					   th:href="@{/admin}">
+						<svg th:replace="~{admin/fragments/icon :: icon('logout', 17, '')}"></svg>
+						로그아웃
+					</a>
+				</nav>
+			</aside>
+		</div>
+
+		<!-- 자동 메시징 루틴 토스트 : AdminUI.toast(title, message, href) -->
+		<div class="absolute inset-x-0 top-0 z-[300] flex justify-center px-3 pt-3" data-toast hidden>
+			<a class="w-full max-w-[410px] cursor-pointer rounded-[20px] bg-white px-4 py-3.5 text-left shadow-[0_8px_32px_rgba(36,58,39,.22)] transition-transform"
+			   style="animation: slideDown 0.35s cubic-bezier(0.22,1,0.36,1)" href="#" data-toast-link>
+				<div class="flex items-center gap-3">
+					<span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#346538] text-white">
+						<svg th:replace="~{admin/fragments/icon :: icon('bell', 18, '')}"></svg>
+					</span>
+					<div class="min-w-0 flex-1">
+						<div class="flex items-baseline justify-between gap-2">
+							<p class="truncate text-[13px] font-extrabold text-[#1e2a1f]" data-toast-title></p>
+							<span class="shrink-0 text-[10px] text-[#9aa09b]" data-toast-time></span>
+						</div>
+						<p class="mt-0.5 line-clamp-2 text-[11px] leading-[1.5] text-[#5a625c]" data-toast-message></p>
+					</div>
+				</div>
+			</a>
+		</div>
+	</div>
+</main>
+</body>
+</html>
