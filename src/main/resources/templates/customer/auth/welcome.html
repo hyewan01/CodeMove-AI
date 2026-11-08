@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('환영합니다')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+	<!-- 회원가입 완료 -->
+	<div class="screen welcome">
+		<div class="welcome-stage">
+			<img alt="달리는 상자 캐릭터" class="welcome-box" th:src="@{/assets/415ab.png}">
+			<img alt="" th:each="p, st : ${particles}" th:class="'welcome-particle particle-' + ${st.count}" th:src="@{/assets/{f}(f=${p})}">
+		</div>
+		<div class="welcome-copy" th:text="${name} + '님, 환영합니다'">무브님, 환영합니다</div>
+		<form method="post" th:action="@{/signup/complete}">
+			<button class="action welcome-button">시작하기</button>
+		</form>
+	</div>
+</div>
+</body>
+</html>

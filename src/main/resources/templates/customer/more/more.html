@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('더보기')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+<!-- SCR-U-031 더보기 -->
+<div class="screen page-with-nav">
+	<div th:replace="~{customer/fragments/common :: header}"></div>
+	<main class="sub-content profile-content">
+		<div class="page-title">더보기</div>
+		<a class="action profile-card" aria-label="내 정보 수정" th:href="@{/more/profile}">
+			<div class="avatar" th:text="${#strings.substring(cs.userName, 0, 1)}">김</div>
+			<div>
+				<strong th:text="${cs.userName} + '님'">김무브님</strong>
+				<span th:text="${cs.phone}">010-1234-5678</span>
+			</div>
+			<img th:replace="~{customer/fragments/common :: chevronLight}">
+		</a>
+		<div class="menu-list">
+			<a class="action" th:href="@{/more/estimates}">
+				<div><strong>견적내역</strong><span>받은 견적을 모아봐요</span></div>
+				<img th:replace="~{customer/fragments/common :: chevron}">
+			</a>
+			<a class="action" th:href="@{/more/reservations}">
+				<div><strong>예약내역</strong><span>지난 예약을 확인해요</span></div>
+				<img th:replace="~{customer/fragments/common :: chevron}">
+			</a>
+			<a class="action" th:href="@{/more/reviews}">
+				<div><strong>후기</strong><span>이용 후기를 작성해요</span></div>
+				<img th:replace="~{customer/fragments/common :: chevron}">
+			</a>
+		</div>
+		<a class="action logout" th:href="@{/logout}">로그아웃</a>
+	</main>
+	<nav th:replace="~{customer/fragments/common :: bottomNav('profile')}"></nav>
+</div>
+</div>
+</body>
+</html>

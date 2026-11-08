@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('시작하기')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+
+	<!-- SCR-U-022 온보딩 -->
+	<div th:fragment="screen" class="screen onboarding" data-onboarding>
+		<div class="onboarding-main">
+			<div class="onboarding-slide" data-slide>
+				<img alt="이삿짐을 배송하는 기사와 트럭" class="onboarding-art onboarding-art-main" th:src="@{/assets/bd644.png}">
+				<div class="onboarding-title">신속하지만 정확하게<br>신뢰있는 이사</div>
+			</div>
+			<div class="onboarding-slide" data-slide hidden>
+				<img alt="가구를 안전하게 운반하는 이사 카트" class="onboarding-art onboarding-art-service" th:src="@{/assets/moving-dolly-3d.svg}">
+				<div class="onboarding-title">짐부터 일정까지 꼼꼼하게<br>믿고 맡기는 이사 준비</div>
+			</div>
+			<div class="onboarding-slide" data-slide hidden>
+				<img alt="영상 견적 카메라" class="onboarding-art onboarding-art-icon onboarding-art-video" th:src="@{/assets/cd80e.svg}">
+				<div class="onboarding-title">영상만 찍으면 빠르게<br>AI가 분석하는 이사 견적</div>
+			</div>
+			<div class="brand-name">명품익스프레스</div>
+			<div class="pager">
+				<button type="button" class="action pager-dot pager-active" aria-label="1번째 온보딩 보기" data-pager="0"><span></span></button>
+				<button type="button" class="action pager-dot" aria-label="2번째 온보딩 보기" data-pager="1"><span></span></button>
+				<button type="button" class="action pager-dot" aria-label="3번째 온보딩 보기" data-pager="2"><span></span></button>
+			</div>
+		</div>
+		<div class="onboarding-actions">
+			<a class="action outline" th:href="@{/login(backdrop='onboarding')}">로그인</a>
+			<a class="action primary" th:href="@{/signup}">회원가입</a>
+		</div>
+		<a class="action browse" th:href="@{/home}">로그인하지 않고 둘러보기</a>
+	</div>
+
+	<div class="splash" data-splash th:if="${showSplash}">
+		<svg th:replace="~{customer/fragments/common :: brandMark('splash-brand-mark')}"></svg>
+		<div class="splash-title">명품익스프레스</div>
+	</div>
+</div>
+</body>
+</html>

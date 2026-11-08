@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('후기')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+<!-- SCR-U-020 내가 쓴 후기 / SCR-U-021 후기 작성 -->
+<div class="screen form-page">
+	<div th:replace="~{customer/fragments/common :: formHead(${writing} ? '/more/reviews' : '/more', '후기')}"></div>
+	<div class="form-content review-history-page">
+
+		<!-- 후기 목록 -->
+		<th:block th:unless="${writing}">
+			<a class="action review-prompt" aria-label="3월 18일 이사 후기 작성" th:href="@{/more/reviews(write=1)}">
+				<div class="review-prompt-meta">
+					<span>후기 작성</span>
+					<small>3월 18일 이사</small>
+				</div>
+				<strong>강남구 <i>→</i> 서초구</strong>
+				<p>서비스는 만족스러우셨나요?</p>
+				<img th:replace="~{customer/fragments/common :: chevron}">
+			</a>
+			<div class="history-label review-history-label">
+				<strong>내가 쓴 후기</strong>
+				<span th:text="${myReviews.size()}">1</span>
+			</div>
+			<div class="my-review" th:each="r : ${myReviews}" th:classappend="${r.justNow} ? 'submitted-review'">
+				<div class="my-review-head">
+					<span th:text="${r.stars}">★★★★★</span>
+					<small th:text="${r.date}">2025. 11. 03</small>
+				</div>
+				<strong th:text="${r.route}">송파구 → 성동구</strong>
+				<div class="my-review-copy">
+					<p th:text="${r.content}"></p>
+					<img th:replace="~{customer/fragments/common :: chevron}">
+				</div>
+				<small class="my-review-type" th:text="${r.moveType}">원룸 · 반포장</small>
+				<div class="my-review-photos" th:if="${r.photoCount > 0}">
+					<span class="my-review-type" th:text="'사진 ' + ${r.photoCount} + '장'"></span>
+				</div>
+			</div>
+			<div class="save-toast" th:if="${submitted}">후기가 등록되었어요.</div>
+		</th:block>
+
+		<!-- 후기 작성 (TBL_REVIEW / TBL_REVIEW_PHOTO) -->
+		<form class="review-compose" th:if="${writing}" method="post" enctype="multipart/form-data" th:action="@{/more/reviews}" data-review-form>
+			<div class="compose-title">이사 서비스는 어떠셨나요?</div>
+			<div class="review-auto-info">
+				<div>
+					<span>예약 정보에서 자동 적용</span>
+					<strong>강남구 → 서초구</strong>
+				</div>
+				<div class="review-auto-tags">
+					<span>이용 3회차</span>
+					<span>원룸(일반포장)</span>
+					<span>2026. 03. 18</span>
+				</div>
+			</div>
+			<div class="rating-row" data-rating>
+				<button type="button" class="action" th:each="s : ${#numbers.sequence(1, 5)}" th:aria-label="${s} + '점'" th:data-star="${s}">
+					<span class="rated">★</span>
+				</button>
+			</div>
+			<input type="hidden" name="rating" value="5" data-rating-value>
+			<textarea aria-label="후기 내용" class="review-editor" name="content" placeholder="이사 경험을 자세히 들려주세요."></textarea>
+			<div class="review-photo-head">
+				<div>
+					<strong>사진 첨부</strong>
+					<span>선택 · 최대 5장</span>
+				</div>
+				<b data-photo-count>0/5</b>
+			</div>
+			<input accept="image/jpeg,image/png,image/webp" class="review-photo-input" multiple type="file" data-photo-input>
+			<div class="review-photo-grid" data-photo-grid>
+				<button type="button" class="action review-photo-add" aria-label="후기 사진 추가" data-photo-add>
+					<img alt="" th:src="@{/assets/cd80e.svg}">
+					<span>사진 추가</span>
+				</button>
+			</div>
+			<div class="review-photo-help">이삿짐 상태나 서비스 현장을 담은 사진을 추가하면 더 유용한 후기가 돼요.</div>
+			<button class="action form-submit primary">후기 등록</button>
+		</form>
+	</div>
+</div>
+<script th:if="${writing}">
+	/* 별점 · 사진 첨부(최대 5장) */
+	(function () {
+		const form = document.querySelector('[data-review-form]');
+		const stars = form.querySelectorAll('[data-star]');
+		const ratingValue = form.querySelector('[data-rating-value]');
+		stars.forEach((b) => b.addEventListener('click', () => {
+			const v = Number(b.dataset.star);
+			ratingValue.value = v;
+			stars.forEach((s) => s.querySelector('span').classList.toggle('rated', Number(s.dataset.star) <= v));
+		}));
+
+		const input = form.querySelector('[data-photo-input]');
+		const grid = form.querySelector('[data-photo-grid]');
+		const add = form.querySelector('[data-photo-add]');
+		const count = form.querySelector('[data-photo-count]');
+		let files = [];
+		const sync = () => {
+			const dt = new DataTransfer();
+			files.forEach((f) => dt.items.add(f));
+			input.files = dt.files;
+			count.textContent = `${files.length}/5`;
+			add.hidden = files.length >= 5;
+			grid.querySelectorAll('.review-photo-preview').forEach((p) => p.remove());
+			files.forEach((f) => {
+				const box = document.createElement('div');
+				box.className = 'review-photo-preview';
+				const img = document.createElement('img');
+				img.alt = f.name;
+				img.src = URL.createObjectURL(f);
+				const rm = document.createElement('button');
+				rm.type = 'button';
+				rm.className = 'action review-photo-remove';
+				rm.setAttribute('aria-label', `${f.name} 삭제`);
+				rm.textContent = '×';
+				rm.addEventListener('click', () => { files = files.filter((x) => x !== f); sync(); });
+				box.append(img, rm);
+				grid.insertBefore(box, add);
+			});
+		};
+		add.addEventListener('click', () => input.click());
+		input.addEventListener('change', () => {
+			const picked = Array.from(input.files || []);
+			files = files.concat(picked.filter((f) => !files.includes(f))).slice(0, 5);
+			sync();
+		});
+		input.name = 'photos';
+	})();
+</script>
+</div>
+</body>
+</html>

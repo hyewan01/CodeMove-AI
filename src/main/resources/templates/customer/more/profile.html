@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('내 정보 수정')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+<!-- SCR-U-032 내 정보 수정 (휴대폰 번호 변경) -->
+<div class="screen form-page">
+	<div th:replace="~{customer/fragments/common :: formHead('/more', '내 정보 수정')}"></div>
+	<div class="form-content personal-page-content">
+		<div class="personal-profile">
+			<div class="personal-avatar-wrap">
+				<div class="avatar" th:text="${#strings.substring(cs.userName, 0, 1)}">김</div>
+				<div class="personal-verified-mark">✓</div>
+			</div>
+			<strong th:text="${cs.userName} + '님'">김무브님</strong>
+			<span>본인인증 완료 · 일반 회원</span>
+		</div>
+
+		<div class="personal-section-label">기본 정보</div>
+		<div class="personal-settings-card">
+			<div class="personal-setting-row">
+				<span>이름</span>
+				<strong th:text="${cs.userName}">김무브</strong>
+			</div>
+			<div class="personal-setting-row personal-phone-row">
+				<div class="personal-phone-copy">
+					<span>휴대폰 번호</span>
+					<span th:text="${cs.phone}">010-1234-5678</span>
+				</div>
+				<button type="button" class="action personal-change-button" aria-label="휴대폰 번호 변경" data-modal-open="phone-change">변경</button>
+			</div>
+		</div>
+
+		<div class="linked-login-card">
+			<strong>간편 로그인</strong>
+			<div class="linked-login-provider">
+				<img alt="네이버" class="linked-login-logo" th:src="@{/assets/4a055.svg}">
+				<img th:replace="~{customer/fragments/common :: chevron}">
+			</div>
+		</div>
+
+		<div class="account-meta">
+			<div><strong>가입일</strong><b>2026. 02. 16</b></div>
+		</div>
+		<button type="button" class="action withdraw-link">회원 탈퇴</button>
+
+		<button type="button" class="action personal-modal-scrim" aria-label="휴대폰 번호 변경 닫기" data-modal="phone-change" data-modal-close hidden></button>
+		<form aria-labelledby="phone-change-title" aria-modal="true" class="personal-modal" role="dialog"
+			  method="post" th:action="@{/more/profile/phone}" data-modal="phone-change" data-phone-verify hidden>
+			<div class="sheet-grabber personal-sheet-grabber" aria-label="휴대폰 번호 변경 화면 닫기" role="button" tabindex="0" data-modal-close>
+				<div class="sheet-handle"></div>
+			</div>
+			<div class="personal-modal-head">
+				<div>
+					<strong id="phone-change-title">휴대폰 번호 변경</strong>
+					<span>새 번호로 본인인증을 진행해요.</span>
+				</div>
+				<button type="button" class="action personal-modal-close" aria-label="닫기" data-modal-close>×</button>
+			</div>
+			<div class="phone-login-group phone-change-login-group">
+				<div class="field-wrap no-label">
+					<input class="field" name="phone" type="tel" inputmode="tel" aria-label="새 휴대폰 번호"
+						   placeholder="새 휴대폰 번호를 입력해주세요" data-format="phone">
+				</div>
+				<button type="button" class="action phone-send-button is-disabled" data-send-code>인증하기</button>
+			</div>
+			<div class="phone-code-group" data-code-group hidden>
+				<div class="phone-code-label">
+					<span>인증번호</span>
+					<span class="phone-timer" data-timer>03:00</span>
+				</div>
+				<div class="field-wrap no-label">
+					<input class="field" name="code" type="text" inputmode="numeric" aria-label="인증번호"
+						   placeholder="인증번호 6자리" data-format="digits" maxlength="6">
+				</div>
+				<div class="phone-code-hint"><span data-phone-echo></span> 으로 인증번호가 발송되었어요.</div>
+			</div>
+			<button class="action form-submit next-button phone-change-confirm is-disabled" data-submit>인증하고 변경</button>
+		</form>
+	</div>
+</div>
+</div>
+</body>
+</html>

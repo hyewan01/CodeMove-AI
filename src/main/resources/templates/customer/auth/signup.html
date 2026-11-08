@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('회원가입')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+	<!-- SCR-U-025 회원가입 (본인인증 정보 입력) -->
+	<div class="screen form-page">
+		<div th:replace="~{customer/fragments/common :: formHead('/', null)}"></div>
+		<form class="form-content" method="post" th:action="@{/signup}" th:object="${signup}" data-signup>
+			<div class="signup-copy">본인인증을 위해<br>이름과 전화번호를 입력해주세요.</div>
+			<div class="field-wrap">
+				<div class="field-label">이름</div>
+				<input class="field" th:field="*{name}" type="text" aria-label="이름" placeholder="이름을 입력해주세요." autocomplete="name">
+			</div>
+			<div class="field-wrap">
+				<div class="field-label">휴대폰 번호</div>
+				<input class="field" th:field="*{phone}" type="tel" inputmode="tel" aria-label="휴대폰 번호"
+					   placeholder="휴대폰 번호를 입력해주세요." data-format="phone" autocomplete="tel">
+			</div>
+			<input type="hidden" th:field="*{termsAccepted}" data-terms>
+			<div class="signup-bottom">
+				<div class="terms-row">
+					<span th:classappend="*{termsAccepted} ? 'terms-checked'" th:text="*{termsAccepted} ? '✓' : ''"></span>
+					<u>본인인증을 위한 개인정보 수집</u>
+					<!-- 입력값을 세션에 저장한 뒤 약관 화면으로 이동 -->
+					<button class="action terms-arrow" aria-label="개인정보 수집 내용 보기" th:formaction="@{/signup/draft}">
+						<img alt="" th:src="@{/assets/ce2ac.svg}">
+					</button>
+				</div>
+				<button class="action form-submit next-button is-disabled" data-submit>다음</button>
+			</div>
+		</form>
+	</div>
+</div>
+</body>
+</html>

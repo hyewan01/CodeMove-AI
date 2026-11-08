@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('로그인')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+	<!-- SCR-U-023 로그인 방법 선택 (온보딩/홈 위 바텀시트) -->
+	<div class="screen login-scene">
+		<th:block th:if="${backdrop == 'home'}">
+			<th:block th:replace="~{customer/home :: screen}"></th:block>
+		</th:block>
+		<th:block th:unless="${backdrop == 'home'}">
+			<div th:replace="~{customer/onboarding :: screen}"></div>
+		</th:block>
+
+		<a class="scrim" aria-label="로그인 선택 닫기" th:href="@{${backdrop == 'home'} ? '/home' : '/'}"></a>
+		<div class="login-sheet" data-login-sheet th:data-dismiss="@{${backdrop == 'home'} ? '/home' : '/'}">
+			<div class="sheet-grabber" aria-label="로그인 선택 화면 닫기" role="button" tabindex="0" data-sheet-grabber>
+				<div class="sheet-handle"></div>
+			</div>
+			<div class="sheet-title">로그인 방법 선택</div>
+			<form class="social-row" method="post" th:action="@{/login/social}">
+				<button class="action social kakao" name="provider" value="kakao" aria-label="카카오 로그인">
+					<img alt="카카오" th:src="@{/assets/2a814.svg}">
+				</button>
+				<button class="action social naver" name="provider" value="naver" aria-label="네이버 로그인">
+					<img alt="네이버" th:src="@{/assets/4a055.svg}">
+				</button>
+				<button class="action social apple" name="provider" value="apple" aria-label="애플 로그인">
+					<img alt="애플" th:src="@{/assets/38175.png}">
+				</button>
+			</form>
+			<a class="action phone-button" th:href="@{/login/phone}">
+				<img alt="" th:src="@{/assets/1513d.svg}">
+				<span>휴대전화로 로그인</span>
+			</a>
+			<div class="account-help">계정이 기억나지 않나요?　<a th:href="@{/signup/verify}"><u>계정 찾기</u></a></div>
+		</div>
+	</div>
+</div>
+</body>
+</html>

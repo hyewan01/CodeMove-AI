@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('개인정보 수집 안내')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+	<!-- SCR-U-026 개인정보 수집 안내 -->
+	<div class="screen form-page">
+		<div th:replace="~{customer/fragments/common :: formHead('/signup', '개인정보 수집 안내')}"></div>
+		<form class="form-content" method="post" th:action="@{/signup/terms}" data-terms-page>
+			<div class="terms-content designed-scroll" data-terms-scroll>
+				<div class="terms-heading">본인인증을 위한 개인정보 수집 및 이용</div>
+				<p>명품익스프레스는 회원가입과 본인인증을 위해 아래와 같이 개인정보를 수집하고 이용합니다.</p>
+				<div class="terms-block">
+					<strong>수집하는 개인정보 항목</strong>
+					<p>이름, 휴대폰 번호, 본인인증 결과값</p>
+				</div>
+				<div class="terms-block">
+					<strong>개인정보의 수집 및 이용 목적</strong>
+					<p>회원 식별, 본인인증, 서비스 가입 및 고객 상담</p>
+				</div>
+				<div class="terms-block">
+					<strong>보유 및 이용 기간</strong>
+					<p>회원 탈퇴 시까지 보관하며, 관계 법령에 따라 보존할 필요가 있는 경우 해당 기간 동안 보관합니다.</p>
+				</div>
+				<div class="terms-notice">개인정보 수집 및 이용에 동의하지 않을 수 있으나, 동의하지 않을 경우 회원가입과 본인인증을 진행할 수 없습니다.</div>
+			</div>
+			<button class="action terms-accept primary is-disabled" data-submit
+					data-label-ready="내용을 확인했어요">아래로 내려 내용을 확인해주세요</button>
+		</form>
+	</div>
+</div>
+</body>
+</html>

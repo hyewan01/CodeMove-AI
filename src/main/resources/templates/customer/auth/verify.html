@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('본인인증')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+	<!-- SCR-U-027 본인인증 (인증번호 입력) -->
+	<div class="screen form-page">
+		<div th:replace="~{customer/fragments/common :: formHead('/signup', null)}"></div>
+		<form class="form-content verify-page" method="post" th:action="@{/signup/verify}" data-verify>
+			<div class="signup-copy">
+				<th:block th:if="${name != null and !name.isBlank()}"><th:block th:text="${name} + '님,'"></th:block><br></th:block>
+				인증번호를 입력해 주세요
+			</div>
+			<div class="verify-help">인증번호 문자 메시지가 <b>010</b>으로 발송되었습니다.</div>
+			<div class="otp-row" data-otp>
+				<input class="otp-box" inputmode="numeric" maxlength="1" type="text" aria-label="인증번호 1번째 자리" th:each="i : ${#numbers.sequence(1, 6)}">
+			</div>
+			<input type="hidden" name="code" data-otp-value>
+			<div class="otp-meta">
+				<span class="otp-timer" data-timer>03:00</span>
+				<button type="button" class="action otp-resend" data-resend>재발송</button>
+			</div>
+			<button class="action form-submit verify-submit next-button is-disabled" data-submit>인증 완료</button>
+		</form>
+	</div>
+</div>
+</body>
+</html>

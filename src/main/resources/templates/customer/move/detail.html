@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('예약 상세')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+<!-- SCR-U-015 예약 상세 (결제 금액 · 요청사항 · 예약 취소) - TBL_RESERVATION / TBL_PAYMENT -->
+<div class="screen form-page">
+	<div th:replace="~{customer/fragments/common :: formHead('/move', '예약 상세')}"></div>
+	<div class="form-content reservation-detail-page">
+		<div class="reservation-detail-hero">
+			<span>확정 · D-30</span>
+			<strong>안전하고 편안한 이사를 준비할게요</strong>
+			<small>예약 번호 ME-20260318-1042</small>
+		</div>
+
+		<div class="reservation-info-card">
+			<div class="reservation-address-row">
+				<i class="reservation-address-dot from"></i>
+				<div>
+					<span>출발지</span>
+					<strong>서울 강남구 테헤란로 123, 301호</strong>
+				</div>
+			</div>
+			<div class="reservation-address-row">
+				<i class="reservation-address-dot to"></i>
+				<div>
+					<span>도착지</span>
+					<strong>서울 서초구 서초대로 456, 804호</strong>
+				</div>
+			</div>
+			<div class="reservation-info-row">
+				<span>이사 일시</span>
+				<b>2026. 03. 18 (수) 오전 10:00</b>
+			</div>
+			<div class="reservation-info-row">
+				<span>이사 유형</span>
+				<b>원룸 · 일반포장</b>
+			</div>
+			<div class="reservation-payment" data-payment>
+				<button type="button" class="action reservation-payment-toggle" aria-label="결제 금액 상세 펼치기" aria-expanded="false" data-payment-toggle>
+					<span>결제 금액</span>
+					<div>
+						<b>410,000원</b>
+						<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg>
+					</div>
+				</button>
+				<div class="reservation-payment-details" data-payment-details hidden>
+					<div th:each="r : ${paymentRows}">
+						<span th:text="${r.label}"></span>
+						<b th:text="${r.value}"></b>
+					</div>
+					<div class="reservation-payment-status">
+						<span>계약금</span>
+						<b>41,000원 · 결제 완료</b>
+					</div>
+					<div>
+						<span>잔금</span>
+						<b>369,000원 · 이사 당일 결제</b>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<form class="reservation-request-section" method="post" th:action="@{/move/reservation/request}" data-request-form>
+			<div class="reservation-section-head">
+				<strong>요청사항</strong>
+				<button type="button" class="action" aria-label="요청사항 수정" data-request-edit>수정</button>
+				<button class="action" aria-label="요청사항 저장" data-request-save hidden>저장</button>
+			</div>
+			<p class="reservation-request-card" th:text="${cs.requestNote}" data-request-view></p>
+			<textarea class="reservation-request-card editing" name="requestNote" aria-label="요청사항"
+					  th:text="${cs.requestNote}" data-request-input hidden></textarea>
+		</form>
+
+		<div class="reservation-detail-actions">
+			<a class="action reservation-contact-button" th:href="@{/chat}">업체에 문의하기</a>
+			<div class="reservation-secondary-actions">
+				<button type="button" class="action" aria-label="예약 취소" data-modal-open="reservation-cancel">예약 취소</button>
+			</div>
+		</div>
+		<div class="save-toast" th:if="${toast}" th:text="${toast}" data-toast></div>
+
+		<div class="reservation-cancel-scrim" data-modal="reservation-cancel" data-modal-close hidden></div>
+		<form aria-describedby="reservation-cancel-description" aria-labelledby="reservation-cancel-title" aria-modal="true"
+			  class="reservation-cancel-modal" role="dialog" method="post" th:action="@{/move/reservation/cancel}"
+			  data-modal="reservation-cancel" hidden>
+			<div class="reservation-cancel-icon" aria-hidden="true">
+				<svg viewBox="0 0 24 24">
+					<path d="M12 8.2v4.6M12 16.2h.01"/>
+					<path d="M10.3 4.7 3.5 16.5A2 2 0 0 0 5.2 19h13.6a2 2 0 0 0 1.7-2.5L13.7 4.7a2 2 0 0 0-3.4 0Z"/>
+				</svg>
+			</div>
+			<strong id="reservation-cancel-title">예약을 취소하시겠어요?</strong>
+			<span id="reservation-cancel-description">
+				취소하면 확정된 일정이 사라지며<br>
+				다시 예약하려면 견적을 새로 확정해야 해요.
+			</span>
+			<div class="reservation-cancel-summary">
+				<span>취소할 예약</span>
+				<b>3월 18일 오전 10:00</b>
+			</div>
+			<div class="reservation-cancel-actions">
+				<button type="button" class="action reservation-cancel-back" aria-label="예약 취소하지 않고 돌아가기" data-modal-close>유지하기</button>
+				<button class="action reservation-cancel-confirm" aria-label="예약 취소 확인">예약 취소</button>
+			</div>
+		</form>
+	</div>
+</div>
+<script>
+	(function () {
+		/* 결제 금액 상세 펼치기 */
+		const toggle = document.querySelector('[data-payment-toggle]');
+		const details = document.querySelector('[data-payment-details]');
+		toggle.addEventListener('click', () => {
+			const open = details.hidden;
+			details.hidden = !open;
+			toggle.querySelector('svg').classList.toggle('open', open);
+			toggle.setAttribute('aria-expanded', open);
+			toggle.setAttribute('aria-label', `결제 금액 상세 ${open ? '접기' : '펼치기'}`);
+		});
+
+		/* 요청사항 수정 → 저장 */
+		const form = document.querySelector('[data-request-form]');
+		form.querySelector('[data-request-edit]').addEventListener('click', (e) => {
+			e.currentTarget.hidden = true;
+			form.querySelector('[data-request-save]').hidden = false;
+			form.querySelector('[data-request-view]').hidden = true;
+			const input = form.querySelector('[data-request-input]');
+			input.hidden = false;
+			input.focus();
+		});
+
+		const toast = document.querySelector('[data-toast]');
+		if (toast) setTimeout(() => toast.remove(), 2200);
+	})();
+</script>
+</div>
+</body>
+</html>

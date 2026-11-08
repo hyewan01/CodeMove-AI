@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('내 이사')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'"
+	 th:with="status=${cs.estimateStatus}, confirmed=${cs.estimateStatus == 'confirmed'}">
+<!-- SCR-U-011 내 이사 (예약 정보 · 견적 정보 · 완료) -->
+<div class="screen page-with-nav">
+	<div th:replace="~{customer/fragments/common :: header}"></div>
+	<main class="sub-content">
+		<div class="move-sticky-nav">
+			<div class="page-title">내 이사</div>
+			<div class="tabs" data-tabs data-active-class="tab-active" data-tab-sync="tab" role="tablist">
+				<button type="button" class="action" th:classappend="${tab == 'booking'} ? 'tab-active'" data-tab="booking" role="tab">예약 정보</button>
+				<button type="button" class="action" th:classappend="${tab == 'estimate'} ? 'tab-active'" data-tab="estimate" role="tab">견적 정보</button>
+				<button type="button" class="action" th:classappend="${tab == 'done'} ? 'tab-active'" data-tab="done" role="tab">완료</button>
+			</div>
+		</div>
+
+		<!-- 예약 정보 -->
+		<div data-tab-panel="booking" th:hidden="${tab != 'booking'}">
+			<th:block th:if="${confirmed}">
+				<div th:replace="~{customer/fragments/move :: bookingCard}"></div>
+				<div class="info-card">
+					<div class="info-icon">✓</div>
+					<div>
+						<strong>이사 준비 체크리스트</strong>
+						<span>꼭 챙겨야 할 항목을 확인해보세요</span>
+					</div>
+					<img th:replace="~{customer/fragments/common :: chevron}">
+				</div>
+			</th:block>
+			<div class="booking-empty-state" th:unless="${confirmed}">
+				<svg aria-hidden="true" fill="none" height="36" viewBox="0 0 36 36" width="36" xmlns="http://www.w3.org/2000/svg">
+					<rect height="25" rx="4" stroke="currentColor" stroke-width="1.6" width="28" x="4" y="7"/>
+					<path d="M4 14h28M11 4v6M25 4v6" stroke="currentColor" stroke-linecap="round" stroke-width="1.6"/>
+					<path d="M13 22h10" stroke="currentColor" stroke-linecap="round" stroke-width="1.6"/>
+				</svg>
+				<strong>아직 확정된 예약이 없어요</strong>
+				<span>도착한 견적을 확정하면 예약 일정이 표시돼요.</span>
+				<a class="action booking-empty-link" th:if="${status != 'none'}" th:href="@{/move(tab='estimate')}">
+					견적 정보 확인
+					<img th:replace="~{customer/fragments/common :: chevron}">
+				</a>
+			</div>
+		</div>
+
+		<!-- 견적 정보 -->
+		<div data-tab-panel="estimate" th:hidden="${tab != 'estimate'}">
+			<div class="move-state-card waiting" th:if="${status == 'waiting-approval'}">
+				<span>관리자 확인 중</span>
+				<strong>견적 요청을 검토하고 있어요.</strong>
+				<small>담당자가 요청을 확인하면 견적서를 보여드려요.</small>
+			</div>
+
+			<div class="move-state-card" th:if="${status == 'none'}">
+				<span>견적 없음</span>
+				<strong>아직 요청한 견적이 없습니다.</strong>
+				<small>영상 견적을 요청하면 진행 상태를 확인할 수 있습니다.</small>
+				<a class="action move-state-action" th:href="@{/quote}">새 견적 받기</a>
+			</div>
+
+			<div class="move-estimate-section" th:if="${status == 'approved' or confirmed}">
+				<div class="move-estimate-card">
+					<div class="move-estimate-badge">진행중 견적</div>
+					<div class="move-estimate-company">명품익스프레스</div>
+					<div class="move-estimate-price">
+						<b th:text="${quote.totalLabel}">410,000원</b>
+						<span>포장 · 운송 · 정리 포함</span>
+					</div>
+					<div class="move-estimate-meta">
+						<span th:text="'🏠 ' + ${quote.typeLabel}">🏠 원룸 · 일반포장</span>
+						<span th:text="'📅 ' + ${quote.scheduleLabel}">📅 2026. 03. 18 오전 10:00</span>
+						<span th:text="'📍 ' + ${quote.routeLabel}">📍 강남구 → 서초구</span>
+					</div>
+					<form class="move-estimate-actions" method="post" th:action="@{/move/estimate/confirm}">
+						<button type="button" class="action move-quote-btn" data-modal-open="quote-doc">
+							<svg fill="none" height="16" viewBox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg"><rect height="12" rx="1.5" stroke="currentColor" stroke-width="1.4" width="10" x="3" y="2"/><path d="M6 6h4M6 9h4M6 12h2" stroke="currentColor" stroke-linecap="round" stroke-width="1.3"/></svg>
+							견적서 확인
+						</button>
+						<button class="action move-confirm-btn" th:classappend="${confirmed} ? 'confirmed is-disabled'"
+								th:text="${confirmed} ? '✓ 확정 완료' : '견적 확정'">견적 확정</button>
+					</form>
+				</div>
+
+				<div class="move-estimate-detail">
+					<div class="move-estimate-detail-title">상세 견적 내역</div>
+					<div class="receipt-section-label">기본 이사 요금</div>
+					<div class="receipt-rule"></div>
+					<div class="receipt-row" th:each="row : ${quote.rows}">
+						<div class="receipt-row-label">
+							<span th:text="${row.label}"></span>
+							<small th:if="${row.sub != null}" th:text="${row.sub}"></small>
+						</div>
+						<b th:text="${row.value}"></b>
+					</div>
+					<div class="receipt-total-row">
+						<span>최종 견적 금액</span>
+						<b th:text="${quote.totalLabel}">410,000원</b>
+					</div>
+				</div>
+
+				<div class="mini-title" style="margin-top: 24px">다른 진행 중 견적</div>
+				<div class="empty-card">현재 진행 중인 추가 견적이 없습니다.</div>
+			</div>
+		</div>
+
+		<!-- 완료 -->
+		<div data-tab-panel="done" th:hidden="${tab != 'done'}">
+			<div class="move-done-section">
+				<div class="move-done-card" th:each="d : ${doneMoves}">
+					<div class="move-done-head">
+						<span class="move-done-status">이사 완료</span>
+						<small th:text="${d.date}">2025. 11. 04</small>
+					</div>
+					<strong class="move-done-company">명품익스프레스</strong>
+					<div class="move-done-route">
+						<span th:text="${d.from}">마포구 합정동</span>
+						<svg fill="none" height="14" viewBox="0 0 20 14" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M1 7h18M13 1l6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"/></svg>
+						<span th:text="${d.to}">서대문구 홍은동</span>
+					</div>
+					<div class="move-done-meta" th:text="${d.meta}">원룸 · 반포장 · 320,000원</div>
+					<div class="move-done-actions">
+						<a class="action move-done-detail-btn" th:href="@{/move/reservation}">상세 보기</a>
+						<a class="action move-done-review-btn" th:href="@{/more/reviews(write=1)}">
+							<svg fill="none" height="14" viewBox="0 0 16 16" width="14" xmlns="http://www.w3.org/2000/svg"><path d="M11 2l3 3-8 8H3v-3L11 2z" stroke="currentColor" stroke-linejoin="round" stroke-width="1.4"/></svg>
+							리뷰 작성
+						</a>
+					</div>
+				</div>
+				<a class="action move-done-more" th:href="@{/more/reservations}">
+					예약 내역 전체 보기
+					<img th:replace="~{customer/fragments/common :: chevron}">
+				</a>
+			</div>
+		</div>
+	</main>
+
+	<th:block th:if="${status == 'approved' or confirmed}">
+		<th:block th:replace="~{customer/fragments/move :: quoteDoc(${confirmed})}"></th:block>
+	</th:block>
+
+	<nav th:replace="~{customer/fragments/common :: bottomNav('move')}"></nav>
+</div>
+</div>
+</body>
+</html>

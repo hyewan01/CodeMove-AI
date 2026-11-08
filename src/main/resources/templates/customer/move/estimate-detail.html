@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('견적 상세')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'" th:with="confirmed=${cs.estimateStatus == 'confirmed'}">
+<!-- SCR-U-013 견적 상세 (견적 금액 · AI 분석 · 이사 정보) - TBL_ESTIMATE / TBL_REQUEST_ITEM -->
+<div class="screen form-page">
+	<div th:replace="~{customer/fragments/common :: formHead('/more/estimates', '견적 상세')}"></div>
+	<div class="form-content estimate-detail-page">
+		<!-- 상태 헤더 -->
+		<div class="detail-status estimate-detail-status">
+			<div class="estimate-detail-status-top">
+				<span th:text="${confirmed} ? '예약 완료' : '견적 도착'">견적 도착</span>
+				<small th:text="${vendorDoc.quoteNo}">QT-20260310-0042</small>
+			</div>
+			<div class="estimate-detail-primary">
+				<div>
+					<strong>명품익스프레스</strong>
+					<p>강남구 → 서초구</p>
+				</div>
+				<b>410,000원</b>
+			</div>
+			<div class="estimate-detail-date">2026. 03. 18 (수) · 오전 10:00</div>
+		</div>
+
+		<div class="estimate-detail-tabs" data-tabs role="tablist">
+			<button type="button" class="action active" data-tab="quote" role="tab">견적 금액</button>
+			<button type="button" class="action" data-tab="analysis" role="tab">AI 분석</button>
+			<button type="button" class="action" data-tab="move" role="tab">이사 정보</button>
+		</div>
+
+		<!-- AI 동영상 부피 견적 -->
+		<div class="ai-estimate-section" data-tab-panel="analysis" data-ai-estimate hidden>
+			<div class="ai-estimate-header">
+				<div class="ai-estimate-logo"><img alt="" th:src="@{/assets/cd80e.svg}"></div>
+				<div>
+					<b>AI 동영상 부피 견적</b>
+					<span>촬영 영상에서 가구·가전을 인식해 CBM을 자동 계산했어요.</span>
+				</div>
+			</div>
+
+			<button type="button" class="action ai-upload-zone" aria-label="동영상 업로드" data-ai-step="idle" data-ai-upload hidden>
+				<svg fill="none" height="32" viewBox="0 0 32 32" width="32" xmlns="http://www.w3.org/2000/svg">
+					<path d="M16 22V10M10 16l6-6 6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/>
+					<rect height="24" rx="4" stroke="currentColor" stroke-dasharray="4 3" stroke-width="1.4" width="24" x="4" y="4"/>
+				</svg>
+				<span>동영상 파일을 업로드하세요</span>
+				<small>MP4, MOV · 최대 500MB</small>
+			</button>
+			<div class="ai-progress-state" data-ai-step="uploading" hidden>
+				<div class="ai-progress-spinner"></div>
+				<span>동영상 업로드 중...</span>
+			</div>
+			<div class="ai-progress-state analyzing" data-ai-step="analyzing" hidden>
+				<div class="ai-progress-spinner green"></div>
+				<span>AI가 공간을 분석하고 있어요...</span>
+				<small>가구·가전 인식 · 부피 계산 중</small>
+			</div>
+
+			<div data-ai-step="done">
+				<div class="ai-cbm-result">
+					<div class="ai-cbm-main">
+						<span>총 산출 부피</span>
+						<b>7.7 CBM</b>
+					</div>
+					<div class="ai-cbm-sub">
+						<div><small>인식 품목</small><b th:text="${detectedItems.size()} + '종'">6종</b></div>
+						<div class="ai-cbm-divider"></div>
+						<div><small>분석 시간</small><b>38초</b></div>
+						<div class="ai-cbm-divider"></div>
+						<div><small>정확도</small><b>94%</b></div>
+					</div>
+				</div>
+				<div class="ai-items-label">인식된 품목</div>
+				<div class="ai-items-list">
+					<div class="ai-item-row" th:each="item : ${detectedItems}">
+						<span class="ai-item-icon"><img alt="" th:src="@{/assets/{icon}(icon=${item.icon})}"></span>
+						<span class="ai-item-name" th:text="${item.name}"></span>
+						<span class="ai-item-count" th:text="'×' + ${item.count}"></span>
+						<b class="ai-item-cbm" th:text="${item.cbm} + ' CBM'"></b>
+					</div>
+				</div>
+				<button type="button" class="action ai-reupload" aria-label="재업로드" data-ai-reset>
+					<svg fill="none" height="13" viewBox="0 0 16 16" width="13" xmlns="http://www.w3.org/2000/svg"><path d="M2 8a6 6 0 1 0 1.2-3.6" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"/><path d="M2 4v4h4" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/></svg>
+					다시 업로드
+				</button>
+			</div>
+		</div>
+
+		<!-- 견적 금액 -->
+		<div data-tab-panel="quote">
+			<section class="estimate-receipt" aria-labelledby="estimate-receipt-title">
+				<div class="estimate-receipt-header">
+					<div>
+						<small>PREMIUM EXPRESS</small>
+						<h2 id="estimate-receipt-title">이사 견적서</h2>
+					</div>
+					<span>선택 완료</span>
+				</div>
+				<div class="estimate-receipt-meta">
+					<span th:text="'No. ' + ${vendorDoc.quoteNo}">No. QT-20260310-0042</span>
+					<span>2026. 03. 10 발행</span>
+				</div>
+				<div class="estimate-receipt-rule"></div>
+				<div class="estimate-receipt-row" th:each="r : ${receiptRows}">
+					<span th:text="${r.label}"></span>
+					<b th:text="${r.value}"></b>
+				</div>
+				<div class="estimate-receipt-total">
+					<span>최종 견적 금액<small>부가세 포함</small></span>
+					<b>410,000원</b>
+				</div>
+				<div class="estimate-receipt-foot">
+					<svg fill="none" height="13" viewBox="0 0 16 16" width="13" xmlns="http://www.w3.org/2000/svg"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3.5L10 10" stroke="currentColor" stroke-linecap="round" stroke-width="1.3"/></svg>
+					CBM 기반 자동 산출 · 7.7 CBM
+				</div>
+			</section>
+			<button type="button" class="action estimate-document-button" aria-label="업체 견적서 원본 보기" data-modal-open="quote-doc">
+				<img alt="" th:src="@{/assets/vendor-document-illustration.svg}">
+				<div>
+					<strong>업체 견적서 원본</strong>
+					<span>명품익스프레스가 발행한 상세 견적서를 확인해요.</span>
+				</div>
+				<img th:replace="~{customer/fragments/common :: chevron}">
+			</button>
+		</div>
+
+		<!-- 이사 정보 -->
+		<section class="estimate-move-info" data-tab-panel="move" hidden>
+			<h2>이사 정보</h2>
+			<div th:each="r : ${moveInfoRows}"><span th:text="${r.label}"></span><b th:text="${r.value}"></b></div>
+		</section>
+
+		<form method="post" th:action="@{/move/estimate/confirm}">
+			<button class="action primary form-submit estimate-confirm" th:classappend="${confirmed} ? 'is-disabled'"
+					th:text="${confirmed} ? '견적 확정 완료' : '이 견적으로 확정하기'">이 견적으로 확정하기</button>
+		</form>
+	</div>
+
+	<th:block th:replace="~{customer/fragments/move :: quoteDoc(${confirmed})}"></th:block>
+</div>
+<script>
+	/* AI 분석 다시 업로드 시연: 업로드 → 분석 → 완료 (백엔드 개발 시 TBL_RE_VIDEO 업로드 · 분석 API 연동) */
+	(function () {
+		const box = document.querySelector('[data-ai-estimate]');
+		const show = (step) => box.querySelectorAll('[data-ai-step]').forEach((el) => (el.hidden = el.dataset.aiStep !== step));
+		box.querySelector('[data-ai-reset]').addEventListener('click', () => show('idle'));
+		box.querySelector('[data-ai-upload]').addEventListener('click', () => {
+			show('uploading');
+			setTimeout(() => show('analyzing'), 1200);
+			setTimeout(() => show('done'), 2800);
+		});
+	})();
+</script>
+</div>
+</body>
+</html>

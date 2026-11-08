@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('이사 요청 완료')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+<!-- SCR-U-010 이사 요청 완료 -->
+
+<th:block th:if="false"><!-- 프래그먼트 정의 전용 -->
+<svg th:fragment="art" aria-hidden="true" class="quote-success-art" viewBox="0 0 180 150">
+	<ellipse class="quote-success-art-shadow" cx="88" cy="135" rx="58" ry="8"/>
+	<path class="quote-success-art-side" d="m88 50 47 22v48l-47 17Z"/>
+	<path class="quote-success-art-front" d="m41 72 47-22v87l-47-17Z"/>
+	<path class="quote-success-art-top" d="m41 72 47 22 47-22-47-22Z"/>
+	<path class="quote-success-art-tape" d="m72 58 47 22v17l-12 5V86L60 64Z"/>
+	<circle class="quote-success-art-badge" cx="132" cy="45" r="24"/>
+	<path class="quote-success-art-check" d="m121 45 8 8 15-17"/>
+</svg>
+</th:block>
+
+<div class="screen quote-success" th:unless="${cs.easy}">
+	<section class="quote-success-main">
+		<svg th:replace="~{customer/quote/success :: art}"></svg>
+		<strong>이사 요청을 보냈어요</strong>
+		<div class="quote-success-flow">
+			<span class="is-current">요청 접수</span><i></i>
+			<span>담당자 확인</span><i></i>
+			<span>견적 안내</span>
+		</div>
+	</section>
+	<div class="quote-success-actions">
+		<a class="action quote-success-primary" th:href="@{/move}">요청 내역 보기</a>
+		<a class="action quote-success-home" th:href="@{/home}">홈으로</a>
+	</div>
+</div>
+
+<div class="screen easy-quote-success" th:if="${cs.easy}">
+	<div class="easy-success-utility">
+		<button type="button" class="action easy-voice-guide"
+				data-speak="이사 요청을 잘 보냈어요. 명품익스프레스 담당자가 이사 내용을 확인합니다. 견적이 준비되면 알림으로 알려드릴게요."
+				data-label-off="음성으로 듣기" data-label-on="음성 안내 중" data-speak-target="strong">
+			<svg aria-hidden="true" fill="none" height="24" viewBox="0 0 24 24" width="24">
+				<path d="M5 10v4h3l4 3V7L8 10H5Z" fill="currentColor"/>
+				<path d="M15 9.5c.7.6 1 1.4 1 2.5s-.3 1.9-1 2.5M17.5 7c1.3 1.3 2 3 2 5s-.7 3.7-2 5" stroke="currentColor" stroke-linecap="round" stroke-width="1.7"/>
+			</svg>
+			<strong>음성으로 듣기</strong>
+		</button>
+	</div>
+	<div class="easy-quote-success-content">
+		<div class="easy-quote-success-main">
+			<div class="easy-quote-success-art"><svg th:replace="~{customer/quote/success :: art}"></svg></div>
+			<strong>이사 요청을 잘 보냈어요</strong>
+			<div class="easy-quote-success-guide">
+				<div class="easy-success-guide-row"><b>1</b><span>담당자가 이사 내용을 확인해요</span></div>
+				<div class="easy-success-guide-row"><b>2</b><span>견적이 준비되면 알려드려요</span></div>
+			</div>
+		</div>
+	</div>
+	<div class="easy-quote-success-actions">
+		<a class="action easy-success-primary" th:href="@{/move}">요청 내역 확인하기</a>
+		<a class="action easy-success-home" th:href="@{/home}">홈으로 돌아가기</a>
+	</div>
+</div>
+</div>
+</body>
+</html>

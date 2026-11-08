@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('휴대전화 로그인')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+	<!-- SCR-U-024 휴대전화 로그인 -->
+	<div class="screen form-page">
+		<div th:replace="~{customer/fragments/common :: formHead('/login', '휴대전화 로그인')}"></div>
+		<form class="form-content" method="post" th:action="@{/login/phone}" data-phone-verify>
+			<div class="phone-login-group">
+				<div class="field-wrap no-label">
+					<input class="field" name="phone" type="tel" inputmode="tel" aria-label="휴대폰 번호"
+						   placeholder="휴대폰 번호를 입력해주세요" data-format="phone" autocomplete="tel">
+				</div>
+				<button type="button" class="action phone-send-button is-disabled" data-send-code>인증하기</button>
+			</div>
+
+			<div class="phone-code-group" data-code-group hidden>
+				<div class="phone-code-label">
+					<span>인증번호</span>
+					<span class="phone-timer" data-timer>03:00</span>
+				</div>
+				<div class="field-wrap no-label">
+					<input class="field" name="code" type="text" inputmode="numeric" aria-label="인증번호"
+						   placeholder="인증번호 6자리" data-format="digits" maxlength="6" autocomplete="one-time-code">
+				</div>
+				<div class="phone-code-hint"><span data-phone-echo></span> 으로 인증번호가 발송되었어요.</div>
+			</div>
+
+			<button class="action form-submit next-button is-disabled" data-submit>로그인</button>
+			<div class="form-links">
+				<a class="action" th:href="@{/signup}">회원가입</a>
+				<span></span>
+				<a class="action" th:href="@{/signup/verify}">계정 찾기</a>
+			</div>
+		</form>
+	</div>
+</div>
+</body>
+</html>

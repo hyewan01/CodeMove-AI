@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('홈')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+
+<!-- SCR-U-001~002 홈 (진행상황 카드) -->
+<th:block th:fragment="screen">
+
+<!-- ===== 일반 모드 ===== -->
+<div class="screen home-screen" th:unless="${cs.easy}">
+	<div th:replace="~{customer/fragments/common :: header}"></div>
+	<main class="home-content">
+		<th:block th:if="${cs.loggedIn}">
+			<div class="home-greeting" th:text="${cs.userName} + '님'">김무브님</div>
+
+			<!-- 예약 확정 -->
+			<div th:if="${cs.estimateStatus == 'confirmed'}" th:replace="~{customer/fragments/move :: bookingCard}"></div>
+
+			<!-- 견적 도착 -->
+			<a class="action home-estimate-status ready" th:href="@{/move}" th:if="${cs.estimateStatus == 'approved'}">
+				<div class="home-estimate-main">
+					<div class="home-estimate-visual"><img alt="" th:src="@{/assets/estimate-approved-illustration.svg}"></div>
+					<div class="home-estimate-copy">
+						<span>견적 도착</span>
+						<strong>이사 견적이 준비됐어요</strong>
+						<small>비용과 작업 내용을 확인해주세요.</small>
+					</div>
+				</div>
+				<div class="home-estimate-cta">
+					견적서 보기
+					<svg aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg"><path d="m6 3.5 4.5 4.5L6 12.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"/></svg>
+				</div>
+			</a>
+
+			<!-- 관리자 확인 중 -->
+			<a class="action home-estimate-status ready pending" th:href="@{/more/estimates}" th:if="${cs.estimateStatus == 'waiting-approval'}">
+				<div class="home-estimate-main">
+					<div class="home-estimate-visual"><img alt="" th:src="@{/assets/estimate-requested-illustration.svg}"></div>
+					<div class="home-estimate-copy">
+						<span>관리자 확인 중</span>
+						<strong>견적 요청이 접수됐어요</strong>
+						<small>담당자 확인이 끝나면 견적 정보를 알려드려요.</small>
+					</div>
+				</div>
+				<div class="home-estimate-cta">
+					진행 상황 보기
+					<img th:replace="~{customer/fragments/common :: chevronLight}">
+				</div>
+			</a>
+
+			<!-- 견적 없음 -->
+			<th:block th:if="${cs.estimateStatus == 'none'}">
+				<div th:replace="~{customer/home :: estimateStartCard(false)}"></div>
+			</th:block>
+		</th:block>
+
+		<th:block th:unless="${cs.loggedIn}">
+			<div class="login-hero">
+				<div>로그인하고<br>더 많은 서비스를 이용해보세요</div>
+				<a class="action primary" th:href="@{/login(backdrop='home')}">로그인</a>
+			</div>
+			<a class="action promo" th:href="@{/quote}">
+				<div>
+					<small>회원 혜택 ✦</small>
+					<strong>영상 찍고 견적 받자</strong>
+					<span>촬영부터 확인까지 간편하게</span>
+				</div>
+				<div class="promo-flow">
+					<span>▣</span>
+					<img alt="" th:src="@{/assets/03a65.svg}">
+					<span>⇧</span>
+					<img alt="" th:src="@{/assets/2edc2.svg}">
+					<span>▤</span>
+				</div>
+			</a>
+		</th:block>
+
+		<section class="section">
+			<div class="section-title">빠른 메뉴</div>
+			<div class="quick-grid">
+				<a class="action quick-item quick-1" th:href="@{/quote}">
+					<div class="quick-icon"><img alt="" th:src="@{/assets/cd80e.svg}"></div>
+					<div>영상 견적</div>
+				</a>
+				<a class="action quick-item quick-2" th:href="@{/more/reviews}">
+					<div class="quick-icon"><img alt="" th:src="@{/assets/review-illustration.svg}"></div>
+					<div>후기</div>
+				</a>
+				<a class="action quick-item quick-3" th:href="@{/chat}">
+					<div class="quick-icon"><img alt="" th:src="@{/assets/bec52.svg}"></div>
+					<div>상담하기</div>
+				</a>
+			</div>
+		</section>
+
+		<section class="section review-section">
+			<div class="section-title">실제 고객들의 칭찬후기</div>
+			<div class="review-card" th:each="review : ${homeReviews}">
+				<div class="reviewer">
+					<strong th:text="${review.name}">김코드</strong>
+					<span th:text="${review.meta}">이용 2회차 · 어제</span>
+				</div>
+				<div class="review-meta">
+					<span th:text="${review.moveType}">원룸(반포장)</span>
+					<span>평점 <b th:text="${review.stars}">★★★★★</b></span>
+				</div>
+				<div class="review-copy" th:text="${review.content}"></div>
+			</div>
+		</section>
+	</main>
+	<nav th:replace="~{customer/fragments/common :: bottomNav('home')}"></nav>
+</div>
+
+<!-- ===== 쉬운 모드 (SCR-U-028) ===== -->
+<div class="screen home-screen easy-home" th:if="${cs.easy}">
+	<div th:replace="~{customer/fragments/common :: header}"></div>
+	<main class="easy-home-content">
+		<div class="easy-welcome">
+			<strong th:text="${cs.loggedIn} ? ${cs.userName} + '님, 무엇을 도와드릴까요?' : '무엇을 도와드릴까요?'"></strong>
+		</div>
+
+		<div class="easy-login-card" th:unless="${cs.loggedIn}">
+			<div>
+				<strong>로그인하면 이사 준비가 더 쉬워져요</strong>
+				<span>견적과 예약을 안전하게 보관해드려요.</span>
+			</div>
+			<a class="action easy-login-button" th:href="@{/login(backdrop='home')}">로그인하기</a>
+		</div>
+
+		<div th:if="${cs.loggedIn and easyStatus != null}" th:class="'easy-status-card status-' + ${cs.estimateStatus}">
+			<div class="easy-status-main">
+				<div class="easy-status-illustration"><img alt="" th:src="@{${easyStatus.icon}}"></div>
+				<div class="easy-status-heading">
+					<span th:text="${easyStatus.eyebrow}"></span>
+					<strong th:text="${easyStatus.title}"></strong>
+					<small th:text="${easyStatus.description}"></small>
+				</div>
+			</div>
+			<a class="action easy-status-button" th:href="@{${easyStatus.next}}">
+				<th:block th:text="${easyStatus.button}"></th:block>
+				<img th:replace="~{customer/fragments/common :: chevronLight}">
+			</a>
+		</div>
+
+		<th:block th:if="${cs.loggedIn and easyStatus == null}">
+			<div th:replace="~{customer/home :: estimateStartCard(true)}"></div>
+		</th:block>
+
+		<div class="easy-menu-zone">
+			<section class="easy-service-section">
+				<div class="easy-section-title">자주 쓰는 메뉴</div>
+				<div class="easy-service-grid">
+					<a class="action easy-service-card camera" th:href="@{/quote}">
+						<div class="easy-service-icon"><img alt="" th:src="@{/assets/cd80e.svg}"></div>
+						<div class="easy-service-copy"><strong>영상으로 견적 받기</strong></div>
+					</a>
+					<a class="action easy-service-card move" th:href="@{/move}">
+						<div class="easy-service-icon"><img alt="" th:src="@{/assets/91e58.svg}"></div>
+						<div class="easy-service-copy"><strong>내 이사 확인</strong></div>
+					</a>
+					<a class="action easy-service-card help" th:href="@{/chat}">
+						<div class="easy-service-icon"><img alt="" th:src="@{/assets/mover-assistant-3d.svg}"></div>
+						<div class="easy-service-copy"><strong>상담원에게 묻기</strong></div>
+					</a>
+					<a class="action easy-service-card review" th:href="@{/more/reviews}">
+						<div class="easy-service-icon"><img alt="" th:src="@{/assets/review-illustration.svg}"></div>
+						<div class="easy-service-copy"><strong>이사 후기 남기기</strong></div>
+					</a>
+				</div>
+			</section>
+
+			<button type="button" class="action easy-help-card" data-modal-open="easy-help">
+				<div class="easy-help-mark">?</div>
+				<div>
+					<strong>화면 사용법이 궁금하신가요?</strong>
+					<span>쉬운 화면 안내를 확인해 보세요</span>
+				</div>
+				<img th:replace="~{customer/fragments/common :: chevron}">
+			</button>
+		</div>
+	</main>
+	<nav th:replace="~{customer/fragments/common :: bottomNav('home')}"></nav>
+
+	<div class="easy-help-scrim" data-modal="easy-help" data-modal-close hidden></div>
+	<div aria-modal="true" class="easy-help-modal" role="dialog" data-modal="easy-help" hidden>
+		<div class="easy-help-modal-head">
+			<div class="easy-help-modal-icon">?</div>
+			<div>
+				<span>쉬운 화면 안내</span>
+				<strong>화면은 이렇게 사용해요</strong>
+			</div>
+		</div>
+		<div class="easy-help-steps">
+			<div><b>1</b><span><strong>위쪽 알림 카드</strong>에서 지금 해야 할 일을 확인해요.</span></div>
+			<div><b>2</b><span><strong>자주 쓰는 메뉴</strong>에서 원하는 서비스를 선택해요.</span></div>
+			<div><b>3</b><span><strong>아래쪽 메뉴</strong>로 홈, 내 이사, 채팅 화면을 이동해요.</span></div>
+		</div>
+		<button type="button" class="action easy-help-read"
+				data-speak="쉬운 화면 사용법을 안내해 드릴게요. 위쪽 알림 카드에서 지금 해야 할 일을 확인하세요. 자주 쓰는 메뉴에서 원하는 서비스를 선택하세요. 아래쪽 메뉴로 홈, 내 이사, 이사 견적, 채팅, 더보기 화면을 이동할 수 있어요."
+				data-label-off="사용법 음성으로 듣기" data-label-on="음성 안내 중지">사용법 음성으로 듣기</button>
+		<button type="button" class="action easy-help-modal-close" data-modal-close>닫기</button>
+	</div>
+</div>
+
+</th:block>
+</div>
+
+<th:block th:if="false"><!-- 프래그먼트 정의 전용: 첫 이사 견적 시작 카드 -->
+<th:block th:fragment="estimateStartCard(easy)">
+	<div class="estimate-start-card" th:classappend="${easy} ? 'easy'">
+		<div class="estimate-start-main">
+			<div class="estimate-start-illustration"><img alt="" th:src="@{/assets/cd80e.svg}"></div>
+			<div>
+				<span th:text="${easy} ? '이사 견적' : '첫 이사 견적'"></span>
+				<strong th:text="${easy} ? '이사를 준비하고 계신가요?' : '첫 이사 견적을 시작해보세요'"></strong>
+				<small th:text="${easy} ? '집 안을 영상으로 찍어 올리면 예상 이사 비용을 알려드려요.' : '영상을 올리면 AI가 짐의 양과 예상 비용을 계산해요.'"></small>
+			</div>
+		</div>
+		<th:block th:unless="${easy}">
+			<div class="estimate-start-flow" aria-label="영상 견적 진행 과정">
+				<div><b>1</b><small>영상 촬영</small></div>
+				<span>→</span>
+				<div><b>2</b><small>AI 분석</small></div>
+				<span>→</span>
+				<div><b>3</b><small>예상 견적</small></div>
+			</div>
+			<div class="estimate-start-note">약 3분 · 견적 확인 전에는 비용이 발생하지 않아요</div>
+		</th:block>
+		<a class="action estimate-start-button" th:href="@{/quote}" th:text="${easy} ? '영상 찍고 견적 받기' : '영상 견적 시작'"></a>
+		<button type="button" class="action estimate-guide-button" data-modal-open="estimate-guide" th:text="${easy} ? '사용 방법 보기' : '촬영 방법 보기'"></button>
+	</div>
+	<div class="estimate-guide-scrim" data-modal="estimate-guide" data-modal-close hidden></div>
+	<div aria-modal="true" class="estimate-guide-modal" role="dialog" data-modal="estimate-guide" hidden>
+		<div class="estimate-guide-head">
+			<div class="estimate-guide-icon"><img alt="" th:src="@{/assets/cd80e.svg}"></div>
+			<div>
+				<span>영상 견적 촬영 안내</span>
+				<strong>이렇게 촬영해 주세요</strong>
+			</div>
+		</div>
+		<div class="estimate-guide-steps">
+			<div><b>1</b><span>현관부터 방을 차례대로 촬영해요.</span></div>
+			<div><b>2</b><span>큰 가구와 가전이 잘 보이게 촬영해요.</span></div>
+			<div><b>3</b><span>빠진 공간이 없는지 확인하고 올려요.</span></div>
+		</div>
+		<a class="action estimate-guide-start" th:href="@{/quote}">영상 견적 시작하기</a>
+		<button type="button" class="action estimate-guide-close" data-modal-close>닫기</button>
+	</div>
+</th:block>
+</th:block>
+</body>
+</html>

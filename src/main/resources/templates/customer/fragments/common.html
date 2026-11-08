@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!-- 고객 화면 공통 프래그먼트 -->
+
+<head th:fragment="head(title)">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+	<title th:text="${title} + ' | 명품익스프레스'">명품익스프레스</title>
+	<link rel="preload" th:href="@{/fonts/Pretendard-Regular.woff2}" as="font" type="font/woff2" crossorigin>
+	<link rel="preload" th:href="@{/fonts/Pretendard-Bold.woff2}" as="font" type="font/woff2" crossorigin>
+	<link rel="stylesheet" th:href="@{/css/customer.css}">
+	<link rel="stylesheet" th:href="@{/css/customer-web.css}">
+	<script defer th:src="@{/js/customer.js}"></script>
+</head>
+
+<body>
+
+<!-- 브랜드 마크 (집 + 미소) -->
+<svg th:fragment="brandMark(cls)" aria-hidden="true" th:class="'brand-mark ' + ${cls}" viewBox="0 0 132 130" xmlns="http://www.w3.org/2000/svg">
+	<path class="brand-mark-house" d="M54 5a18 18 0 0 1 24 0l44 38a29 29 0 0 1 10 22v42a23 23 0 0 1-23 23H23A23 23 0 0 1 0 107V65a29 29 0 0 1 10-22L54 5Z"/>
+	<path class="brand-mark-smile" d="M35 80c17 16 45 16 62 0"/>
+</svg>
+
+<img th:fragment="chevron" alt="" class="chevron" th:src="@{/assets/ce2ac.svg}">
+<img th:fragment="chevronLight" alt="" class="chevron chevron-light" th:src="@{/assets/ce2ac.svg}">
+
+<!-- 뒤로 가기: 같은 사이트에서 왔으면 history.back(), 아니면 fallback 이동 -->
+<a th:fragment="back(fallback)" class="action back" aria-label="뒤로 가기" th:href="@{${fallback}}" data-back>
+	<img alt="" th:src="@{/assets/4bbcf.svg}">
+</a>
+
+<!-- 상단 헤더 (SCR-U-001 공통) -->
+<div th:fragment="header" class="app-header">
+	<div class="brand-row">
+		<a class="action brand-home" aria-label="홈으로 이동" th:href="@{/home}">
+			<svg th:replace="~{customer/fragments/common :: brandMark('header-brand-mark')}"></svg>
+		</a>
+	</div>
+	<div class="header-actions">
+		<div class="mode-toggle">
+			<a class="action" th:classappend="${!cs.easy} ? 'mode-active'" aria-label="일반 모드" th:href="@{/mode/standard}">일반</a>
+			<a class="action" th:classappend="${cs.easy} ? 'mode-active'" aria-label="쉬운 모드" th:href="@{/mode/easy}">쉬운</a>
+		</div>
+		<a class="action notification-button" th:href="@{/notifications}"
+		   th:aria-label="${cs.notificationCount > 0} ? '알림 ' + ${cs.notificationCount} + '개' : '알림'">
+			<img alt="" class="bell" th:src="@{/assets/0ebe3.svg}">
+			<span class="notification-dot" th:if="${cs.notificationCount > 0}"></span>
+		</a>
+	</div>
+</div>
+
+<!-- 하단 내비게이션: active = home / move / quote / chat / profile -->
+<nav th:fragment="bottomNav(active)" class="bottom-nav" th:classappend="${cs.easy} ? 'easy-bottom-nav'">
+	<a class="action nav-item" th:href="@{/home}" aria-label="홈"
+	   th:classappend="${active == 'home'} ? 'selected'">
+		<div class="nav-icon"><img alt="" th:src="${active == 'home'} ? @{/assets/b676d.svg} : @{/assets/home-outline.svg}"></div>
+		<div>홈</div>
+	</a>
+	<a class="action nav-item" th:href="@{/move}" aria-label="내 이사"
+	   th:classappend="${(active == 'move' ? 'selected ' : '') + (!cs.loggedIn ? 'nav-locked' : '')}">
+		<div class="nav-icon"><img alt="" th:src="${active == 'move'} ? @{/assets/move-active.svg} : @{/assets/05dbf.svg}"></div>
+		<div>내 이사</div>
+	</a>
+	<a class="action nav-item nav-center" th:href="@{/quote}" aria-label="이사견적"
+	   th:classappend="${(active == 'quote' ? 'selected ' : '') + (!cs.loggedIn ? 'nav-locked' : '')}">
+		<div class="nav-icon-center"><img alt="" th:src="@{/assets/b046e.svg}"></div>
+		<div>이사견적</div>
+	</a>
+	<a class="action nav-item" th:href="@{/chat}" aria-label="채팅"
+	   th:classappend="${(active == 'chat' ? 'selected ' : '') + (!cs.loggedIn ? 'nav-locked' : '')}">
+		<div class="nav-icon"><img alt="" th:src="${active == 'chat'} ? @{/assets/chat-active.svg} : @{/assets/d6860.svg}"></div>
+		<div>채팅</div>
+	</a>
+	<a class="action nav-item" th:href="@{/more}" aria-label="더보기"
+	   th:classappend="${(active == 'profile' ? 'selected ' : '') + (!cs.loggedIn ? 'nav-locked' : '')}">
+		<div class="nav-icon"><img alt="" th:src="${active == 'profile'} ? @{/assets/more-active.svg} : @{/assets/4caa7.svg}"></div>
+		<div>더보기</div>
+	</a>
+</nav>
+
+<!-- 폼 화면 상단 (뒤로 가기 + 제목) -->
+<div th:fragment="formHead(fallback, title)" class="form-head">
+	<a th:replace="~{customer/fragments/common :: back(${fallback})}"></a>
+	<div class="form-title" th:if="${title != null}" th:text="${title}"></div>
+</div>
+
+</body>
+</html>

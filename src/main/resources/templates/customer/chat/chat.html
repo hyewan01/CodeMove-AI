@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('명품 상담')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+<!-- SCR-U-017~019 AI 챗봇 · 상담원 연결 · 파일 첨부 -->
+<div class="screen chat-screen" data-chat th:data-status="${cs.estimateStatus}" th:data-user="${cs.userName}"
+	 th:data-assets="@{/assets/}" th:data-link-move="@{/move}" th:data-link-quote="@{/quote}" th:data-link-estimates="@{/more/estimates}">
+	<div class="chat-header">
+		<a th:replace="~{customer/fragments/common :: back('/home')}"></a>
+		<div class="chat-header-title">
+			<strong>명품 상담</strong>
+			<span>AI 이사 도우미</span>
+		</div>
+		<span></span>
+	</div>
+	<main class="chat-content">
+		<div class="chat-start-label">명품 상담을 시작했어요</div>
+		<div class="chat-bot-row">
+			<div class="chat-avatar"><img alt="명품 이사 도우미 캐릭터" th:src="@{/assets/mover-assistant-3d.svg}"></div>
+			<div class="chat-bot-name">명품 이사 도우미</div>
+		</div>
+		<div class="chat-menu-card">
+			<!-- 인사말 · 퀵메뉴: TBL_CHAT_SETTING.GREETING / TBL_QUICK_MENU -->
+			<div class="chat-greeting">안녕하세요, 명품익스프레스입니다.<br>궁금하신 내용을 선택해주세요.</div>
+			<div class="chat-topic-list">
+				<button type="button" class="action chat-topic" th:each="t, st : ${topics}" th:classappend="${st.last} ? 'chat-topic-accent'"
+						th:text="${t}" th:data-ask="${t}"></button>
+			</div>
+			<div class="chat-hours">상담 운영시간　평일 09:00–18:00</div>
+		</div>
+		<div class="chat-restart-label" data-chat-restart hidden>상담 내용</div>
+		<div class="chat-thread" aria-live="polite" data-chat-thread></div>
+	</main>
+	<div class="chat-input">
+		<div class="chat-attachment-chip" data-chat-chip hidden>
+			<img alt="" th:src="@{/assets/paperclip.svg}">
+			<span data-chat-chip-name></span>
+			<button type="button" class="action" aria-label="첨부 파일 제거" data-chat-chip-remove>×</button>
+		</div>
+		<div class="chat-input-row">
+			<button type="button" class="action chat-attach" aria-label="파일 첨부" data-chat-attach>
+				<img alt="" th:src="@{/assets/paperclip.svg}">
+			</button>
+			<input type="file" hidden data-chat-file accept="image/*,.pdf">
+			<div aria-label="상담 내용 입력" class="chat-editor designed-scroll" contenteditable="true"
+				 data-placeholder="상담할 내용을 입력해주세요" role="textbox" data-chat-editor></div>
+			<button type="button" class="action chat-send is-disabled" aria-label="메시지 보내기" data-chat-send>
+				<img alt="" th:src="@{/assets/send.svg}">
+			</button>
+		</div>
+	</div>
+</div>
+<script defer th:src="@{/js/chat.js}"></script>
+</div>
+</body>
+</html>

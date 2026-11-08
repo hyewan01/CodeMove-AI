@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!-- 내 이사 공통 프래그먼트: 예약 카드, 업체 견적서 원본 모달 -->
+<body>
+
+<!-- 예약 카드 (홈 · 내 이사 예약 정보) -->
+<div th:fragment="bookingCard" class="my-booking-card">
+	<div class="my-booking-head">
+		<div class="my-booking-top">
+			<div class="my-booking-status-wrap">
+				<span class="my-booking-badge">예약 완료</span>
+				<span class="my-booking-type" th:text="${booking.typeLabel}">원룸 · 일반포장</span>
+			</div>
+			<span class="my-booking-dday" th:text="${booking.dday}">D-30</span>
+		</div>
+		<div class="my-booking-date">
+			<b th:text="${booking.dateLabel}">3월 18일 (수)</b>
+			<span th:text="${booking.timeLabel}">오전 10:00</span>
+		</div>
+	</div>
+	<div class="my-booking-body">
+		<div class="my-booking-route">
+			<div class="my-booking-place from">
+				<small>출발</small>
+				<strong th:text="${booking.fromArea}">강남구</strong>
+				<span th:text="${booking.fromDetail}">테헤란로 123, 301호</span>
+			</div>
+			<div class="my-booking-route-line" aria-hidden="true">
+				<div class="my-booking-dot from"></div>
+				<div class="my-booking-line"></div>
+				<div class="my-booking-dot to"></div>
+			</div>
+			<div class="my-booking-place to">
+				<small>도착</small>
+				<strong th:text="${booking.toArea}">서초구</strong>
+				<span th:text="${booking.toDetail}">서초대로 456, 804호</span>
+			</div>
+		</div>
+		<a class="action my-booking-detail-btn" th:href="@{/move/reservation}">
+			<span>예약 상세 보기</span>
+			<img th:replace="~{customer/fragments/common :: chevron}">
+		</a>
+	</div>
+</div>
+
+<!-- 업체 견적서 원본 모달 (SCR-U-014) : data-modal-open="quote-doc" 로 열기 -->
+<th:block th:fragment="quoteDoc(confirmed)">
+	<div class="scrim" style="z-index: 60" data-modal="quote-doc" data-modal-close hidden></div>
+	<div class="quote-doc-sheet" data-modal="quote-doc" data-quote-doc hidden>
+		<div class="quote-doc-head">
+			<div class="quote-doc-head-left">
+				<strong>명품익스프레스</strong>
+				<span th:text="${vendorDoc.quoteNo}">QT-20260310-0042</span>
+			</div>
+			<div class="quote-doc-tools">
+				<div class="quote-zoom-controls" aria-label="견적서 배율 조절">
+					<button type="button" class="action quote-zoom-button" aria-label="견적서 축소" data-zoom="-25">−</button>
+					<button type="button" class="action quote-zoom-value" aria-label="견적서 배율 100%로 초기화" data-zoom="reset">75%</button>
+					<button type="button" class="action quote-zoom-button" aria-label="견적서 확대" data-zoom="25">+</button>
+				</div>
+				<button type="button" class="action quote-doc-close" aria-label="닫기" data-modal-close>×</button>
+			</div>
+		</div>
+		<div class="quote-doc-body designed-scroll" data-drag-scroll>
+			<div class="quote-pan-hint">손가락이나 마우스로 문서를 끌어 이동하세요</div>
+			<div class="vendor-estimate" style="--quote-zoom: .75" data-zoom-target>
+				<div class="vendor-estimate-top">
+					<div class="vendor-brand">
+						<strong>명품 익스프레스</strong>
+						<span>포장이사 전문업체 관허 2015-7호</span>
+						<span>(피해보상)보증보험 가입</span>
+					</div>
+					<div class="vendor-doc-title">
+						<strong>견적서 / 계약서</strong>
+						<span>(ESTIMATE REPORT)</span>
+					</div>
+					<div class="vendor-registration">
+						<div><b>등록 번호</b><span>398-51-00044</span></div>
+						<div><b>사무실전화</b><span>062) 252-0303</span></div>
+						<div><b>대표자전화</b><span>010-9445-8224</span></div>
+					</div>
+				</div>
+
+				<div class="vendor-customer-grid">
+					<b>업체명</b><span>명품 익스프레스</span>
+					<b>담당자</b><span th:text="${vendorDoc.manager} + ' (님)'">김선국 (님)</span>
+					<b>TEL</b><span th:text="${vendorDoc.managerPhone}">010-9445-8224</span>
+					<b>견적일</b><span th:text="${vendorDoc.quoteDate}">2026. 03. 10.</span>
+					<b>출발지</b><span th:text="${vendorDoc.fromAddress}">서울 강남구 테헤란로 123, 301호</span>
+					<b>작업일</b><span th:text="${vendorDoc.workDate}">2026. 03. 18.</span>
+					<b>도착지</b><span th:text="${vendorDoc.toAddress}">서울 서초구 서초대로 456, 804호</span>
+					<b>운송일</b><span th:text="${vendorDoc.workDate}">2026. 03. 18.</span>
+				</div>
+
+				<div class="vendor-items">
+					<div class="vendor-items-groups"><b>전자기기</b><b>가구</b><b>생활용품</b><b>기타</b></div>
+					<div class="vendor-items-head">
+						<th:block th:each="i : ${#numbers.sequence(1, 4)}"><b>품목</b><b>수량</b></th:block>
+					</div>
+					<div class="vendor-items-row" th:each="row : ${vendorDoc.items}">
+						<span th:each="cell : ${row}" th:text="${cell}"></span>
+					</div>
+					<div class="vendor-items-row" th:each="i : ${#numbers.sequence(1, 8 - vendorDoc.items.size())}" th:if="${vendorDoc.items.size() < 8}">
+						<span th:each="j : ${#numbers.sequence(1, 8)}"></span>
+					</div>
+				</div>
+
+				<div class="vendor-work-grid">
+					<b class="vendor-vertical-label">옵션 비용</b>
+					<div class="vendor-options">
+						<span>피아노　일반 □ / 그랜드 □　₩ 0</span>
+						<span>돌침대　분해 □ / 조립 □　₩ 0</span>
+						<span>벽걸이TV　탈착 ■ / 설치 ■　₩ 20,000</span>
+						<span>에어컨　탈착 □ / 설치 □　₩ 0</span>
+					</div>
+					<div class="vendor-work-details">
+						<div><b>작업내용</b><span>포장 □　/　일반 ■　/　보관 □</span></div>
+						<div><b>운반방법</b><span>승강기 전 ■ / 후 ■　·　계단작업 전 □ / 후 □</span></div>
+						<div><b>이사물량</b><span>1 톤(ton)</span></div>
+						<div><b>비고</b><span>파손주의 품목 별도 포장</span></div>
+					</div>
+				</div>
+
+				<div class="vendor-cost-grid">
+					<div class="vendor-cost-column">
+						<b>A. 작업 비용</b>
+						<div><span>이사비용</span><strong>₩ 390,000</strong></div>
+						<div><span>사다리비용</span><strong>₩ 0</strong></div>
+						<div class="vendor-cost-total"><span>총 비용</span><strong>₩ 410,000</strong></div>
+					</div>
+					<div class="vendor-cost-column">
+						<b>B. 별도 비용</b>
+						<div><span>출발지 사다리(3)층</span><strong>₩ 0</strong></div>
+						<div><span>도착지 사다리(8)층</span><strong>₩ 20,000</strong></div>
+						<div class="vendor-cost-total"><span>사다리 소계</span><strong>₩ 20,000</strong></div>
+					</div>
+				</div>
+
+				<div class="vendor-payment-grid">
+					<b>계약금 10%</b><span>₩ 41,000</span>
+					<b class="vendor-balance-label">잔금</b><span class="vendor-balance-value">₩ 369,000</span>
+					<div class="vendor-payment-note">※ 현장 상황 및 고객 요청사항 변경 시 비용이 조정될 수 있습니다.</div>
+				</div>
+
+				<div class="vendor-sign-grid">
+					<b>견적 담당자</b><span th:text="${vendorDoc.manager} + '　(서명) / H.P　' + ${vendorDoc.managerPhone}">김선국　(서명) / H.P　010-9445-8224</span>
+					<b>고객 확인</b><span th:text="${cs.userName} + '　(서명)'">김무브　(서명)</span>
+				</div>
+			</div>
+		</div>
+		<form class="quote-doc-footer" method="post" th:action="@{/move/estimate/confirm}">
+			<button type="button" class="action outline quote-doc-action" data-modal-close>
+				<svg fill="none" height="16" viewBox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"/><path d="M3 12h10" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"/></svg>
+				PDF 다운로드
+			</button>
+			<button class="action primary quote-doc-action" th:classappend="${confirmed} ? 'is-disabled'" th:text="${confirmed} ? '예약 완료' : '견적 확정'">견적 확정</button>
+		</form>
+	</div>
+</th:block>
+
+</body>
+</html>

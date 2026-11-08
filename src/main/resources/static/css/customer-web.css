@@ -1,0 +1,38 @@
+/*
+ * customer.css(Figma Make 프로토타입 원본) 위에 덮어쓰는 Thymeleaf 전용 보정 스타일.
+ * 프로토타입의 div[role=button] 을 a/button/input 으로 바꾸면서 생기는 기본 스타일 차이를 정리합니다.
+ */
+
+/* :where() 로 명시도 0 → 프로토타입 클래스 스타일이 항상 우선 */
+:where(a.action, button.action) {
+  color: inherit;
+  text-decoration: none;
+  font: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin: 0;
+  text-align: inherit;
+}
+:where(button.action) { appearance: none; }
+.action.is-disabled { pointer-events: none; }
+[hidden] { display: none !important; }
+
+/* contentEditable 필드 → input */
+input.field {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #d9d9d9;
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+}
+input.field::placeholder { color: #d9d9d9; }
+input.addr-detail-input { display: block; width: 100%; border: 0; background: none; font: inherit; outline: none; }
+
+textarea.review-editor { display: block; width: 100%; box-sizing: border-box; font-family: inherit; color: inherit; resize: vertical; outline: none; }
+textarea.review-editor::placeholder { color: #b8b8b8; }
+
+/* contentEditable 요청사항 → textarea */
+textarea.reservation-request-card { display: block; width: 100%; border: 0; font-family: inherit; resize: vertical; }
