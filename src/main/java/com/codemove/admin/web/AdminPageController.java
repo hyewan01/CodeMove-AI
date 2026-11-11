@@ -187,9 +187,8 @@ public class AdminPageController {
 		java.util.Map<Long, String> replies = new java.util.LinkedHashMap<>();
 		all.stream().filter(r -> r.answered()).forEach(r -> replies.put(r.id(), r.reply()));
 		model.addAttribute("replies", replies);
-		// 프로토타입은 처음에 답변 안 한 첫 리뷰의 입력창이 열린 상태
-		long firstOpen = visible.stream().filter(r -> !r.answered()).mapToLong(r -> r.id()).findFirst().orElse(-1);
-		model.addAttribute("replyingTo", reply != null ? reply : (edit == null ? firstOpen : -1));
+		// 처음 들어오면 입력창을 열지 않는다 (열어 두면 autofocus 때문에 화면이 그 리뷰로 스크롤됨)
+		model.addAttribute("replyingTo", reply != null ? reply : -1L);
 		model.addAttribute("editing", edit);
 		return "admin/reviews";
 	}
