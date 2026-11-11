@@ -49,6 +49,11 @@ public class AdminViews {
 		public String initial() {
 			return name.substring(0, 1);
 		}
+
+		/** 이사 날짜가 오늘이거나 지났고 아직 예약 완료 → '이사 완료 처리' 버튼 */
+		public boolean canComplete() {
+			return "예약 완료".equals(status) && moveDay != null && !moveDay.isAfter(LocalDate.now());
+		}
 	}
 
 	/* ---------- 홈 ---------- */
@@ -89,7 +94,7 @@ public class AdminViews {
 		}
 	}
 
-	/* ---------- 회원 · 리뷰 ---------- */
+	/* ---------- 회원 · 후기 ---------- */
 
 	/** id 가 음수면 회원 정보 없는 관리자 계정, type: 고객 | 관리자 */
 	public record Member(long id, String name, String userId, String type, boolean isNew, String phone, String joined,
@@ -118,7 +123,7 @@ public class AdminViews {
 			new Menu("예약 관리", null, "calendar", "/admin/reservations"),
 			new Menu("채팅 관리", null, "chat", "/admin/chat-management"),
 			new Menu("알림 관리", null, "bell", "/admin/notifications"),
-			new Menu("리뷰 관리", null, "star", "/admin/reviews"),
+			new Menu("후기 관리", null, "star", "/admin/reviews"),
 			new Menu("회원 관리", null, "people", "/admin/members"),
 			new Menu("일정 관리", null, "calendar", "/admin/schedule/manage"),
 			new Menu("견적서 등록", null, "document", "/admin/estimates/new"));
@@ -129,7 +134,7 @@ public class AdminViews {
 			new Menu("예약 관리", "예약 내역 및 상태 관리", "calendar", "/admin/reservations"),
 			new Menu("예약 일정", "월간 이사 일정 확인", "calendar", "/admin/schedule"),
 			new Menu("일정 관리", "휴무일 및 예약 불가일 관리", "calendar", "/admin/schedule/manage"),
-			new Menu("리뷰 관리", "고객 리뷰와 답변 관리", "star", "/admin/reviews"),
+			new Menu("후기 관리", "고객 후기와 답변 관리", "star", "/admin/reviews"),
 			new Menu("회원 관리", "고객 및 관리자 관리", "people", "/admin/members"),
 			new Menu("홈", "관리자 대시보드", "home", "/admin"));
 

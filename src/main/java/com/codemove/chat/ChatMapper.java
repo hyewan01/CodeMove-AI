@@ -49,6 +49,8 @@ public interface ChatMapper {
 
 	void updateTopic(Topic t);
 
+	void renameQuickMenus(@Param("topicId") long topicId, @Param("title") String title);
+
 	void deleteTopic(long topicId);
 
 	void deleteLorebooks(long topicId);

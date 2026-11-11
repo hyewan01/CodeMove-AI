@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!-- 관리자 '첫화면/퀵메뉴 설정' 미리보기: 고객 채팅 첫 화면과 같은 조각·스타일 (버튼은 눌러도 동작하지 않음) -->
+<head th:replace="~{customer/fragments/common :: head('미리보기')}"></head>
+<body>
+<div class="app-shell">
+<div class="screen chat-screen">
+	<div class="chat-header">
+		<span></span>
+		<div class="chat-header-title">
+			<strong>명품 상담</strong>
+			<span>AI 이사 도우미</span>
+		</div>
+		<span></span>
+	</div>
+	<main class="chat-content">
+		<th:block th:replace="~{customer/chat/start :: start(${greeting}, ${topics}, ${hours})}"></th:block>
+	</main>
+</div>
+</div>
+</body>
+</html>

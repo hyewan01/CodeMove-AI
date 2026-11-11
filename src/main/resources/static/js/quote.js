@@ -316,6 +316,7 @@
 	let viewY = today.getFullYear();
 	let viewM = today.getMonth();
 	const daysBox = $('[data-cal-days]');
+	const BLOCKED = DATA.blocked || {};
 	const isCurrentMonth = () => viewY === today.getFullYear() && viewM === today.getMonth();
 	const dateLabel = () => {
 		if (!state.date) return '';
@@ -338,9 +339,16 @@
 				const d = i - firstDow + 1;
 				const iso = `${viewY}-${String(viewM + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 				const past = isCurrentMonth() && d < today.getDate();
+				/* 휴무 · 예약 불가 · 예약 마감인 날은 지난 날처럼 흐리게, 누를 수 없음 */
+				const blocked = !past && BLOCKED[iso];
 				span.textContent = d;
-				span.className = state.date === iso ? 'picked' : past ? 'muted' : 'selectable';
-				if (!past) span.addEventListener('click', () => {
+				span.className = state.date === iso ? 'picked' : past ? 'muted' : blocked ? 'muted blocked' : 'selectable';
+				if (blocked) {
+					span.dataset.reason = blocked;
+					span.setAttribute('aria-label', `${viewM + 1}월 ${d}일 ${blocked === '마감' ? '예약 마감' : blocked}`);
+					span.setAttribute('aria-disabled', 'true');
+				}
+				if (!past && !blocked) span.addEventListener('click', () => {
 					state.date = iso;
 					state.dateSkipped = false;
 					$('[data-move-date]').value = iso;

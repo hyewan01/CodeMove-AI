@@ -22,20 +22,23 @@
 		if (text !== undefined) e.textContent = text;
 		return e;
 	};
-	const avatar = () => {
+	/* 챗봇 = 명품 이사 도우미 캐릭터, 상담사(관리자 답장) = 트럭 프로필 */
+	const avatar = (role) => {
 		const box = el('div', 'chat-mini-avatar');
 		const img = el('img');
-		img.alt = '';
-		img.src = `${A}mover-assistant-3d.svg`;
+		img.alt = role === 'admin' ? '상담사' : '';
+		img.src = role === 'admin' ? `${A}counselor-truck.svg` : `${A}mover-assistant-3d.svg`;
 		box.appendChild(img);
 		return box;
 	};
 
+	/* role: user | bot | admin */
 	function addMessage(role, text, file, actions, time) {
 		$('[data-chat-restart]').hidden = false;
 		const wrap = el('div', `chat-message-wrap ${role}`);
-		if (role === 'bot') wrap.appendChild(avatar());
+		if (role !== 'user') wrap.appendChild(avatar(role));
 		const content = el('div', 'chat-message-content');
+		if (role === 'admin') content.appendChild(el('span', 'chat-sender-name', '상담사'));
 		content.appendChild(el('div', `message ${role}`, text));
 		if (file) {
 			const f = el('div', 'chat-file-message');
@@ -93,7 +96,7 @@
 
 	/* 이전 상담 내용 */
 	(window.CHAT_HISTORY || []).forEach((m) => {
-		addMessage(m.role === 'user' ? 'user' : 'bot', m.text || '파일을 첨부했어요.', m.file, null, m.time);
+		addMessage(m.role, m.text || '파일을 첨부했어요.', m.file, null, m.time);
 		lastId = Math.max(lastId, m.id);
 	});
 
@@ -104,7 +107,7 @@
 			.then((r) => (r.ok ? r.json() : []))
 			.then((list) => list.forEach((m) => {
 				lastId = Math.max(lastId, m.id);
-				addMessage('bot', `[상담사] ${m.text}`, null, null, m.time);
+				addMessage('admin', m.text, null, null, m.time);
 			}))
 			.catch(() => {});
 	}, 5000);

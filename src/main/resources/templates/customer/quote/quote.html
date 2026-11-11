@@ -318,8 +318,17 @@
 		assets: /*[[@{/assets/}]]*/ '/assets/',
 		items: /*[[${recognizedItems}]]*/ [],
 		addresses: /*[[${addresses}]]*/ [],
-		estimate: /*[[${estimate}]]*/ {}
+		estimate: /*[[${estimate}]]*/ {},
+		/* 고를 수 없는 이사 날짜: yyyy-MM-dd → 휴무 · 불가 · 마감 (관리자 일정 관리 · 하루 최대 예약 수) */
+		blocked: /*[[${blockedDates}]]*/ {}
 	};
+</script>
+<div class="save-toast" th:if="${toast}" th:text="${toast}" data-toast></div>
+<script>
+	(function () {
+		const t = document.querySelector('[data-toast]');
+		if (t) setTimeout(() => t.remove(), 3200);
+	})();
 </script>
 <!-- 카카오(다음) 우편번호 서비스: API 키 불필요 -->
 <script defer src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html th:replace="~{admin/fragments/layout :: layout('답변 설정 관리', '', true, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<html th:replace="~{admin/fragments/layout :: layout('AI 챗봇 답변 관리', '', true, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- 답변 설정 관리 (SCR-A-010): 주제별 AI 답변과 로어북 -->
+<!-- AI 챗봇 답변 관리 (SCR-A-010): 주제별 AI 답변과 로어북 -->
 <th:block th:fragment="content">
 <div class="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#f5f6f8]" data-answers>
 	<header class="relative flex h-14 shrink-0 items-center justify-center border-b border-[#e5e9e5] bg-white">
-		<h1 class="text-base font-extrabold text-[#29322b]">답변 설정 관리</h1>
+		<h1 class="text-base font-extrabold text-[#29322b]">AI 챗봇 답변 관리</h1>
 		<a aria-label="답변 설정 닫기" class="absolute right-3 grid h-10 w-10 place-items-center rounded-full" th:href="@{/admin/chat-management}">
 			<svg th:replace="~{admin/fragments/icon :: icon2('x', 20, '')}"></svg></a>
 	</header>

@@ -21,6 +21,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.codemove.admin.web.AdminSession;
 import com.codemove.chat.ChatService;
+import com.codemove.schedule.BookingService;
 import com.codemove.common.Fmt;
 import com.codemove.customer.social.SocialProvider;
 import com.codemove.customer.web.CustomerViews.MoveView;
@@ -81,9 +82,11 @@ public class CustomerPageController {
 	private final NotificationService notifications;
 	private final CustomerViews views;
 	private final ChatService chats;
+	private final BookingService booking;
 
 	public CustomerPageController(MemberService members, MoveService moves, NotificationService notifications,
-			CustomerViews views, ChatService chats) {
+			CustomerViews views, ChatService chats, BookingService booking) {
+		this.booking = booking;
 		this.members = members;
 		this.moves = moves;
 		this.notifications = notifications;
@@ -313,13 +316,19 @@ public class CustomerPageController {
 		model.addAttribute("addresses", AiDemo.addresses());
 		model.addAttribute("estimate", Map.of("base", MoveService.BASE, "perCbm", MoveService.PER_CBM,
 				"partialRate", MoveService.PARTIAL_RATE, "minus", MoveService.MINUS, "plus", MoveService.PLUS));
+		// 이사 날짜 달력에서 고를 수 없는 날 (yyyy-MM-dd → 휴무 · 불가 · 마감), 오늘부터 1년
+		LocalDate today = LocalDate.now();
+		Map<String, String> blocked = new java.util.LinkedHashMap<>();
+		booking.blockedDates(today, today.plusYears(1))
+				.forEach((d, reason) -> blocked.put(d.toString(), BookingService.label(reason)));
+		model.addAttribute("blockedDates", blocked);
 		return "customer/quote/quote";
 	}
 
 	/** 이사 요청: 영상 저장 · TBL_MOVE_REQUEST / TBL_REQUEST_ITEM / TBL_RE_VIDEO + 검토용 견적서 */
 	@PostMapping("/quote")
 	public String requestQuote(@ModelAttribute QuoteForm form, @RequestParam(required = false) MultipartFile video,
-			HttpSession session) {
+			HttpSession session, RedirectAttributes ra) {
 		if (form.getFromAddress() == null || form.getFromAddress().isBlank() || form.getToAddress() == null
 				|| form.getToAddress().isBlank()) {
 			return "redirect:/quote";
@@ -341,6 +350,11 @@ public class CustomerPageController {
 			items.add(i);
 		}
 		LocalDate date = form.isDateUndecided() ? null : Fmt.parseDate(form.getMoveDate());
+		if (date != null && !moves.isBookable(date)) {
+			// 화면에서 막지만, 그사이 마감됐거나 휴무로 바뀐 경우
+			ra.addFlashAttribute("toast", "선택한 날짜는 예약이 마감됐거나 휴무일이에요. 다른 날짜를 골라주세요.");
+			return "redirect:/quote";
+		}
 		String time = form.getMoveTime() != null && form.getMoveTime().matches("\\d{2}:\\d{2}") ? form.getMoveTime() : null;
 		String house = form.getHouseType() != null && form.getHouseType().matches("0[1-4]") ? form.getHouseType() : "01";
 		String pack = "02".equals(form.getPackType()) ? "02" : "01";
@@ -426,7 +440,7 @@ public class CustomerPageController {
 		long memberId = memberId(session);
 		model.addAttribute("topics", chats.quickMenuTitles());
 		model.addAttribute("greeting", chats.settings().getGreeting());
-		model.addAttribute("hours", chats.settings().getStartTime() + "–" + chats.settings().getEndTime());
+		model.addAttribute("hours", chats.consultHours());
 		model.addAttribute("history", chats.customerThread(memberId));
 		return "customer/chat/chat";
 	}

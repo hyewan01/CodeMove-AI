@@ -18,7 +18,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.codemove.common.Fmt;
 import com.codemove.notification.NotificationService;
+import com.codemove.schedule.BookingService;
 import com.codemove.schedule.ClosedDay;
+import com.codemove.schedule.ReservationSetting;
 import com.codemove.schedule.Schedule;
 import com.codemove.schedule.ScheduleMapper;
 
@@ -41,18 +43,22 @@ public class AdminScheduleController {
 			String memberId, Long reservationId) {
 	}
 
+	/** more: 같은 날 예약이 더 있으면 그 수, full: 하루 최대 예약 수에 도달(예약 마감) */
 	public record CalendarCell(Integer day, String key, int weekday, AdminViews.Reservation event,
-			ManualSchedule manual, String managed, boolean holiday, boolean noMove) {
+			ManualSchedule manual, String managed, boolean holiday, boolean noMove, int more, boolean full) {
 	}
 
 	private final AdminViews views;
 	private final ScheduleMapper schedules;
 	private final NotificationService notifications;
+	private final BookingService booking;
 
-	public AdminScheduleController(AdminViews views, ScheduleMapper schedules, NotificationService notifications) {
+	public AdminScheduleController(AdminViews views, ScheduleMapper schedules, NotificationService notifications,
+			BookingService booking) {
 		this.views = views;
 		this.schedules = schedules;
 		this.notifications = notifications;
+		this.booking = booking;
 	}
 
 	static String dateKey(LocalDate d) {
@@ -101,18 +107,20 @@ public class AdminScheduleController {
 
 		List<CalendarCell> cells = new ArrayList<>();
 		int firstDow = first.getDayOfWeek().getValue() % 7;
+		Map<LocalDate, String> blocked = booking.blockedDates(first, first.plusMonths(1));
 		for (int i = 0; i < 42; i++) {
 			int dd = i - firstDow + 1;
 			if (dd < 1 || dd > first.lengthOfMonth()) {
-				cells.add(new CalendarCell(null, null, i % 7, null, null, null, false, false));
+				cells.add(new CalendarCell(null, null, i % 7, null, null, null, false, false, 0, false));
 				continue;
 			}
 			LocalDate date = first.withDayOfMonth(dd);
 			String key = dateKey(date);
-			cells.add(new CalendarCell(dd, key, i % 7,
-					active.stream().filter(r -> key.equals(r.movingDate())).findFirst().orElse(null),
+			List<AdminViews.Reservation> dayEvents = active.stream().filter(r -> key.equals(r.movingDate())).toList();
+			cells.add(new CalendarCell(dd, key, i % 7, dayEvents.isEmpty() ? null : dayEvents.get(0),
 					manuals.stream().filter(s -> s.date().equals(key)).findFirst().orElse(null),
-					managed.get(key), Fmt.isHoliday(date), NO_MOVE_DAYS.contains(dd)));
+					managed.get(key), Fmt.isHoliday(date), NO_MOVE_DAYS.contains(dd), Math.max(0, dayEvents.size() - 1),
+					BookingService.FULL.equals(blocked.get(date))));
 		}
 		model.addAttribute("y", year);
 		model.addAttribute("m", month);
@@ -195,13 +203,42 @@ public class AdminScheduleController {
 	@GetMapping("/manage")
 	public String manage(Model model) {
 		Map<String, String> events = new LinkedHashMap<>();
-		active().forEach(r -> events.putIfAbsent(r.movingDate(), r.name()));
+		Map<String, Integer> counts = new LinkedHashMap<>();
+		active().stream().filter(r -> "예약 완료".equals(r.status())).forEach(r -> {
+			events.putIfAbsent(r.movingDate(), r.name());
+			counts.merge(r.movingDate(), 1, Integer::sum);
+		});
 		LocalDate today = LocalDate.now();
-		model.addAttribute("statuses", managedStatuses());
+		ReservationSetting setting = booking.setting();
+		// 자동으로 막히는 날: 정기 휴무 요일 · 공휴일 휴무 = weekly, 하루 최대 예약 수 도달 = full (직접 지정한 날은 statuses)
+		Map<String, String> auto = new LinkedHashMap<>();
+		LocalDate from = today.withDayOfMonth(1).minusMonths(12);
+		Map<String, String> manual = managedStatuses();
+		booking.blockedDates(from, from.plusYears(3)).forEach((d, reason) -> {
+			String k = dateKey(d);
+			if (!manual.containsKey(k)) {
+				auto.put(k, BookingService.FULL.equals(reason) ? "full" : "weekly");
+			}
+		});
+		model.addAttribute("statuses", manual);
+		model.addAttribute("autoStatuses", auto);
 		model.addAttribute("events", events);
+		model.addAttribute("counts", counts);
+		model.addAttribute("setting", setting);
+		model.addAttribute("capacity", setting.capacity());
+		model.addAttribute("closedWeekdays", setting.weekdayList());
 		model.addAttribute("startYear", today.getYear());
 		model.addAttribute("startMonth", today.getMonthValue());
 		return "admin/schedule-manage";
+	}
+
+	/** 예약 설정: 하루 최대 예약 수 · 정기 휴무 요일 · 공휴일 휴무 */
+	@PostMapping("/manage/settings")
+	public String saveBookingSettings(@RequestParam(defaultValue = "3") int capacity,
+			@RequestParam(required = false) List<Integer> weekdays, @RequestParam(defaultValue = "false") boolean holidayClosed,
+			HttpSession session) {
+		booking.updateSetting(capacity, weekdays, holidayClosed, AdminSession.adminId(session));
+		return "redirect:/admin/schedule/manage?saved=1";
 	}
 
 	/** entries: "yy.MM.dd:closed|unavailable" 목록 = 저장할 전체 상태 */

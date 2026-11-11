@@ -21,7 +21,7 @@ import com.codemove.notification.NotificationService;
 import jakarta.servlet.http.HttpSession;
 
 /**
- * 관리자 화면 (SCR-A-011 예약 · 012 리뷰 · 016 홈 · 023 회원). 프로토타입 App의 page 상태를 URL로 나눴습니다.
+ * 관리자 화면 (SCR-A-011 예약 · 012 후기 · 016 홈 · 023 회원). 프로토타입 App의 page 상태를 URL로 나눴습니다.
  * 목록의 필터·검색·페이지는 쿼리 파라미터, 상세/수정 모달은 modal·id 파라미터로 엽니다.
  */
 @Controller
@@ -36,9 +36,11 @@ public class AdminPageController {
 	private final MemberService members;
 	private final QuoteService quotes;
 	private final NotificationService notifications;
+	private final com.codemove.move.MoveService moveService;
 
 	public AdminPageController(AdminViews views, MoveMapper moves, MemberService members, QuoteService quotes,
-			NotificationService notifications) {
+			NotificationService notifications, com.codemove.move.MoveService moveService) {
+		this.moveService = moveService;
 		this.views = views;
 		this.moves = moves;
 		this.members = members;
@@ -60,7 +62,7 @@ public class AdminPageController {
 		long reviewing = quotes.listLines().stream().filter(q -> QuoteService.REVIEWING.equals(q.getStatus())).count();
 		model.addAttribute("stats", List.of(
 				new AdminViews.Stat("전체 예약 신청", rs.size(), "calendar", "/admin/reservations"),
-				new AdminViews.Stat("리뷰 등록 현황", views.reviews().size(), "star", "/admin/reviews"),
+				new AdminViews.Stat("후기 등록 현황", views.reviews().size(), "star", "/admin/reviews"),
 				new AdminViews.Stat("견적 검토", reviewing, "document", "/admin/estimates"),
 				new AdminViews.Stat("예약 완료", rs.stream().filter(r -> "예약 완료".equals(r.displayStatus())).count(), "truck",
 						"/admin/reservations")));
@@ -111,6 +113,13 @@ public class AdminPageController {
 			notifications.toMember(line.getMemberId(), "10", "예약금 결제가 완료되었어요", "결제 내역과 남은 결제 일정을 확인할 수 있어요.",
 					"/move/reservation");
 		}
+		return "redirect:" + safeBack(back, "/admin/reservations?id=" + id);
+	}
+
+	/** 이사 완료 처리 → 고객에게 후기 요청 알림 */
+	@PostMapping("/reservations/{id}/done")
+	public String reservationDone(@PathVariable long id, @RequestParam(defaultValue = "") String back) {
+		moveService.complete(id);
 		return "redirect:" + safeBack(back, "/admin/reservations?id=" + id);
 	}
 
@@ -165,7 +174,7 @@ public class AdminPageController {
 		return "redirect:" + safeBack(back, "/admin/members");
 	}
 
-	/* ---------- 리뷰 관리 (SCR-A-012) ---------- */
+	/* ---------- 후기 관리 (SCR-A-012) ---------- */
 
 	@GetMapping("/reviews")
 	public String reviews(@RequestParam(defaultValue = "전체") String rating,
@@ -201,7 +210,7 @@ public class AdminPageController {
 			moves.updateReply(id, content.trim().length() > 500 ? content.trim().substring(0, 500) : content.trim(),
 					AdminSession.adminId(session));
 			if (isNew) {
-				AdminState.of(session).toast(notifications.fire("리뷰 관리 · 관리자가 답변 할 시", null, null));
+				AdminState.of(session).toast(notifications.fire("후기 관리 · 관리자가 답변 할 시", null, null));
 			}
 		}
 		return "redirect:/admin/reviews?reply=-1&rating=" + java.net.URLEncoder.encode(rating, java.nio.charset.StandardCharsets.UTF_8);

@@ -21,18 +21,24 @@ public final class AdminChat {
 	private AdminChat() {
 	}
 
-	/** id: ROOM_ID, waiting: 상담 대기(02), activity: 정렬용 마지막 메시지 시각 */
-	public record ChatRoom(String id, String name, String message, String time, boolean waiting, int unread,
-			long activity) {
+	/**
+	 * id: ROOM_ID, waiting: 대기 중 (상담사 요청 02 또는 챗봇 미응답 05), consultRequested: 상담사 요청(02)만,
+	 * time · activity: 고객이 마지막으로 메시지를 보낸 시각 (채팅 목록 정렬 기준)
+	 */
+	public record ChatRoom(String id, String name, String message, String time, boolean waiting, boolean consultRequested,
+			int unread, long activity) {
 
 		public String initial() {
 			return name.substring(0, 1);
 		}
 
 		public static ChatRoom of(ChatRoomLine r) {
-			LocalDateTime at = r.getLastAt() != null ? r.getLastAt() : r.getStartedAt();
+			LocalDateTime at = r.getLastCustomerAt() != null ? r.getLastCustomerAt()
+					: r.getLastAt() != null ? r.getLastAt() : r.getStartedAt();
+			boolean consult = ChatService.WAITING.equals(r.getStatus());
 			return new ChatRoom(String.valueOf(r.getRoomId()), r.getMemberName(),
-					r.getLastMessage() == null ? "" : r.getLastMessage(), AdminChat.time(at), ChatService.WAITING.equals(r.getStatus()),
+					r.getLastMessage() == null ? "" : r.getLastMessage(), AdminChat.time(at),
+					consult || ChatService.UNANSWERED.equals(r.getStatus()), consult,
 					r.getUnread() == null ? 0 : r.getUnread(), AdminViews.epoch(at));
 		}
 	}
@@ -51,7 +57,7 @@ public final class AdminChat {
 		return t.format(DateTimeFormatter.ofPattern("MM.dd"));
 	}
 
-	/** role: customer | ai | admin, waiting: 상담 대기 중인 마지막 고객 메시지 */
+	/** role: customer | ai | admin, waiting: 답변이 필요한데(챗봇 미응답·상담사 요청) 아직 관리자 답장이 없는 고객 메시지 (붉게 표시) */
 	public record Message(long id, String role, String text, boolean waiting, String replyTo, String file) {
 
 		public static Message of(ChatMessage m, boolean waiting) {

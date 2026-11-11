@@ -50,7 +50,7 @@ public class NotificationService {
 		if (key.startsWith("견적 관리") || key.startsWith("견적서 등록")) return "/admin/estimates";
 		if (key.startsWith("회원 관리")) return "/admin/members";
 		if (key.startsWith("일정 관리")) return "/admin/schedule";
-		if (key.startsWith("리뷰 관리")) return "/admin/reviews";
+		if (key.startsWith("후기 관리")) return "/admin/reviews";
 		return "/admin/reservations";
 	}
 

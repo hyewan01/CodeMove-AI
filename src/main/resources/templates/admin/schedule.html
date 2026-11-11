@@ -31,13 +31,14 @@
 					</span>
 					<span th:if="${c.event}" class="mt-1 block w-full truncate rounded px-1 py-0.5 text-[7px] font-bold text-white"
 						  th:classappend="${c.event.status == '승인 대기'} ? 'bg-[#4f80ac]' : (${c.event.status == '예약 확정'} ? 'bg-[#4f8b55]' : 'bg-[#59635b]')"
-						  th:text="${c.event.name}"></span>
+						  th:text="${c.more > 0} ? ${c.event.name} + ' 외 ' + ${c.more} : ${c.event.name}"></span>
+					<span th:if="${c.full}" class="mt-1 block w-full truncate rounded bg-[#c34f45] px-1 py-0.5 text-[7px] font-bold text-white">예약 마감</span>
 					<span th:if="${c.manual}" class="mt-1 block w-full truncate rounded px-1 py-0.5 text-[7px] font-bold text-white"
 						  th:classappend="${c.manual.category == '업체 휴무일'} ? 'bg-[#343a35]' : (${c.manual.category == '견적 상담'} ? 'bg-[#7a6db0]' : 'bg-[#7a837c]')"
 						  th:text="${c.manual.title}"></span>
 					<span th:if="${c.managed}" class="mt-1 block w-full truncate rounded px-1 py-0.5 text-[7px] font-bold text-white"
 						  th:classappend="${c.managed == 'closed'} ? 'bg-[#343a35]' : 'bg-[#F57C00]'"
-						  th:text="${c.managed == 'closed'} ? '정기 휴무' : '예약 불가'"></span>
+						  th:text="${c.managed == 'closed'} ? '업체 휴무' : '예약 불가'"></span>
 				</a>
 			</th:block>
 		</div>

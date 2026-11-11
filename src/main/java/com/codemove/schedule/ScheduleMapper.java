@@ -47,4 +47,28 @@ public interface ScheduleMapper {
 			INSERT INTO TBL_CLOSED_DAY (CLOSED_DATE, CLOSED_TYPE, UPDATED_AT, ADMIN_ID)
 			VALUES (#{date}, #{type}, SYSDATE, #{adminId,jdbcType=NUMERIC})""")
 	void insertClosedDay(@Param("date") LocalDate date, @Param("type") String type, @Param("adminId") Long adminId);
+
+	/* ---------- 예약 설정 (TBL_RESERVATION_SETTING, 한 행) · 날짜별 예약 수 ---------- */
+
+	@Select("SELECT * FROM (SELECT * FROM TBL_RESERVATION_SETTING ORDER BY SETTING_ID) WHERE ROWNUM = 1")
+	ReservationSetting findReservationSetting();
+
+	@Insert("""
+			INSERT INTO TBL_RESERVATION_SETTING (SETTING_ID, DAILY_CAPACITY, CLOSED_WEEKDAYS, HOLIDAY_CLOSED, UPDATED_AT)
+			VALUES (SEQ_RESERVATION_SETTING.NEXTVAL, 3, NULL, 'N', SYSDATE)""")
+	void insertReservationSetting();
+
+	@org.apache.ibatis.annotations.Update("""
+			UPDATE TBL_RESERVATION_SETTING
+			   SET DAILY_CAPACITY = #{s.dailyCapacity}, CLOSED_WEEKDAYS = #{s.closedWeekdays,jdbcType=VARCHAR},
+			       HOLIDAY_CLOSED = #{s.holidayClosed}, UPDATED_AT = SYSDATE, ADMIN_ID = NVL(#{adminId,jdbcType=NUMERIC}, ADMIN_ID)
+			 WHERE SETTING_ID = #{s.settingId}""")
+	void updateReservationSetting(@Param("s") ReservationSetting s, @Param("adminId") Long adminId);
+
+	/** 예약 완료(취소·이사 완료 제외) 수를 이사 날짜별로 [날짜, 건수] */
+	@Select("""
+			SELECT MOVE_DATE AS MOVE_DAY, COUNT(*) AS CNT FROM TBL_RESERVATION
+			 WHERE STATUS = '01' AND MOVE_DATE >= #{from} AND MOVE_DATE < #{to}
+			 GROUP BY MOVE_DATE""")
+	List<java.util.Map<String, Object>> countBookingsByDate(@Param("from") LocalDate from, @Param("to") LocalDate to);
 }

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+	<!-- 상담사 프로필: 관리자 화면 로고와 같은 트럭 (명품익스프레스 상담사) -->
+	<rect width="24" height="24" fill="#346538"/>
+	<g transform="translate(12 12.4) scale(.6) translate(-12 -13)" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M3 6h11v11H3zM14 10h4l3 3v4h-7z"/>
+		<circle cx="7" cy="18" r="2" fill="#346538"/>
+		<circle cx="18" cy="18" r="2" fill="#346538"/>
+	</g>
+</svg>

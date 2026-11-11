@@ -41,7 +41,8 @@ public class AdminChatController {
 	@GetMapping("/chat-management")
 	public String home(Model model) {
 		List<AdminChat.ChatRoom> rooms = rooms();
-		model.addAttribute("waitingCount", rooms.stream().filter(r -> r.waiting()).count());
+		// 실시간 상담 현황 = 고객이 상담사 연결을 요청한 채팅만 (챗봇 미응답은 채팅 목록에서 '대기 중'으로만 표시)
+		model.addAttribute("waitingCount", rooms.stream().filter(r -> r.consultRequested()).count());
 		model.addAttribute("unreadCount", rooms.stream().mapToInt(r -> r.unread()).sum());
 		return "admin/chat-home";
 	}
@@ -75,11 +76,18 @@ public class AdminChatController {
 		}
 		AdminChat.ChatRoom room = AdminChat.ChatRoom.of(line);
 		List<ChatMessage> messages = chats.openRoom(id);
-		long lastCustomer = messages.stream().filter(m -> "01".equals(m.getSenderType()))
-				.mapToLong(m -> m.getMessageId()).max().orElse(-1);
+		// 답변이 필요한 고객 메시지 중 그 뒤에 관리자 답장이 없는 것 = 붉게
+		int lastAdmin = -1;
+		for (int i = 0; i < messages.size(); i++) {
+			if ("03".equals(messages.get(i).getSenderType())) lastAdmin = i;
+		}
+		List<AdminChat.Message> views = new java.util.ArrayList<>();
+		for (int i = 0; i < messages.size(); i++) {
+			ChatMessage m = messages.get(i);
+			views.add(AdminChat.Message.of(m, "01".equals(m.getSenderType()) && "Y".equals(m.getNeedsReply()) && i > lastAdmin));
+		}
 		model.addAttribute("room", room);
-		model.addAttribute("messages", messages.stream()
-				.map(m -> AdminChat.Message.of(m, room.waiting() && m.getMessageId() == lastCustomer)).toList());
+		model.addAttribute("messages", views);
 		model.addAttribute("from", from);
 		// 화면설계서 SCR-A-007 ①: 뒤로 → 채팅 목록 (채팅 관리에서 왔으면 목록에서도 채팅 관리로 돌아갈 수 있게 from 유지)
 		model.addAttribute("backUrl", "management".equals(from) ? "/admin/chats?from=management" : "/admin/chats");
@@ -123,7 +131,17 @@ public class AdminChatController {
 				.map(t -> new AdminChat.QuickMenu("topic-" + t.getTopicId(), t.getTitle(), t.getIntro())).toList());
 		model.addAttribute("usedTopics", chats.quickMenus().stream().map(q -> "topic-" + q.getTopicId()).toList());
 		model.addAttribute("settings", AdminChat.Settings.of(chats.settings()));
+		model.addAttribute("maxMenus", ChatService.MAX_QUICK_MENUS);
 		return "admin/chat-entry";
+	}
+
+	/** 미리보기: 고객 채팅 첫 화면을 같은 조각으로 그림 (첫화면 설정의 iframe) */
+	@GetMapping("/chat-management/entry/preview")
+	public String entryPreview(Model model) {
+		model.addAttribute("greeting", chats.settings().getGreeting());
+		model.addAttribute("topics", chats.quickMenuTitles());
+		model.addAttribute("hours", chats.consultHours());
+		return "customer/chat/preview";
 	}
 
 	@PostMapping("/chat-management/entry/greeting")

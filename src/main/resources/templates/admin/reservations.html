@@ -108,6 +108,13 @@
 						<input type="hidden" name="back" th:value="${currentUrl}">
 						<button class="mt-3 h-10 w-full rounded-xl bg-[#346538] text-[10px] font-extrabold text-white" type="submit">결제 완료</button>
 					</form>
+					<!-- 이사 날짜가 됐으면 이사 완료 처리 → 고객이 후기를 쓸 수 있음 (지난 예약은 매일 자동 처리) -->
+					<form th:if="${r.canComplete()}"
+						  method="post" th:action="@{/admin/reservations/{id}/done(id=${r.id})}">
+						<input type="hidden" name="back" th:value="${currentUrl}">
+						<button class="mt-2 h-10 w-full rounded-xl border border-[#346538] bg-white text-[10px] font-extrabold text-[#346538]" type="submit">이사 완료 처리</button>
+					</form>
+					<p th:if="${r.status == '이사 완료'}" class="mt-2 rounded-lg bg-[#edf3f8] px-3 py-2 text-center text-[10px] font-bold text-[#4b759b]">이사 완료</p>
 				</section>
 			</div>
 		</div>

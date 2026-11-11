@@ -29,7 +29,7 @@
 				<span class="grid h-11 w-11 place-items-center rounded-2xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon2('clock', 21, '')}"></svg></span>
 				<div class="min-w-0 flex-1">
 					<h2 class="text-sm font-extrabold text-[#303832]">운영 시간</h2>
-					<p class="mt-1 text-[11px] text-[#8a918c]">관리자 응대 가능 시간을 설정합니다</p>
+					<p class="mt-1 text-[11px] text-[#8a918c]">상담사가 답변하는 시간 (고객 채팅 첫 화면에 안내)</p>
 				</div>
 				<button th:replace="~{admin/chat-operation :: toggle(${settings.operatingHoursEnabled}, '운영 시간 사용')}"></button>
 			</form>
@@ -80,8 +80,9 @@
 			</div>
 			<label class="mt-5 block">
 				<span class="mb-2 block text-xs font-bold text-[#4c554e]">안내 문구 <span class="text-[#c34f45]">*</span></span>
+				<span class="mb-2 block text-[11px] leading-5 text-[#8a918c]">고객 질문에 맞는 AI 챗봇 답변(로어북)이 없을 때 이 문구를 보내고, 채팅 목록에 '대기 중'으로 올립니다.</span>
 				<textarea class="h-32 w-full resize-none rounded-2xl border border-[#dfe4df] bg-[#f7f8f7] p-3 text-sm leading-6 text-[#303832] outline-none placeholder:text-[#9ca39d] focus:border-[#89a18b]"
-						  name="fallbackMessage" placeholder="현재 상담원 연결이 지연되고 있습니다. 조금만 기다려주세요." th:text="${settings.fallbackMessage}" data-required-text></textarea>
+						  name="fallbackMessage" placeholder="문의하신 내용은 상담사가 확인한 뒤 답변드릴게요." th:text="${settings.fallbackMessage}" data-required-text></textarea>
 			</label>
 			<button class="mt-4 h-12 w-full rounded-xl bg-[#346538] text-sm font-extrabold text-white disabled:bg-[#bcc5bd]" type="submit">등록</button>
 		</div>

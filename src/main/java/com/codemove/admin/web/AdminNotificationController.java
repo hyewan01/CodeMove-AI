@@ -37,19 +37,19 @@ public class AdminNotificationController {
 		return "admin/notification-home";
 	}
 
-	/** 관리자·고객에게 보낸 알림 (최근 200건) */
+	/** 사용자(고객)에게 보낸 알림 (최근 200건) */
 	@GetMapping("/history")
 	public String history(Model model) {
-		List<HistoryRecord> all = notifications.history(200).stream().map(n -> {
-			boolean admin = "02".equals(n.getReceiverType());
-			String name = n.getMemberName() != null ? n.getMemberName() : "관리자";
-			return new HistoryRecord(name, n.getNtfContent(), CustomerViews.ago(n.getCreatedAt()), admin ? "관리자" : "사용자",
-					admin ? n.getNtfTitle() : null);
-		}).toList();
-		long adminCount = all.stream().filter(r -> "관리자".equals(r.recipient())).count();
+		java.time.LocalDate today = java.time.LocalDate.now();
+		List<com.codemove.notification.Notification> sent = notifications.history(400).stream()
+				.filter(n -> "01".equals(n.getReceiverType())).limit(200).toList();
+		List<HistoryRecord> all = sent.stream().map(n -> new HistoryRecord(
+				n.getMemberName() != null ? n.getMemberName() : "고객", n.getNtfContent(), CustomerViews.ago(n.getCreatedAt()),
+				"사용자", n.getNtfTitle())).toList();
 		model.addAttribute("records", all);
-		model.addAttribute("adminCount", adminCount);
-		model.addAttribute("userCount", all.size() - adminCount);
+		model.addAttribute("totalCount", all.size());
+		model.addAttribute("todayCount", sent.stream()
+				.filter(n -> n.getCreatedAt() != null && n.getCreatedAt().toLocalDate().equals(today)).count());
 		return "admin/notification-history";
 	}
 

@@ -8,12 +8,15 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.codemove.common.FileStore;
+import com.codemove.common.Fmt;
 import com.codemove.member.Member;
 import com.codemove.member.MemberMapper;
 import com.codemove.notification.NotificationService;
+import com.codemove.schedule.BookingService;
 
 /**
- * 고객 이사 흐름: 견적 요청 → (관리자 승인) → 견적 확정 = 예약 → 이사 완료 → 후기.
+ * 고객 이사 흐름: 견적 요청(= AI 견적서 '견적 검토' + 이사 날짜를 골랐으면 예약 '예약 완료') → (관리자 승인)
+ * → 견적 확정 → 이사 완료 → 후기. 고객이 예약을 취소하면 예약은 '예약 취소'.
  * 고객 화면의 진행 상태(estimateStatus)는 가장 최근 견적 요청의 견적서·예약 상태로 정합니다.
  */
 @Service
@@ -55,14 +58,21 @@ public class MoveService {
 	private final MemberMapper members;
 	private final NotificationService notifications;
 	private final FileStore files;
+	private final BookingService booking;
 
 	public MoveService(MoveMapper moves, QuoteService quotes, MemberMapper members, NotificationService notifications,
-			FileStore files) {
+			FileStore files, BookingService booking) {
 		this.moves = moves;
 		this.quotes = quotes;
 		this.members = members;
 		this.notifications = notifications;
 		this.files = files;
+		this.booking = booking;
+	}
+
+	/** 고객이 고른 날짜로 예약을 받을 수 있는지 (휴무 · 예약 불가 · 마감 · 지난 날짜면 false) */
+	public boolean isBookable(LocalDate date) {
+		return booking.isBookable(date);
 	}
 
 	public CurrentMove current(long memberId) {
@@ -128,9 +138,20 @@ public class MoveService {
 			moves.insertVideo(v);
 		}
 		Member m = members.findMember(memberId);
+		// 견적 관리: 고객 입력으로 AI가 만든 견적서 (견적 검토)
 		quotes.createForRequest(r, m.getMemberName(), m.getPhone(), f.items());
 		notifications.toAdmin("01", "견적서 등록", m.getMemberName() + " 고객님의 신규 견적 요청이 접수되었습니다.", "/admin/estimates",
 				false);
+		// 예약 관리 · 예약 일정: 고객이 고른 이사 날짜로 예약 완료 (날짜 미정이면 견적 확정 때 만듦)
+		if (f.moveDate() != null) {
+			Reservation v = new Reservation();
+			v.setRequestId(r.getRequestId());
+			v.setMoveDate(f.moveDate());
+			v.setMoveTime(f.moveTime());
+			moves.insertReservation(v);
+			notifications.toAdmin("04", "이사 예약", m.getMemberName() + " 고객님의 이사 예약이 접수되었습니다. ("
+					+ Fmt.monthDay(f.moveDate()) + ")", "/admin/reservations", false);
+		}
 		notifications.toMember(memberId, "01", "견적 요청이 접수됐어요", "담당자 확인이 끝나면 견적 정보를 알려드려요.", "/more/estimates");
 		return r;
 	}
@@ -150,7 +171,10 @@ public class MoveService {
 				: c.request().getMoveDate() != null ? c.request().getMoveDate() : LocalDate.now().plusDays(14);
 		String time = q.getWorkTime() != null ? q.getWorkTime() : c.request().getMoveTime();
 		Reservation existing = c.reservation();
-		if (existing != null) {
+		if (existing != null && BOOKED.equals(existing.getStatus())) {
+			// 견적 요청 때 만든 예약: 견적서의 작업일·시간으로 맞춤
+			moves.updateReservationSchedule(existing.getReservationId(), date, time);
+		} else if (existing != null) {
 			moves.reopenReservation(existing.getReservationId(), date, time);
 		} else {
 			Reservation v = new Reservation();
@@ -189,6 +213,30 @@ public class MoveService {
 			String m = memo == null ? "" : memo.strip();
 			moves.updateMemo(c.reservation().getReservationId(), m.length() > 500 ? m.substring(0, 500) : m);
 		}
+	}
+
+	/* ---------- 이사 완료 ---------- */
+
+	/** 이사 완료 처리 → 고객에게 후기 요청 (예약 완료 상태일 때만) */
+	@Transactional
+	public boolean complete(long reservationId) {
+		MoveLine line = moves.findMoveLine(reservationId);
+		if (line == null || moves.markDone(reservationId) == 0) {
+			return false;
+		}
+		notifications.toMember(line.getMemberId(), "09", "이사가 완료되었어요", "명품익스프레스와 함께한 이사는 어떠셨나요? 후기를 남겨주세요.",
+				"/more/reviews?write=1");
+		return true;
+	}
+
+	/** 이사 날짜가 지난 예약을 이사 완료로 (매일 새벽 · 서버 시작 시) */
+	@Transactional
+	public int completePast() {
+		int n = 0;
+		for (Long id : moves.listPastBooked()) {
+			if (complete(id)) n++;
+		}
+		return n;
 	}
 
 	/* ---------- 내역 ---------- */
@@ -236,7 +284,7 @@ public class MoveService {
 				}
 			}
 		}
-		notifications.toAdmin("09", "리뷰 등록", target.getMemberName() + " 고객님이 " + r.getRating() + "점 후기를 남겼습니다.",
+		notifications.toAdmin("09", "후기 등록", target.getMemberName() + " 고객님이 " + r.getRating() + "점 후기를 남겼습니다.",
 				"/admin/reviews", false);
 		return true;
 	}

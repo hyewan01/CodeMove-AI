@@ -38,11 +38,21 @@ public interface MoveMapper {
 	int reopenReservation(@Param("reservationId") long reservationId, @Param("moveDate") java.time.LocalDate moveDate,
 			@Param("moveTime") String moveTime);
 
+	/** 예약 완료 상태 그대로 날짜·시간만 바꿈 (견적 확정 때 견적서 작업일로) */
+	int updateReservationSchedule(@Param("reservationId") long reservationId,
+			@Param("moveDate") java.time.LocalDate moveDate, @Param("moveTime") String moveTime);
+
 	int cancelReservation(@Param("reservationId") long reservationId, @Param("cancelledBy") String cancelledBy);
 
 	int updateMemo(@Param("reservationId") long reservationId, @Param("memo") String memo);
 
 	int markPaid(long reservationId);
+
+	/** 예약 완료 → 이사 완료 */
+	int markDone(long reservationId);
+
+	/** 이사 날짜가 지났는데 아직 예약 완료인 예약 */
+	java.util.List<Long> listPastBooked();
 
 	/** 예약 + 요청 + 견적서 + 회원. memberId 가 있으면 그 회원 것만 */
 	List<MoveLine> listMoveLines(@Param("memberId") Long memberId);

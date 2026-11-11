@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html th:replace="~{admin/fragments/layout :: layout('알림 내역', '', true, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- 알림 내역 (SCR-A-014): 관리자·사용자 상단 팝업 알림 기록 -->
+<!-- 알림 내역 (SCR-A-014): 사용자(고객)에게 보낸 알림. 긴 내용은 오른쪽 위 화살표로 펼쳐 봄 -->
 <th:block th:fragment="content">
 <div class="flex h-full min-h-0 flex-col overflow-hidden bg-[#f5f6f8]" data-history>
 	<header class="relative flex h-14 shrink-0 items-center justify-center border-b border-[#e5e9e5] bg-white">
@@ -18,35 +18,38 @@
 		</label>
 		<div class="mt-3 grid grid-cols-2 gap-2">
 			<div class="rounded-xl bg-white px-3 py-2.5">
-				<span class="block text-[9px] font-bold text-[#858d87]">관리자 수신</span>
-				<strong class="mt-0.5 block text-sm text-[#346538]" th:text="${adminCount} + '건'">8건</strong>
+				<span class="block text-[9px] font-bold text-[#858d87]">사용자에게 보낸 알림</span>
+				<strong class="mt-0.5 block text-sm text-[#346538]" th:text="${totalCount} + '건'">10건</strong>
 			</div>
 			<div class="rounded-xl bg-white px-3 py-2.5">
-				<span class="block text-[9px] font-bold text-[#858d87]">사용자 수신</span>
-				<strong class="mt-0.5 block text-sm text-[#346538]" th:text="${userCount} + '건'">10건</strong>
+				<span class="block text-[9px] font-bold text-[#858d87]">오늘 보낸 알림</span>
+				<strong class="mt-0.5 block text-sm text-[#346538]" th:text="${todayCount} + '건'">2건</strong>
 			</div>
 		</div>
 	</div>
 
 	<div class="flex-1 overflow-y-auto px-4 pb-5 pt-2">
 		<div class="mb-2 flex items-center justify-between px-1">
-			<p class="text-xs font-bold text-[#68716a]">전체 팝업 알림 기록</p>
+			<p class="text-xs font-bold text-[#68716a]">사용자 알림 기록</p>
 			<span class="text-[10px] font-semibold text-[#969d98]">최신 발송순</span>
 		</div>
 		<div class="space-y-2">
-			<article th:each="r : ${records}" class="flex w-full items-center gap-3 rounded-2xl border border-white bg-white p-3.5 text-left shadow-[0_3px_12px_rgba(36,58,39,.05)]"
-					 th:data-search="${r.name} + ' ' + ${r.message} + ' ' + (${r.category} ?: '') + ' ' + ${r.recipient}" data-record>
+			<article th:each="r : ${records}" class="flex w-full items-start gap-3 rounded-2xl border border-white bg-white p-3.5 text-left shadow-[0_3px_12px_rgba(36,58,39,.05)]"
+					 th:data-search="${r.name} + ' ' + ${r.message} + ' ' + (${r.category} ?: '')" data-record>
 				<span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#edf3ed] text-sm font-extrabold text-[#346538]" th:text="${r.initial()}">홍</span>
 				<span class="min-w-0 flex-1">
-					<span class="flex items-center gap-1"><strong class="truncate text-sm text-[#303832]" th:text="${r.name}"></strong></span>
-					<span class="mt-1 flex items-center gap-1.5">
-						<span class="rounded-full px-1.5 py-0.5 text-[8px] font-bold" th:classappend="${r.recipient == '관리자'} ? 'bg-[#fff0ee] text-[#b64b42]' : 'bg-[#edf3ed] text-[#346538]'"
-							  th:text="${r.recipient} + ' 수신'"></span>
-						<span th:if="${r.category}" class="truncate text-[9px] font-semibold text-[#858d87]" th:text="${r.category}"></span>
+					<span class="flex items-center gap-2">
+						<strong class="truncate text-sm text-[#303832]" th:text="${r.name}"></strong>
+						<span class="ml-auto shrink-0 text-[9px] text-[#9aa09b]" th:text="${r.time}"></span>
+						<!-- 내용이 잘릴 때만 보임: 누르면 전체 내용 펼치기 / 접기 -->
+						<button class="-my-1 -mr-1 grid h-7 w-7 shrink-0 place-items-center rounded-full text-[#7d867f] transition hover:bg-[#f0f3f0]" type="button"
+								aria-expanded="false" aria-label="알림 내용 펼치기" data-expand hidden>
+							<svg th:replace="~{admin/fragments/icon :: icon('chevron', 16, 'transition-transform')}"></svg>
+						</button>
 					</span>
-					<span class="mt-1 block truncate text-xs text-[#747c76]" th:text="${r.message}"></span>
+					<span th:if="${r.category}" class="mt-1 block truncate text-[10px] font-bold text-[#346538]" th:text="${r.category}"></span>
+					<span class="mt-1 block truncate text-xs leading-5 text-[#747c76]" th:text="${r.message}" data-message></span>
 				</span>
-				<span class="shrink-0 self-start pt-1 text-[9px] text-[#9aa09b]" th:text="${r.time}"></span>
 			</article>
 			<div class="py-20 text-center" data-history-empty hidden>
 				<span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-white text-[#9aa19b]"><svg th:replace="~{admin/fragments/icon :: icon2('search', 21, '')}"></svg></span>
@@ -59,6 +62,28 @@
 	(function () {
 		const root = document.querySelector('[data-history]');
 		const records = [...root.querySelectorAll('[data-record]')];
+		/* 휴대폰 알림처럼: 잘린 알림만 화살표를 보이고, 누르면 전체 내용을 펼침 */
+		const fit = () => records.forEach((r) => {
+			const msg = r.querySelector('[data-message]');
+			const btn = r.querySelector('[data-expand]');
+			if (btn.getAttribute('aria-expanded') === 'true') return;
+			btn.hidden = msg.scrollWidth <= msg.clientWidth;
+		});
+		records.forEach((r) => {
+			const msg = r.querySelector('[data-message]');
+			const btn = r.querySelector('[data-expand]');
+			btn.addEventListener('click', () => {
+				const open = btn.getAttribute('aria-expanded') !== 'true';
+				btn.setAttribute('aria-expanded', String(open));
+				btn.setAttribute('aria-label', open ? '알림 내용 접기' : '알림 내용 펼치기');
+				btn.querySelector('svg').classList.toggle('rotate-180', open);
+				msg.classList.toggle('truncate', !open);
+				msg.classList.toggle('whitespace-pre-line', open);
+				msg.classList.toggle('break-words', open);
+			});
+		});
+		fit();
+		window.addEventListener('resize', fit);
 		const count = root.querySelector('[data-history-count]');
 		root.querySelector('[data-history-query]').addEventListener('input', (e) => {
 			const q = e.target.value.trim().toLocaleLowerCase();

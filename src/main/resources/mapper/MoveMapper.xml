@@ -66,6 +66,11 @@
 		 WHERE RESERVATION_ID = #{reservationId}
 	</update>
 
+	<update id="updateReservationSchedule">
+		UPDATE TBL_RESERVATION SET MOVE_DATE = #{moveDate}, MOVE_TIME = #{moveTime,jdbcType=VARCHAR}
+		 WHERE RESERVATION_ID = #{reservationId}
+	</update>
+
 	<update id="cancelReservation">
 		UPDATE TBL_RESERVATION
 		   SET STATUS = '03', PAY_STATUS = '03', CANCELLED_AT = SYSDATE, CANCELLED_BY = #{cancelledBy}
@@ -80,6 +85,14 @@
 		UPDATE TBL_RESERVATION SET PAY_STATUS = '02', DEPOSIT_PAID_AT = SYSDATE
 		 WHERE RESERVATION_ID = #{reservationId} AND STATUS != '03'
 	</update>
+
+	<update id="markDone">
+		UPDATE TBL_RESERVATION SET STATUS = '02' WHERE RESERVATION_ID = #{reservationId} AND STATUS = '01'
+	</update>
+
+	<select id="listPastBooked" resultType="long">
+		SELECT RESERVATION_ID FROM TBL_RESERVATION WHERE STATUS = '01' AND MOVE_DATE &lt; TRUNC(SYSDATE)
+	</select>
 
 	<sql id="moveLineColumns">
 		SELECT v.RESERVATION_ID, v.RESERVATION_NO, v.STATUS, v.PAY_STATUS, v.MOVE_DATE, v.MOVE_TIME, v.MOVE_MEMO,
