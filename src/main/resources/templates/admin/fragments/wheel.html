@@ -27,5 +27,30 @@
 		</div>
 	</div>
 </div>
+
+<!--
+	오전/오후·시·분 휠 선택 (년·월·일 휠과 같은 모양·조작). 동작은 admin.js [data-time-wheel]
+	· 화면 스크립트에서 el.timeSet('HH:mm') 으로 값 넣기, el.timeValue() 로 'HH:mm'(24시간) 읽기
+-->
+<div th:fragment="timeWheel" data-time="09:00" data-time-wheel>
+	<p class="text-center text-[16px] font-extrabold text-[#29312b]" aria-live="polite" data-wheel-label></p>
+	<div class="relative mt-3 grid select-none grid-cols-3">
+		<div class="pointer-events-none absolute inset-x-1 top-1/2 h-12 -translate-y-1/2 rounded-xl bg-[#f1f4f1]"></div>
+		<div class="relative flex flex-col items-center" th:each="c : ${ { {'p', '오전 오후'}, {'h', '시'}, {'m', '분'} } }" th:data-wheel-col="${c[0]}">
+			<button class="grid h-8 w-14 place-items-center rounded-full text-[#9aa29c] transition hover:bg-[#edf3ed] hover:text-[#346538] active:scale-90"
+					type="button" th:aria-label="${c[1]} + ' 올리기'" data-wheel-step="1">
+				<svg th:replace="~{admin/fragments/icon :: icon('chevron', 18, 'rotate-180')}"></svg>
+			</button>
+			<div class="relative h-[144px] w-full cursor-grab touch-none overflow-hidden rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[#346538]/40 active:cursor-grabbing [mask-image:linear-gradient(transparent,#000_28%,#000_72%,transparent)]"
+				 role="spinbutton" tabindex="0" th:aria-label="${c[1]}" data-wheel-viewport>
+				<div class="will-change-transform" data-wheel-strip></div>
+			</div>
+			<button class="grid h-8 w-14 place-items-center rounded-full text-[#9aa29c] transition hover:bg-[#edf3ed] hover:text-[#346538] active:scale-90"
+					type="button" th:aria-label="${c[1]} + ' 내리기'" data-wheel-step="-1">
+				<svg th:replace="~{admin/fragments/icon :: icon('chevron', 18, '')}"></svg>
+			</button>
+		</div>
+	</div>
+</div>
 </body>
 </html>

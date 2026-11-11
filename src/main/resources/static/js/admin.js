@@ -255,8 +255,66 @@
 		viewport.addEventListener('touchend', () => (pinch = null));
 	});
 
-	/* ---------- 년·월·일 휠 선택 (fragments/wheel.html): 위로 쓸기·▲·휠 아래·↑ = 증가 ---------- */
+	/* ---------- 휠 공통: 한 칸에 7개(가운데가 선택값)를 그리고, 끌기·누르기·마우스 휠·↑↓ 키로 넘김 ---------- */
 	const ITEM = 48;
+	/* texts: 위에서부터 7개 글자 (없는 칸은 null), offset: 그리기 시작 위치, animate: 가운데로 미끄러지기 */
+	const drawWheelStrip = (strip, texts, offset = 0, animate = false) => {
+		strip.innerHTML = texts.map((t, i) => `<div class="grid h-12 place-items-center ${i === 3
+			? 'text-[20px] font-extrabold text-[#222a24]' : 'text-[16px] font-bold text-[#b7beb9]'}">${t == null ? '' : t}</div>`).join('');
+		strip.style.transition = 'none';
+		strip.style.transform = `translateY(${offset - 2 * ITEM}px)`;
+		if (animate) {
+			void strip.offsetHeight;
+			strip.style.transition = 'transform .22s cubic-bezier(.2,.8,.3,1)';
+			strip.style.transform = `translateY(${-2 * ITEM}px)`;
+		}
+	};
+	/* step(s, dy): s칸 이동 (dy: 끌던 거리), settle(dy): 이동 없이 제자리로 */
+	const bindWheelColumn = (col, step, settle) => {
+		const viewport = $('[data-wheel-viewport]', col);
+		const strip = $('[data-wheel-strip]', col);
+		$$('[data-wheel-step]', col).forEach((b) => b.addEventListener('click', () => step(Number(b.dataset.wheelStep))));
+		let drag = null;
+		viewport.addEventListener('pointerdown', (e) => {
+			drag = { y: e.clientY, dy: 0 };
+			viewport.setPointerCapture(e.pointerId);
+			strip.style.transition = 'none';
+		});
+		viewport.addEventListener('pointermove', (e) => {
+			if (!drag) return;
+			drag.dy = Math.max(-2.5 * ITEM, Math.min(2.5 * ITEM, e.clientY - drag.y));
+			strip.style.transform = `translateY(${drag.dy - 2 * ITEM}px)`;
+		});
+		const end = (e) => {
+			if (!drag) return;
+			const { dy } = drag;
+			drag = null;
+			const s = Math.round(-dy / ITEM);
+			if (s) step(s, dy);
+			else if (Math.abs(dy) < 4 && e.type === 'pointerup') {
+				/* 흐린 위·아래 값을 누르면 그 값으로 */
+				const y = e.clientY - viewport.getBoundingClientRect().top;
+				if (y < ITEM) step(-1);
+				else if (y > 2 * ITEM) step(1);
+			} else settle(dy);
+		};
+		viewport.addEventListener('pointerup', end);
+		viewport.addEventListener('pointercancel', end);
+		let acc = 0;
+		viewport.addEventListener('wheel', (e) => {
+			e.preventDefault();
+			acc += e.deltaY;
+			if (Math.abs(acc) >= 40) { step(acc > 0 ? 1 : -1); acc = 0; }
+		}, { passive: false });
+		viewport.addEventListener('keydown', (e) => {
+			if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+			e.preventDefault();
+			step(e.key === 'ArrowUp' ? 1 : -1);
+		});
+		return { viewport, strip };
+	};
+
+	/* ---------- 년·월·일 휠 선택 (fragments/wheel.html :: wheel): 위로 쓸기·▲·휠 아래·↑ = 증가 ---------- */
 	const daysIn = (y, m) => new Date(y, m, 0).getDate();
 	$$('[data-wheel]').forEach((wheel) => {
 		const v = { y: Number(wheel.dataset.y), m: Number(wheel.dataset.m), d: Number(wheel.dataset.d) };
@@ -269,19 +327,10 @@
 		const cols = {};
 		const draw = (k, offset = 0, animate = false) => {
 			const { strip, viewport, input } = cols[k];
-			let html = '';
-			for (let i = -3; i <= 3; i++) {
+			drawWheelStrip(strip, [-3, -2, -1, 0, 1, 2, 3].map((i) => {
 				const n = at(k, v[k] + i);
-				html += `<div class="grid h-12 place-items-center ${i === 0 ? 'text-[20px] font-extrabold text-[#222a24]' : 'text-[16px] font-bold text-[#b7beb9]'}">${n == null ? '' : text(k, n)}</div>`;
-			}
-			strip.innerHTML = html;
-			strip.style.transition = 'none';
-			strip.style.transform = `translateY(${offset - 2 * ITEM}px)`;
-			if (animate) {
-				void strip.offsetHeight;
-				strip.style.transition = 'transform .22s cubic-bezier(.2,.8,.3,1)';
-				strip.style.transform = `translateY(${-2 * ITEM}px)`;
-			}
+				return n == null ? null : text(k, n);
+			}), offset, animate);
 			input.value = v[k];
 			viewport.setAttribute('aria-valuenow', v[k]);
 			viewport.setAttribute('aria-valuetext', text(k, v[k]));
@@ -303,47 +352,8 @@
 		};
 		$$('[data-wheel-col]', wheel).forEach((col) => {
 			const k = col.dataset.wheelCol;
-			const viewport = $('[data-wheel-viewport]', col);
-			const strip = $('[data-wheel-strip]', col);
-			cols[k] = { strip, viewport, input: $('[data-wheel-input]', col) };
-			$$('[data-wheel-step]', col).forEach((b) => b.addEventListener('click', () => step(k, Number(b.dataset.wheelStep))));
-			let drag = null;
-			viewport.addEventListener('pointerdown', (e) => {
-				drag = { y: e.clientY, dy: 0 };
-				viewport.setPointerCapture(e.pointerId);
-				strip.style.transition = 'none';
-			});
-			viewport.addEventListener('pointermove', (e) => {
-				if (!drag) return;
-				drag.dy = Math.max(-2.5 * ITEM, Math.min(2.5 * ITEM, e.clientY - drag.y));
-				strip.style.transform = `translateY(${drag.dy - 2 * ITEM}px)`;
-			});
-			const end = (e) => {
-				if (!drag) return;
-				const { dy } = drag;
-				drag = null;
-				const s = Math.round(-dy / ITEM);
-				if (s) step(k, s, dy);
-				else if (Math.abs(dy) < 4 && e.type === 'pointerup') {
-					/* 흐린 위·아래 값을 누르면 그 값으로 */
-					const y = e.clientY - viewport.getBoundingClientRect().top;
-					if (y < ITEM) step(k, -1);
-					else if (y > 2 * ITEM) step(k, 1);
-				} else draw(k, dy, true);
-			};
-			viewport.addEventListener('pointerup', end);
-			viewport.addEventListener('pointercancel', end);
-			let acc = 0;
-			viewport.addEventListener('wheel', (e) => {
-				e.preventDefault();
-				acc += e.deltaY;
-				if (Math.abs(acc) >= 40) { step(k, acc > 0 ? 1 : -1); acc = 0; }
-			}, { passive: false });
-			viewport.addEventListener('keydown', (e) => {
-				if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
-				e.preventDefault();
-				step(k, e.key === 'ArrowUp' ? 1 : -1);
-			});
+			const parts = bindWheelColumn(col, (s, dy) => step(k, s, dy), (dy) => draw(k, dy, true));
+			cols[k] = { ...parts, input: $('[data-wheel-input]', col) };
 		});
 		/* 화면 스크립트에서 값 넣기 · 읽기 */
 		wheel.wheelSet = (val) => {
@@ -354,6 +364,55 @@
 		};
 		wheel.wheelValue = () => ({ ...v });
 		wheel.wheelSet({});
+	});
+
+	/*
+	 * ---------- 오전/오후·시·분 휠 선택 (fragments/wheel.html :: timeWheel) ----------
+	 * 오전/오후는 끝에서 멈추고, 시(1~12)·분(10분 단위)은 끝에서 처음으로 돌아감.
+	 * el.timeSet('HH:mm') 로 값 넣기, el.timeValue() 로 'HH:mm'(24시간) 읽기
+	 */
+	$$('[data-time-wheel]').forEach((wheel) => {
+		const lists = {
+			p: ['오전', '오후'],
+			h: Array.from({ length: 12 }, (_, i) => `${String(i + 1).padStart(2, '0')}시`),
+			m: ['00', '10', '20', '30', '40', '50'].map((x) => `${x}분`),
+		};
+		const v = { p: 0, h: 8, m: 0 };
+		const at = (k, i) => (k === 'p' ? (i < 0 || i > 1 ? null : i) : ((i % lists[k].length) + lists[k].length) % lists[k].length);
+		const label = $('[data-wheel-label]', wheel);
+		const cols = {};
+		const value = () => {
+			const h12 = v.h + 1;
+			const h24 = v.p === 1 ? (h12 % 12) + 12 : h12 % 12;
+			return `${String(h24).padStart(2, '0')}:${lists.m[v.m].slice(0, 2)}`;
+		};
+		const draw = (k, offset = 0, animate = false) => {
+			const { strip, viewport } = cols[k];
+			drawWheelStrip(strip, [-3, -2, -1, 0, 1, 2, 3].map((i) => {
+				const n = at(k, v[k] + i);
+				return n == null ? null : lists[k][n];
+			}), offset, animate);
+			viewport.setAttribute('aria-valuetext', lists[k][v[k]]);
+			label.textContent = `${lists.p[v.p]} ${lists.h[v.h].slice(0, 2)}:${lists.m[v.m].slice(0, 2)}`;
+		};
+		const step = (k, s, dy = 0) => {
+			const before = v[k];
+			v[k] = k === 'p' ? Math.min(1, Math.max(0, v.p + s)) : at(k, v[k] + s);
+			draw(k, dy + (k === 'p' ? v.p - before : s) * ITEM, true);
+		};
+		$$('[data-wheel-col]', wheel).forEach((col) => {
+			const k = col.dataset.wheelCol;
+			cols[k] = bindWheelColumn(col, (s, dy) => step(k, s, dy), (dy) => draw(k, dy, true));
+		});
+		wheel.timeSet = (hhmm) => {
+			const [hh, mm] = String(hhmm || '09:00').split(':').map(Number);
+			v.p = hh >= 12 ? 1 : 0;
+			v.h = (hh % 12 || 12) - 1;
+			v.m = Math.min(5, Math.round((mm || 0) / 10));
+			['p', 'h', 'm'].forEach((k) => draw(k));
+		};
+		wheel.timeValue = value;
+		wheel.timeSet(wheel.dataset.time);
 	});
 
 	/* ---------- 견적서 PDF 다운로드: 화면의 견적서를 원본 크기(1488px)로 복제해 이미지로 그린 뒤 A4 한 장에 담음 ---------- */

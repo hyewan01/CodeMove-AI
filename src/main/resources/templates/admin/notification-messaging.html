@@ -70,17 +70,8 @@
 				<h2 class="text-sm font-extrabold text-[#303832]" data-time-title>에티켓 시작 시간</h2>
 				<button class="px-2 py-2 text-sm font-extrabold text-[#346538]" type="submit">완료</button>
 			</div>
-			<div class="relative mt-4 grid grid-cols-3 gap-2 overflow-hidden rounded-2xl bg-[#f5f6f5] p-3">
-				<div class="pointer-events-none absolute inset-x-3 top-1/2 h-11 -translate-y-1/2 rounded-xl border-y border-[#dfe4df] bg-white/70"></div>
-				<select aria-label="오전 오후" class="relative z-10 h-32 bg-transparent text-center text-base font-bold outline-none" size="3" data-period><option>오전</option><option>오후</option></select>
-				<select aria-label="시" class="relative z-10 h-32 bg-transparent text-center text-base font-bold outline-none" size="3" data-hour>
-					<option th:each="h : ${#numbers.sequence(1, 12)}" th:value="${#numbers.formatInteger(h, 2)}" th:text="${#numbers.formatInteger(h, 2)} + '시'"></option>
-				</select>
-				<select aria-label="분" class="relative z-10 h-32 bg-transparent text-center text-base font-bold outline-none" size="3" data-minute>
-					<option th:each="mi : ${ {'00', '10', '20', '30', '40', '50'} }" th:value="${mi}" th:text="${mi} + '분'"></option>
-				</select>
-			</div>
-			<p class="mt-3 text-center text-[10px] text-[#8d958f]">각 항목을 위아래로 스크롤해 시간을 맞춰 주세요.</p>
+			<div class="mt-4"><div th:replace="~{admin/fragments/wheel :: timeWheel}"></div></div>
+			<p class="mt-3 text-center text-[10px] text-[#8d958f]">각 항목을 위아래로 넘겨 시간을 맞춰 주세요.</p>
 		</div>
 	</form>
 </div>
@@ -89,25 +80,16 @@
 		const root = document.querySelector('[data-messaging]');
 		const sheet = root.querySelector('[data-time-sheet]');
 		const field = sheet.querySelector('[data-time-field]');
-		const period = sheet.querySelector('[data-period]');
-		const hour = sheet.querySelector('[data-hour]');
-		const minute = sheet.querySelector('[data-minute]');
+		const wheel = sheet.querySelector('[data-time-wheel]');
 		root.querySelectorAll('[data-time-open]').forEach((b) => b.addEventListener('click', () => {
-			const [h, m] = b.dataset.time.split(':');
-			const h24 = Number(h);
-			period.value = h24 >= 12 ? '오후' : '오전';
-			hour.value = String(h24 % 12 || 12).padStart(2, '0');
-			minute.value = m;
+			sheet.hidden = false;
+			wheel.timeSet(b.dataset.time);
 			field.name = b.dataset.timeOpen === 'start' ? 'quietStart' : 'quietEnd';
 			sheet.querySelector('[data-time-title]').textContent = b.dataset.timeOpen === 'start' ? '에티켓 시작 시간' : '에티켓 종료 시간';
 			sheet.hidden = false;
 		}));
 		sheet.querySelector('[data-time-cancel]').addEventListener('click', () => (sheet.hidden = true));
-		sheet.addEventListener('submit', () => {
-			const h12 = Number(hour.value);
-			const h24 = period.value === '오후' ? (h12 % 12) + 12 : h12 === 12 ? 0 : h12;
-			field.value = `${String(h24).padStart(2, '0')}:${minute.value}`;
-		});
+		sheet.addEventListener('submit', () => (field.value = wheel.timeValue()));
 	})();
 </script>
 </th:block>
