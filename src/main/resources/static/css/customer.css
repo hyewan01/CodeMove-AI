@@ -549,18 +549,19 @@ img { display: block; }
 .days .selectable:hover { background: var(--green-pale); border-radius: 50%; }
 .calendar-arrows .nav-disabled { opacity: .3; cursor: not-allowed; pointer-events: none; }
 .cal-scrim { position: fixed; inset: 0; z-index: 50; background: rgb(0 0 0 / .4); }
-.cal-time-sheet { position: fixed; z-index: 51; left: 0; right: 0; bottom: 0; max-height: 60dvh; border-radius: 24px 24px 0 0; background: var(--white); display: flex; flex-direction: column; padding-bottom: max(16px, var(--safe-bottom)); }
+.cal-time-sheet { position: fixed; z-index: 51; left: 0; right: 0; bottom: 0; max-height: 78dvh; border-radius: 24px 24px 0 0; background: var(--white); display: flex; flex-direction: column; padding-bottom: max(16px, var(--safe-bottom)); }
 .cal-time-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 12px; border-bottom: 1px solid var(--line); flex: 0 0 auto; }
 .cal-time-head strong { font-family: "Pretendard:Bold"; font-size: 18px; }
 .cal-time-head .action { width: 36px; height: 36px; display: grid; place-items: center; color: #777; font-size: 26px; }
 .cal-time-groups { min-height: 0; overflow-y: auto; padding: 4px 20px max(24px, calc(var(--safe-bottom) + 16px)); }
-.cal-time-group { padding: 16px 0; display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; border-top: 1px solid var(--line); }
+/* 오전 · 오후 · 저녁 모두 3칸: 시간이 늘어도 줄이 반듯하게 맞음. 묶음 이름은 첫 줄에 맞춤 */
+.cal-time-group { padding: 14px 0; display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: start; gap: 12px; border-top: 1px solid var(--line); }
 .cal-time-group:first-child { border-top: 0; }
-.cal-time-period { display: flex; align-items: center; }
+.cal-time-period { display: flex; align-items: center; min-height: 46px; }
 .cal-time-period strong { width: 46px; height: 34px; border-radius: 999px; background: var(--green-pale); color: var(--green); display: grid; place-items: center; font-family: "Pretendard:Bold"; font-size: 15px; }
-.cal-time-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.cal-time-group.afternoon .cal-time-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.cal-time-slot { min-width: 0; min-height: 50px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: #555; font-family: "Pretendard:SemiBold"; font-size: 15px; display: flex; align-items: center; justify-content: center; white-space: nowrap; transition: background-color .12s ease; }
+.cal-time-group.evening .cal-time-period strong { background: #fff2e5; color: #ad5b1d; }
+.cal-time-slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cal-time-slot { min-width: 0; min-height: 46px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); color: #555; font-family: "Pretendard:SemiBold"; font-size: 15px; display: flex; align-items: center; justify-content: center; white-space: nowrap; transition: background-color .12s ease; }
 .cal-time-slot:hover { background: var(--green-pale); }
 .cal-time-slot.active { background: var(--green); color: var(--white); }
 .flow-stack { margin-top: 36px; display: flex; flex-direction: column; gap: 28px; }
