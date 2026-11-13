@@ -25,6 +25,18 @@ public class MoveService {
 	/** RSV_STATUS 공통코드 */
 	public static final String BOOKED = "01", DONE = "02", CANCELLED = "03";
 
+	/** 이사 시작 시간: 날짜 선택(SCR-U-008)의 오전 6시 ~ 오후 8시, 1시간 단위 */
+	public static final int FIRST_HOUR = 6, LAST_HOUR = 20;
+
+	/** "HH:00"이고 6시 ~ 20시면 그대로, 아니면 null (시간 미정) */
+	public static String moveTime(String t) {
+		if (t == null || !t.matches("\\d{2}:00")) {
+			return null;
+		}
+		int h = Integer.parseInt(t.substring(0, 2));
+		return h >= FIRST_HOUR && h <= LAST_HOUR ? t : null;
+	}
+
 	/**
 	 * 지금 진행 중인 이사 (가장 최근 요청).
 	 * status: none / waiting-approval / approved / confirmed (프로토타입 estimateStatus)
@@ -108,6 +120,7 @@ public class MoveService {
 		r.setPackType(f.packType());
 		r.setMoveDate(f.moveDate());
 		r.setMoveTime(f.moveDate() == null ? null : f.moveTime());
+		// PREFER_TIME: 12시 전 01 오전, 이후(저녁 18 ~ 20시 포함) 02 오후, 시간 없으면 03 상관없음
 		r.setPreferTime(f.moveDate() == null || f.moveTime() == null ? "03"
 				: Integer.parseInt(f.moveTime().substring(0, 2)) < 12 ? "01" : "02");
 		r.setFromAddress(f.fromAddress());

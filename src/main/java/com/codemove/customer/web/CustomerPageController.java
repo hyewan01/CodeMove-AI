@@ -355,7 +355,7 @@ public class CustomerPageController {
 			ra.addFlashAttribute("toast", "선택한 날짜는 예약이 마감됐거나 휴무일이에요. 다른 날짜를 골라주세요.");
 			return "redirect:/quote";
 		}
-		String time = form.getMoveTime() != null && form.getMoveTime().matches("\\d{2}:\\d{2}") ? form.getMoveTime() : null;
+		String time = MoveService.moveTime(form.getMoveTime());
 		String house = form.getHouseType() != null && form.getHouseType().matches("0[1-4]") ? form.getHouseType() : "01";
 		String pack = "02".equals(form.getPackType()) ? "02" : "01";
 		moves.request(memberId(session), new MoveService.RequestForm(house, pack, date, time, form.getFromAddress().trim(),

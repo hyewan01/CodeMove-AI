@@ -62,7 +62,7 @@ erDiagram
         NUMBER AI_ANALYSIS_SEC "AI분석시간(초)"
         NUMBER AI_CONFIDENCE "AI신뢰도"
         DATE REQUESTED_AT "요청일시"
-        VARCHAR2 MOVE_TIME "희망시각(HH24:MI)"
+        VARCHAR2 MOVE_TIME "희망시각(HH24:MI, 06:00~20:00 정시)"
         VARCHAR2 FROM_ZIPCODE "출발지우편번호"
         VARCHAR2 TO_ZIPCODE "도착지우편번호"
     }
@@ -165,7 +165,7 @@ erDiagram
         CHAR STATUS "예약상태"
         CHAR PAY_STATUS "결제상태"
         DATE MOVE_DATE "이사일"
-        VARCHAR2 MOVE_TIME "이사시각"
+        VARCHAR2 MOVE_TIME "이사시각(HH24:MI, 06:00~20:00 정시)"
         VARCHAR2 MOVE_MEMO "요청사항"
         DATE APPLIED_AT "신청일시"
         DATE DEPOSIT_PAID_AT "계약금결제일시"
