@@ -111,24 +111,34 @@ img { display: block; }
 .login-scene { position: fixed; z-index: 30; inset: 0; width: 100%; height: 100dvh; min-height: 0; overflow: hidden; }
 .login-scene > .onboarding, .login-scene > .home-screen { position: absolute; inset: 0; }
 .scrim { position: absolute; z-index: 30; inset: 0; background: rgb(0 0 0 / .3); }
-.login-sheet { position: absolute; z-index: 31; inset: auto 0 0; min-height: calc(291px + var(--safe-bottom)); border-radius: 27px 27px 0 0; background: var(--white); display: flex; flex-direction: column; align-items: center; padding: 0 max(40px, calc(var(--safe-right) + 20px)) max(28px, calc(var(--safe-bottom) + 16px)) max(40px, calc(var(--safe-left) + 20px)); box-sizing: border-box; transition: transform .22s ease; }
-.sheet-grabber { width: 100%; height: 27px; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: grab; }
+/* 로그인 방법 선택 시트: 내용 높이에 맞추고 위아래 여백을 고르게 */
+.login-sheet { position: absolute; z-index: 31; inset: auto 0 0; border-radius: 28px 28px 0 0; background: var(--white); display: flex; flex-direction: column; align-items: center; padding: 0 max(24px, calc(var(--safe-right) + 16px)) max(32px, calc(var(--safe-bottom) + 20px)) max(24px, calc(var(--safe-left) + 16px)); box-sizing: border-box; box-shadow: 0 -8px 30px rgb(0 0 0 / .08); }
+.sheet-grabber { width: 100%; height: 28px; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: grab; }
 .sheet-grabber:active { cursor: grabbing; }
-.sheet-handle { width: 20px; height: 3px; border-radius: 3px; background: #d9d9d9; }
-.sheet-title { margin-top: 2px; font-family: "Pretendard:Bold"; color: #767676; }
-.social-row { display: flex; gap: 29px; margin-top: 38px; }
-.social { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.sheet-handle { width: 40px; height: 5px; border-radius: 999px; background: #dfe2df; }
+.sheet-title { margin-top: 14px; color: var(--ink); font-family: "Pretendard:Bold"; font-size: 20px; }
+.sheet-subtitle { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+.social-row { margin-top: 26px; display: flex; gap: 28px; }
+.social-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.social-item small { color: #5d6b5f; font-family: "Pretendard:SemiBold"; font-size: 12px; }
+.social { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: transform .12s ease; }
+.social-item:active .social { transform: scale(.94); }
 .social img { object-fit: contain; }
 .kakao { background: #fee500; }
-.kakao img { width: 20px; height: 20px; }
+.kakao img { width: 24px; height: 24px; }
 .naver { background: #03c75a; }
-.naver img { width: 18px; height: 18px; border-radius: 0; }
-.apple { background: #000; }
-.apple img { width: 45px; height: 45px; border-radius: 50%; }
-.phone-button { margin-top: 22px; width: min(100%, 283px); height: 45px; border: 1px solid var(--green); border-radius: 23px; display: flex; gap: 10px; align-items: center; justify-content: center; color: var(--green); font-family: "Pretendard:Bold"; }
-.phone-button img { width: 24px; height: 24px; }
-.account-help { margin-top: 16px; color: #999; font-size: 12px; }
+.naver img { width: 21px; height: 21px; border-radius: 0; }
+.apple { background: #000; overflow: hidden; }
+.apple img { width: 56px; height: 56px; border-radius: 50%; }
+.phone-button { width: 100%; max-width: 420px; min-height: 54px; margin-top: 28px; border: 1.5px solid var(--green); border-radius: 16px; display: flex; gap: 8px; align-items: center; justify-content: center; color: var(--green); font-family: "Pretendard:Bold"; font-size: 16px; }
+.phone-button:hover { background: var(--green-pale); }
+.phone-button img { width: 22px; height: 22px; }
+.account-help { margin-top: 18px; color: #999; font-size: 13px; }
 .account-help u { color: var(--body); }
+/* 로그인 시트 뒤 온보딩: 시트 위 남은 공간 가운데에 그림·문구가 다 보이게 (아래 버튼·점은 시트에 가려 숨김) */
+.login-scene > .onboarding { padding-bottom: 330px; }
+.login-scene > .onboarding .onboarding-main { justify-content: center; overflow: visible; transform: translateY(30px) scale(.84); transform-origin: center; }
+.login-scene > .onboarding :is(.onboarding-actions, .browse, .pager) { visibility: hidden; }
 
 .app-header { position: sticky; z-index: 19; top: 0; height: calc(76px + max(59px, env(safe-area-inset-top))); display: flex; align-items: center; justify-content: space-between; padding: max(59px, env(safe-area-inset-top)) max(20px, calc(var(--safe-right) + 14px)) 0 max(20px, calc(var(--safe-left) + 14px)); box-sizing: border-box; background: rgb(255 255 255 / .96); backdrop-filter: blur(12px); }
 .brand-row { display: flex; align-items: center; }
