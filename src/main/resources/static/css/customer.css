@@ -908,12 +908,10 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 .menu-list .action > div { display: flex; flex-direction: column; gap: 5px; }
 .menu-list strong { font-family: "Pretendard:SemiBold"; }
 .menu-list span { color: var(--muted); font-size: var(--text-caption); }
-/* 로그아웃 · 회원 탈퇴: 메뉴 아래쪽 가운데 */
+/* 로그아웃: 메뉴 아래쪽 가운데 */
 .account-actions { margin: 36px 0 8px; display: flex; align-items: center; justify-content: center; gap: 14px; }
-.account-actions > span { width: 1px; height: 12px; background: #d6d9d6; }
-.logout, .account-withdraw { min-height: 40px; padding: 0 6px; display: flex; align-items: center; color: #7d847e; font-family: "Pretendard:SemiBold"; font-size: 14px; }
-.account-withdraw { color: #a3a8a4; font-family: "Pretendard:Medium"; }
-.logout:hover, .account-withdraw:hover { color: var(--ink); }
+.logout { min-height: 40px; padding: 0 6px; display: flex; align-items: center; color: #7d847e; font-family: "Pretendard:SemiBold"; font-size: 14px; }
+.logout:hover { color: var(--ink); }
 
 /* 회원 탈퇴 */
 .wd-page { padding-bottom: 40px; }
@@ -950,7 +948,7 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 .easy-mode .wd-notice strong { font-size: 17px; }
 .easy-mode .wd-notice small, .easy-mode .wd-ask > span { font-size: 15px; }
 .easy-mode .wd-ask-actions .action { min-height: 58px; font-size: 17px; }
-.easy-mode .logout, .easy-mode .account-withdraw { font-size: 16px; }
+.easy-mode .logout { font-size: 16px; }
 .personal-page-content { padding-bottom: max(36px, calc(var(--safe-bottom) + 24px)); }
 .form-page:has(.personal-page-content) .form-head { justify-content: flex-start; }
 .form-page:has(.personal-page-content) .form-title { position: absolute; left: 50%; margin: 0; padding-bottom: 2px; transform: translateX(-50%); font-size: 20px; white-space: nowrap; }
