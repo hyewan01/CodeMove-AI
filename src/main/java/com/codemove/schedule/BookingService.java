@@ -61,7 +61,7 @@ public class BookingService {
 			LocalDate d = day instanceof java.sql.Timestamp t ? t.toLocalDateTime().toLocalDate()
 					: day instanceof LocalDateTime t ? t.toLocalDate()
 					: day instanceof java.sql.Date t ? t.toLocalDate() : (LocalDate) day;
-			counts.merge(d, ((Number) row.get("CNT")).intValue(), Integer::sum);
+			counts.merge(d, ((Number) row.get("CNT")).intValue(), (a, b) -> a + b);
 		}
 		return counts;
 	}

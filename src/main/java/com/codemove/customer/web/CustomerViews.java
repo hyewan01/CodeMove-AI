@@ -15,6 +15,7 @@ import com.codemove.common.CodeService;
 import com.codemove.common.Fmt;
 import com.codemove.member.Member;
 import com.codemove.member.MemberService;
+import com.codemove.move.ItemCatalog;
 import com.codemove.move.EstimateDoc;
 import com.codemove.move.MoveLine;
 import com.codemove.move.MoveRequest;
@@ -399,16 +400,19 @@ public class CustomerViews {
 		};
 	}
 
-	/** 품목 이름 → 아이콘 */
+	/** 품목 이름 → 아이콘 (표준 품목표에 있으면 그 아이콘) */
 	static String icon(String name) {
 		String n = name == null ? "" : name;
+		ItemCatalog.Item item = ItemCatalog.find(n);
+		if (item != null) return item.icon();
 		if (n.contains("냉장고")) return "item-fridge.svg";
 		if (n.contains("침대")) return "item-bed.svg";
 		if (n.contains("소파")) return "item-sofa.svg";
 		if (n.contains("세탁기")) return "item-washer.svg";
 		if (n.contains("TV") || n.contains("티비")) return "item-tv.svg";
 		if (n.contains("장롱") || n.contains("옷장")) return "item-wardrobe.svg";
-		if (n.contains("테이블") || n.contains("식탁") || n.contains("책상")) return "item-table.svg";
+		if (n.contains("테이블") || n.contains("식탁")) return "item-table.svg";
+		if (n.contains("책상")) return "item-desk.svg";
 		return "item-box.svg";
 	}
 
@@ -474,9 +478,11 @@ public class CustomerViews {
 		};
 	}
 
-	/** 품목 이름 → ITEM_CATEGORY (02 전자기기, 03 생활용품, 01 가구) */
+	/** 품목 이름 → ITEM_CATEGORY (표준 품목표 우선, 없으면 이름으로 추정: 02 가전, 03 생활용품, 01 가구) */
 	public static String categoryOf(String name) {
 		String n = name == null ? "" : name;
+		ItemCatalog.Item item = ItemCatalog.find(n);
+		if (item != null) return item.category();
 		if (n.matches(".*(냉장고|세탁기|TV|티비|에어컨|전자레인지|건조기|모니터|컴퓨터).*")) return "02";
 		if (n.contains("박스") || n.contains("짐")) return "03";
 		return "01";

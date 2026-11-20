@@ -11,7 +11,8 @@
 
 	const STEPS = [
 		{ type: 'upload', title: '집 안을 촬영한 영상을 올려주세요', subtitle: 'AI가 가구와 짐을 찾아 부피를 계산해요.' },
-		{ type: 'analysis', title: 'AI가 영상을 분석하고 있어요', subtitle: '촬영한 영상을 바탕으로 짐의 종류와 부피를 확인합니다.' },
+		{ type: 'analysis', title: 'AI가 영상을 분석하고 있어요', subtitle: '촬영한 영상을 바탕으로 짐의 종류와 부피를 확인합니다.',
+			doneTitle: '찾은 짐을 확인해주세요', doneSubtitle: '다른 부분이 있으면 눌러서 고칠 수 있어요.' },
 		{ type: 'options', title: '이사 정보를 알려주세요', subtitle: '주거 형태와 이사 방식을 선택해주세요.',
 			easyTitle: '이사 정보를 선택해주세요', easySubtitle: '집 종류와 포장 방법을 하나씩 선택해주세요.' },
 		{ type: 'address', title: '출발지와 도착지는 어디인가요?', subtitle: '정확한 주소를 입력해주세요.' },
@@ -19,7 +20,10 @@
 		{ type: 'summary', title: '예상 견적을 확인해주세요', subtitle: '영상 분석과 입력 정보를 바탕으로 계산했어요.' },
 	];
 	const EASY_NEXT = ['영상 분석하기', '인식 품목 확인', '주소 입력하기', '날짜 선택하기', '견적 확인하기', '이사 요청하기'];
-	const SIZE_FACTOR = { 소형: 0.75, 중형: 1, 대형: 1.25 };
+	/* 표준 품목표: 품목마다 크기 3단계(01 소형 · 02 중형 · 03 대형)와 기준 부피(CBM, 1개) */
+	const CATALOG = DATA.catalog || [];
+	const CATEGORY_NAME = Object.fromEntries((DATA.categories || []).map((c) => [c.code, c.name]));
+	const NO_SON = DATA.noSon || {};
 
 	const state = {
 		step: 0,
@@ -43,7 +47,15 @@
 		const dh = h === 0 ? 12 : h > 12 ? h - 12 : h;
 		return `${h < 12 ? '오전' : '오후'} ${dh}:${String(m).padStart(2, '0')}`;
 	};
-	const itemCbm = (it) => it.baseCbm * SIZE_FACTOR[it.size] * it.count;
+	const catalogItem = (name) => CATALOG.find((c) => c.name === name);
+	const sizeOf = (it) => {
+		const c = catalogItem(it.name);
+		if (!c) return { code: '02', grade: '중형', name: '중형', rule: '', cbm: it.baseCbm || 0 };
+		return c.sizes.find((z) => z.code === it.sizeCode) || c.sizes[1] || c.sizes[0];
+	};
+	const iconOf = (it) => (catalogItem(it.name) || {}).icon || 'item-box.svg';
+	const itemCbm = (it) => sizeOf(it).cbm * it.count;
+	const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
 	const canProceed = () => {
 		switch (state.step) {
@@ -67,8 +79,9 @@
 
 	const render = () => {
 		const s = STEPS[state.step];
-		$('[data-flow-title]').textContent = easy && s.easyTitle ? s.easyTitle : s.title;
-		$('[data-flow-subtitle]').textContent = easy && s.easySubtitle ? s.easySubtitle : s.subtitle;
+		const done = s.doneTitle && state.analysisDone;
+		$('[data-flow-title]').textContent = done ? s.doneTitle : easy && s.easyTitle ? s.easyTitle : s.title;
+		$('[data-flow-subtitle]').textContent = done ? s.doneSubtitle : easy && s.easySubtitle ? s.easySubtitle : s.subtitle;
 		$('[data-progress]').style.width = `${((state.step + 1) / STEPS.length) * 100}%`;
 		$('[data-step-count]').textContent = `${state.step + 1}/${STEPS.length}`;
 		$$('[data-step]').forEach((sec) => (sec.hidden = sec.dataset.step !== s.type));
@@ -126,6 +139,8 @@
 			state.analysisDone = true;
 			$('[data-analysis-loading]').hidden = true;
 			$('[data-analysis-result]').hidden = false;
+			$('[data-flow-title]').textContent = STEPS[1].doneTitle;
+			$('[data-flow-subtitle]').textContent = STEPS[1].doneSubtitle;
 			renderItems();
 			refreshNext();
 			speakStep();
@@ -136,20 +151,25 @@
 		const list = $('[data-item-list]');
 		list.innerHTML = '';
 		state.items.forEach((it) => {
-			const btn = document.createElement('button');
-			btn.type = 'button';
-			btn.className = 'action recognized-item' + (it.needsReview ? ' needs-review' : '');
-			btn.setAttribute('aria-label', `${it.name} 수정`);
-			btn.innerHTML = `
-				<div class="recognized-item-icon"><img alt="" src="${A}${it.icon}"></div>
-				<div class="recognized-item-copy">
-					<strong>${it.name}${it.needsReview ? '<em>확인 필요</em>' : ''}</strong>
-					<span>${it.size} · ${it.count}개</span>
-				</div>
-				<b>${itemCbm(it).toFixed(1)} CBM</b>`;
-			btn.addEventListener('click', () => openEditor(it, false));
-			list.appendChild(btn);
+			const size = sizeOf(it);
+			const li = document.createElement('li');
+			li.innerHTML = `
+				<button type="button" class="action found-item${it.needsReview ? ' needs-review' : ''}" aria-label="${esc(it.name)} ${esc(size.name)} ${it.count}개 수정">
+					<span class="found-item-icon"><img alt="" src="${A}${iconOf(it)}"></span>
+					<span class="found-item-copy">
+						<strong>${esc(it.name)}${it.needsReview ? '<em>확인 필요</em>' : ''}</strong>
+						<small>${esc(size.name)} · ${it.count}개</small>
+					</span>
+					<span class="found-item-cbm">${itemCbm(it).toFixed(1)}<small>CBM</small></span>
+					<svg class="found-item-chevron" aria-hidden="true" viewBox="0 0 16 16" width="16" height="16"><path d="m6 3.5 4.5 4.5L6 12.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+				</button>`;
+			li.firstElementChild.addEventListener('click', () => openEditor(it, false));
+			list.appendChild(li);
 		});
+		const review = state.items.filter((it) => it.needsReview).length;
+		$('[data-review-banner]').hidden = review === 0;
+		$('[data-review-count]').textContent = review;
+		$('[data-item-kinds]').textContent = state.items.length;
 		$('[data-item-total]').textContent = state.items.reduce((s, it) => s + it.count, 0);
 		$('[data-cbm-total]').textContent = state.items.reduce((s, it) => s + itemCbm(it), 0).toFixed(1);
 	}
@@ -158,7 +178,7 @@
 		const box = $('[data-item-inputs]');
 		box.innerHTML = '';
 		state.items.forEach((it, i) => {
-			[['name', it.name], ['size', it.size], ['count', it.count], ['cbm', itemCbm(it).toFixed(2)]].forEach(([k, v]) => {
+			[['name', it.name], ['size', sizeOf(it).grade], ['count', it.count], ['cbm', itemCbm(it).toFixed(2)]].forEach(([k, v]) => {
 				const input = document.createElement('input');
 				input.type = 'hidden';
 				input.name = `items[${i}].${k}`;
@@ -168,32 +188,95 @@
 		});
 	}
 
-	/* 품목 수정 시트 */
+	/* 품목 수정 시트: detail(크기·수량) ↔ picker(품목 선택) */
+	const sheet = $('.item-sheet');
 	let draft = null;
 	let adding = false;
+	let pickerTab = '';
+	const showView = (view) => {
+		sheet.dataset.sheetView = view;
+		if (view === 'picker') {
+			$('[data-picker-search]').value = '';
+			renderPicker();
+		}
+		$(`[data-view="${view}"] .sheet-scroll, [data-view="${view}"] .picker-grid`)?.scrollTo(0, 0);
+	};
 	function openEditor(item, isNew) {
 		adding = isNew;
 		draft = { ...item };
-		$('[data-edit-kicker]').textContent = isNew ? '누락 품목 추가' : '인식 품목 수정';
+		$('[data-edit-title]').textContent = isNew ? '품목 추가' : '품목 수정';
 		$('[data-edit-delete]').hidden = isNew;
-		$('[data-edit-save]').textContent = isNew ? '품목 추가' : '수정 완료';
-		renderDraft();
+		$('[data-edit-save]').textContent = isNew ? '추가하기' : '수정 완료';
 		openModal('item-edit');
+		if (isNew) showView('picker');
+		else { showView('detail'); renderDraft(); }
 	}
 	function renderDraft() {
+		const c = catalogItem(draft.name);
+		$('[data-edit-icon]').src = A + iconOf(draft);
 		$('[data-edit-name]').textContent = draft.name;
-		$$('[data-edit-type]').forEach((b) => b.classList.toggle('active', b.dataset.name === draft.name));
-		$$('[data-edit-size]').forEach((b) => b.classList.toggle('active', b.dataset.editSize === draft.size));
+		$('[data-edit-category]').textContent = c ? CATEGORY_NAME[c.category] || '' : '직접 입력한 품목';
+		const box = $('[data-size-options]');
+		box.innerHTML = '';
+		const sizes = c ? c.sizes : [sizeOf(draft)];
+		const current = sizeOf(draft).code;
+		sizes.forEach((z) => {
+			const b = document.createElement('button');
+			b.type = 'button';
+			b.className = 'action size-option' + (z.code === current ? ' active' : '');
+			b.setAttribute('role', 'radio');
+			b.setAttribute('aria-checked', String(z.code === current));
+			const rule = (z.rule || '').replace(/^\[업체 확인\]\s*/, '');
+			b.innerHTML = `
+				<span class="size-radio" aria-hidden="true"></span>
+				<span class="size-copy"><strong>${esc(z.name)}</strong>${rule ? `<small>${esc(rule)}</small>` : ''}</span>
+				<span class="size-cbm">${z.cbm.toFixed(1)} CBM</span>`;
+			b.addEventListener('click', () => { draft.sizeCode = z.code; renderDraft(); });
+			box.appendChild(b);
+		});
 		$('[data-edit-count-value]').textContent = draft.count;
+		$('[data-edit-count="-1"]').disabled = draft.count <= 1;
 		$('[data-edit-cbm]').textContent = itemCbm(draft).toFixed(1);
 	}
-	$$('[data-edit-type]').forEach((b) => b.addEventListener('click', () => {
-		Object.assign(draft, { name: b.dataset.name, icon: b.dataset.icon, baseCbm: Number(b.dataset.cbm) });
-		renderDraft();
-	}));
-	$$('[data-edit-size]').forEach((b) => b.addEventListener('click', () => { draft.size = b.dataset.editSize; renderDraft(); }));
+	function renderPicker() {
+		const q = $('[data-picker-search]').value.trim();
+		const grid = $('[data-picker-grid]');
+		grid.innerHTML = '';
+		$$('[data-picker-tab]').forEach((t) => {
+			const on = t.dataset.pickerTab === pickerTab;
+			t.classList.toggle('active', on);
+			t.setAttribute('aria-selected', String(on));
+		});
+		const found = CATALOG.filter((c) => (!pickerTab || c.category === pickerTab) && (!q || c.name.includes(q)));
+		if (!found.length) {
+			grid.innerHTML = '<p class="picker-empty">찾는 품목이 없어요.<br>가장 비슷한 품목을 골라주세요.</p>';
+			return;
+		}
+		found.forEach((c) => {
+			const b = document.createElement('button');
+			b.type = 'button';
+			b.className = 'action picker-item' + (draft && draft.name === c.name ? ' active' : '');
+			b.innerHTML = `<span><img alt="" src="${A}${c.icon}"></span><strong>${esc(c.name)}</strong>`;
+			b.addEventListener('click', () => {
+				draft.name = c.name;
+				if (!c.sizes.some((z) => z.code === draft.sizeCode)) draft.sizeCode = '02';
+				showView('detail');
+				renderDraft();
+			});
+			grid.appendChild(b);
+		});
+	}
+	/* 검색은 분류와 상관없이 전체에서 찾음 */
+	$('[data-picker-search]').addEventListener('input', () => { pickerTab = ''; renderPicker(); });
+	$$('[data-picker-tab]').forEach((t) => t.addEventListener('click', () => { pickerTab = t.dataset.pickerTab; renderPicker(); }));
+	$('[data-edit-change]').addEventListener('click', () => showView('picker'));
+	/* 추가 중에 아직 품목을 안 골랐으면 시트를 닫고, 아니면 상세로 돌아감 */
+	$('[data-picker-back]').addEventListener('click', () => {
+		if (!draft.name) closeModal('item-edit');
+		else showView('detail');
+	});
 	$$('[data-edit-count]').forEach((b) => b.addEventListener('click', () => {
-		draft.count = Math.max(1, draft.count + Number(b.dataset.editCount));
+		draft.count = Math.min(200, Math.max(1, draft.count + Number(b.dataset.editCount)));
 		renderDraft();
 	}));
 	$('[data-edit-delete]').addEventListener('click', () => {
@@ -207,8 +290,8 @@
 		closeModal('item-edit');
 		renderItems();
 	});
-	$('[data-item-add]').addEventListener('click', () => openEditor(
-		{ id: `item-${Date.now()}`, name: '테이블', count: 1, baseCbm: 0.85, size: '중형', icon: 'item-table.svg' }, true));
+	$$('[data-item-add]').forEach((b) => b.addEventListener('click', () => openEditor(
+		{ id: `item-${Date.now()}`, name: '', sizeCode: '02', count: 1 }, true)));
 
 	/* ---------- 3. 주거형태·포장방식 ---------- */
 	$$('[data-option]').forEach((btn) => btn.addEventListener('click', () => {
@@ -343,6 +426,11 @@
 				const blocked = !past && BLOCKED[iso];
 				span.textContent = d;
 				span.className = state.date === iso ? 'picked' : past ? 'muted' : blocked ? 'muted blocked' : 'selectable';
+				if (!past && !blocked && NO_SON[iso]) {
+					span.classList.add('no-son');
+					span.title = `손 없는 날 (${NO_SON[iso]})`;
+					span.setAttribute('aria-label', `${viewM + 1}월 ${d}일 손 없는 날`);
+				}
 				if (blocked) {
 					span.dataset.reason = blocked;
 					span.setAttribute('aria-label', `${viewM + 1}월 ${d}일 ${blocked === '마감' ? '예약 마감' : blocked}`);

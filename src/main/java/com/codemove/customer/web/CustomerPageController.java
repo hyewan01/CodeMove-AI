@@ -23,6 +23,8 @@ import com.codemove.admin.web.AdminSession;
 import com.codemove.chat.ChatService;
 import com.codemove.schedule.BookingService;
 import com.codemove.common.Fmt;
+import com.codemove.common.LunarDays;
+import com.codemove.move.ItemCatalog;
 import com.codemove.customer.social.SocialProvider;
 import com.codemove.customer.web.CustomerViews.MoveView;
 import com.codemove.member.Member;
@@ -311,7 +313,8 @@ public class CustomerPageController {
 	public String quote(Model model) {
 		model.addAttribute("houseTypes", views.houseTypes());
 		model.addAttribute("packTypes", views.packTypes());
-		model.addAttribute("itemOptions", AiDemo.itemOptions());
+		model.addAttribute("catalog", AiDemo.catalog());
+		model.addAttribute("categories", AiDemo.categories());
 		model.addAttribute("recognizedItems", AiDemo.recognizedItems());
 		model.addAttribute("addresses", AiDemo.addresses());
 		model.addAttribute("estimate", Map.of("base", MoveService.BASE, "perCbm", MoveService.PER_CBM,
@@ -322,6 +325,8 @@ public class CustomerPageController {
 		booking.blockedDates(today, today.plusYears(1))
 				.forEach((d, reason) -> blocked.put(d.toString(), BookingService.label(reason)));
 		model.addAttribute("blockedDates", blocked);
+		// 손 없는 날 (yyyy-MM-dd → 음 3.9): 이사가 몰려 비용이 오를 수 있다고 달력에 표시
+		model.addAttribute("noSonDays", LunarDays.noSonDays(today, today.plusYears(1)));
 		return "customer/quote/quote";
 	}
 
@@ -343,7 +348,10 @@ public class CustomerPageController {
 			i.setCategory(CustomerViews.categoryOf(f.getName()));
 			i.setItemSize(CustomerViews.sizeCode(f.getSize()));
 			i.setQuantity(Math.min(99999, f.getCount()));
-			i.setVolume(Math.min(999.99, Math.max(0, Math.round(f.getCbm() * 100) / 100.0)));
+			// 품목표에 있는 품목은 화면 값 대신 표의 크기별 기준 부피로 다시 계산
+			ItemCatalog.Item known = ItemCatalog.find(f.getName());
+			double cbm = known != null ? known.size(i.getItemSize()).cbm() * i.getQuantity() : f.getCbm();
+			i.setVolume(Math.min(999.99, Math.max(0, Math.round(cbm * 100) / 100.0)));
 			i.setConfidence(90);
 			i.setNeedsReview("N");
 			i.setSource("01");

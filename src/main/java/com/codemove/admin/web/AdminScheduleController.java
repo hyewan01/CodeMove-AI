@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.codemove.common.Fmt;
+import com.codemove.common.LunarDays;
 import com.codemove.notification.NotificationService;
 import com.codemove.schedule.BookingService;
 import com.codemove.schedule.ClosedDay;
@@ -34,9 +34,6 @@ import jakarta.servlet.http.HttpSession;
 @Controller
 @RequestMapping("/admin/schedule")
 public class AdminScheduleController {
-
-	/** 손 없는 날 (프로토타입: 매월 같은 날짜) */
-	private static final Set<Integer> NO_MOVE_DAYS = Set.of(7, 8, 17, 18, 27, 28);
 
 	/** date: yy.MM.dd, memberId: 회원 번호 */
 	public record ManualSchedule(long id, String date, String title, String category, String time, String place,
@@ -119,7 +116,7 @@ public class AdminScheduleController {
 			List<AdminViews.Reservation> dayEvents = active.stream().filter(r -> key.equals(r.movingDate())).toList();
 			cells.add(new CalendarCell(dd, key, i % 7, dayEvents.isEmpty() ? null : dayEvents.get(0),
 					manuals.stream().filter(s -> s.date().equals(key)).findFirst().orElse(null),
-					managed.get(key), Fmt.isHoliday(date), NO_MOVE_DAYS.contains(dd), Math.max(0, dayEvents.size() - 1),
+					managed.get(key), Fmt.isHoliday(date), LunarDays.isNoSonDay(date), Math.max(0, dayEvents.size() - 1),
 					BookingService.FULL.equals(blocked.get(date))));
 		}
 		model.addAttribute("y", year);
@@ -132,7 +129,8 @@ public class AdminScheduleController {
 				.sorted((a, b) -> String.valueOf(a.movingTime()).compareTo(String.valueOf(b.movingTime()))).toList());
 		model.addAttribute("dayManuals", manuals.stream().filter(s -> s.date().equals(selectedKey)).toList());
 		model.addAttribute("dayManaged", managed.get(selectedKey));
-		model.addAttribute("noMove", NO_MOVE_DAYS.contains(day));
+		model.addAttribute("noMove", LunarDays.isNoSonDay(selected));
+		model.addAttribute("lunar", LunarDays.lunar(selected).label());
 		model.addAttribute("holiday", Fmt.isHoliday(selected));
 		model.addAttribute("modal", modal);
 		model.addAttribute("baseUrl", "/admin/schedule?y=" + year + "&m=" + month + "&d=" + day);
@@ -206,7 +204,7 @@ public class AdminScheduleController {
 		Map<String, Integer> counts = new LinkedHashMap<>();
 		active().stream().filter(r -> "예약 완료".equals(r.status())).forEach(r -> {
 			events.putIfAbsent(r.movingDate(), r.name());
-			counts.merge(r.movingDate(), 1, Integer::sum);
+			counts.merge(r.movingDate(), 1, (a, b) -> a + b);
 		});
 		LocalDate today = LocalDate.now();
 		ReservationSetting setting = booking.setting();

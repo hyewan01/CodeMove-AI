@@ -232,7 +232,7 @@ erDiagram
 - **거리 요금**은 택시처럼 km마다 오르는 방식이 아니라, 업계 시세가 구간제(50km까지 기본 포함, 50~100km, 100~150km …)라서 구간 표로 만들었습니다. 마지막 구간(200km 초과)만 km당 단가를 씁니다.
 - **사다리차**는 출발지와 도착지에 따로 적용하고, 결과는 기존 `TBL_QUOTE.FROM_LADDER_COST`·`TO_LADDER_COST`에 들어갑니다. 25층 이상은 금액을 비워 두고 "별도 협의"로 표시합니다.
 - **무게**: 가이드는 무게 산정도 요구하지만, 팀원 표에 무게 자료가 없어 `WEIGHT_KG`는 비워 두었습니다. 견적 금액에는 쓰지 않으므로 나중에 채워도 됩니다.
-- **손 없는 날**: 지금 일정 화면([AdminScheduleController.java:39](../../src/main/java/com/codemove/admin/web/AdminScheduleController.java#L39))은 양력 7·8·17·18·27·28일로 표시하는 시연값입니다. 실제로는 **음력 끝자리가 9·0인 날**이므로, 음력 변환(한국천문연구원 음양력 API 또는 음력 변환 라이브러리)을 붙여 달력 표시와 할증 계산이 같은 함수를 쓰게 합니다.
+- **손 없는 날**: 음력 끝자리 9·0인 날입니다. [LunarDays.java](../../src/main/java/com/codemove/common/LunarDays.java)가 ICU4J의 한국 음력(`DangiCalendar`, 한국 시간 기준)으로 계산하고, 관리자 일정 달력(음력 날짜도 표시)과 고객 견적 달력(파란 점)이 이 함수를 씁니다. 날짜 할증도 요금 확정 후 같은 함수를 씁니다. (2026-11-20 적용)
 
 ## 4. 견적 계산식
 
@@ -285,8 +285,8 @@ erDiagram
 
 | 지금 | 바꿀 내용 |
 | --- | --- |
-| [AiDemo.java](../../src/main/java/com/codemove/customer/web/AiDemo.java) 품목 6개·고정 CBM | `TBL_ITEM`·`TBL_ITEM_SPEC`에서 읽기 (품목 선택지, 크기별 CBM) |
-| 고객 화면의 크기 계수(quote.js `SIZE_FACTOR` 소 0.75·중 1.0·대 1.25배) | 크기별 규격 CBM을 그대로 사용 (팀원 표의 "현재CBM" 열이 지금 값) |
+| [AiDemo.java](../../src/main/java/com/codemove/customer/web/AiDemo.java) 품목 6개·고정 CBM | **적용함(2026-11-20)**: [ItemCatalog.java](../../src/main/java/com/codemove/move/ItemCatalog.java)가 item-master.csv(31개 품목 × 3크기)를 읽어 고객 품목 수정 화면에 씀. V4 적용 후 DB 조회로 교체 |
+| 고객 화면의 크기 계수(quote.js `SIZE_FACTOR` 소 0.75·중 1.0·대 1.25배) | **적용함**: 크기별 규격 CBM을 그대로 사용. 서버도 저장할 때 표 값으로 다시 계산 |
 | [MoveService.estimate()](../../src/main/java/com/codemove/move/MoveService.java#L62) | 4장 계산식을 하는 `EstimateCalculator`로 교체 (AI 코드와 분리해서 단위 테스트) |
 | [QuoteService.java:316](../../src/main/java/com/codemove/move/QuoteService.java#L316) `1톤 ≈ 5CBM` 고정값 | `TBL_TRUCK`으로 톤 선택 |
 | `TBL_QUOTE_OPTION.OPTION_COST`, `FROM/TO_LADDER_COST` | 관리자가 견적 검토 화면을 열 때 요금 표 값으로 미리 채움 (관리자가 수정 가능) |

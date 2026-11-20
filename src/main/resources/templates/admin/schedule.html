@@ -60,6 +60,7 @@
 				<p class="text-[10px] font-bold text-[#89918b]" th:text="${y} + '년 ' + ${m} + '월'">2026년 9월</p>
 				<div class="mt-1 flex items-baseline gap-2">
 					<h3 class="text-[17px] font-extrabold" th:text="${m} + '월 ' + ${d} + '일'">9월 27일</h3>
+					<span class="text-[9px] font-semibold text-[#89918b]" th:text="${lunar}">음 8.15</span>
 					<span th:if="${noMove}" class="text-[9px] font-bold text-[#4f80ac]">손 없는 날</span>
 					<span th:if="${holiday}" class="text-[9px] font-bold text-[#c85f57]">공휴일</span>
 				</div>
