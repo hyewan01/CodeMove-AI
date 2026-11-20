@@ -373,13 +373,13 @@
 		const q = $('[data-addr-query]', wrap);
 		const results = $('[data-addr-results]', wrap);
 		const search = () => {
-			const term = q.value.trim();
+			// 주소 칸은 직접 입력하지 않고, 검색 화면(카카오 우편번호)에서 찾아 고름
 			if (window.daum && window.daum.Postcode) {
-				openPostcode(label, term, pick);
+				openPostcode(label, '', pick);
 				return;
 			}
-			if (!term) return;
-			const found = (DATA.addresses || []).filter((a) => a.road.includes(term) || a.jibun.includes(term));
+			// 우편번호 서비스를 못 불러오면 예비 주소 목록을 보여 줌
+			const found = DATA.addresses || [];
 			results.innerHTML = found.length
 				? ''
 				: '<div class="addr-no-result">검색 결과가 없어요. 다른 주소로 검색해보세요.</div>';
@@ -406,8 +406,8 @@
 			refreshNext();
 		};
 		$('[data-addr-search-btn]', wrap).addEventListener('click', search);
-		q.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); search(); } });
-		q.addEventListener('input', () => (results.hidden = true));
+		q.addEventListener('click', search);
+		q.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); search(); } });
 		$('[data-addr-detail]', wrap).addEventListener('input', (e) => {
 			$('[data-addr-hint]', wrap).hidden = e.target.value.trim().length > 0;
 		});

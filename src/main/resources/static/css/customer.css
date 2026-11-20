@@ -638,7 +638,7 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 .addr-search-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; border-bottom: 1px solid #d9d9d9; padding-bottom: 4px; }
 .addr-search-row:focus-within { border-color: var(--green); }
 .addr-input { flex: 1; min-height: 38px; padding: 6px 4px; font-family: "Pretendard:SemiBold"; font-size: 15px; outline: none; border: none; background: transparent; color: var(--body); }
-.addr-input::placeholder { color: #d9d9d9; }
+.addr-input[readonly] { cursor: pointer; caret-color: transparent; }
 .addr-search-btn { height: 36px; padding: 0 16px; border-radius: 8px; background: var(--green); color: var(--white); font-family: "Pretendard:Bold"; font-size: 13px; white-space: nowrap; display: flex; align-items: center; }
 .addr-results { margin-top: 6px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--white); box-shadow: 0 4px 16px rgb(0 0 0 / .08); max-height: 240px; overflow-y: auto; }
 .addr-result-item { padding: 14px 16px; border-bottom: 1px solid #f3f3f3; display: flex; flex-direction: column; gap: 3px; }
@@ -681,6 +681,29 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 .video-upload-card > span { margin-top: 7px; color: var(--muted); font-size: 13px; }
 .video-upload-button { min-width: 180px; min-height: 50px; margin-top: 24px; border-radius: 14px; background: var(--green); color: var(--white); display: flex; align-items: center; justify-content: center; font-family: "Pretendard:Bold"; font-size: 15px; }
 .video-upload-change { margin-top: 20px; padding: 9px 14px; color: var(--green); font-family: "Pretendard:SemiBold"; font-size: 13px; text-decoration: underline; }
+/* 촬영 가이드 */
+.shoot-guide { margin-top: 28px; }
+.shoot-guide-head { padding: 0 2px; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.shoot-guide-head strong { color: var(--ink); font-family: "Pretendard:Bold"; font-size: 17px; }
+.shoot-guide-head span { color: var(--green); font-family: "Pretendard:SemiBold"; font-size: 12px; white-space: nowrap; }
+.shoot-tips { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.shoot-tips li { min-height: 60px; padding: 8px 2px; display: flex; align-items: center; gap: 14px; }
+.shoot-icon { width: 44px; height: 44px; flex: none; border-radius: 14px; background: var(--green-pale); color: var(--green); display: grid; place-items: center; }
+.shoot-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.shoot-tips div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.shoot-tips strong { color: var(--ink); font-family: "Pretendard:SemiBold"; font-size: 15px; word-break: keep-all; }
+.shoot-tips small { color: var(--muted); font-size: 13px; line-height: 1.4; word-break: keep-all; }
+.shoot-avoid { margin-top: 14px; padding: 16px; border-radius: 18px; background: var(--orange-pale); }
+.shoot-avoid > strong { color: #9a4f14; font-family: "Pretendard:Bold"; font-size: 14px; }
+.shoot-avoid > div { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.shoot-avoid span { padding: 5px 10px; border-radius: 999px; background: var(--white); color: #8a5a32; font-family: "Pretendard:SemiBold"; font-size: 12px; }
+.shoot-avoid p { margin: 10px 0 0; color: #a8805f; font-size: 12px; line-height: 1.5; }
+.easy-quote .shoot-guide-head strong { font-size: 20px; }
+.easy-quote .shoot-guide-head span { font-size: 14px; }
+.easy-quote .shoot-tips strong { font-size: 17px; }
+.easy-quote .shoot-tips small, .easy-quote .shoot-avoid span { font-size: 15px; }
+.easy-quote .shoot-avoid > strong { font-size: 16px; }
+.easy-quote .shoot-avoid p { font-size: 14px; }
 /* AI 분석 결과 · 찾은 품목 (앱 리스트 형태: 카드 테두리 없이 큰 요약 + 행 목록) */
 .analysis-result { margin-top: 28px; }
 .ai-summary { padding: 22px 22px 20px; border-radius: 24px; background: var(--green-pale); }
