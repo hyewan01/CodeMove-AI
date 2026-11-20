@@ -1,0 +1,392 @@
+-- ==================================================
+-- V5 챗봇 로어북 기본 내용 (2026-11-21) : 자동 생성 파일, 직접 고치지 말고
+--   db/tools/gen_v5_lorebook.py 를 고친 뒤 py -3 db/tools/gen_v5_lorebook.py
+-- 추가만 함: 같은 제목의 주제가 있으면 그 주제를 쓰고, 같은 키워드의 로어북은 다시 넣지 않음.
+-- 기존 로어북은 바꾸거나 지우지 않음. 관리자 화면(AI 챗봇 답변 관리)에서 계속 고칠 수 있음.
+-- 각 문장은 / 로 끝남 (SQL*Plus · SQL Developer 스크립트 실행)
+-- ==================================================
+
+-- ---------- 영상 분석 견적 ----------
+INSERT INTO TBL_CHATBOT_TOPIC (TOPIC_ID, TITLE, INTRO, TOPIC_TYPE, IS_ACTIVE, UPDATED_AT)
+SELECT SEQ_CHATBOT_TOPIC.NEXTVAL, q'[영상 분석 견적]', q'[영상 촬영 방법과 AI 부피 분석을 안내합니다.]', '01', 'Y', SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]'), q'[#촬영방법#찍는법#어떻게찍#촬영팁#잘찍]',
+       q'[영상은 이렇게 찍으면 정확해요.
+1. 불을 모두 켜고 밝게 찍어 주세요.
+2. 현관부터 방마다 천천히 한 바퀴 돌며 찍어 주세요.
+3. 장롱·수납장 문은 열어서 안에 든 짐도 보여 주세요.
+4. 침대·냉장고처럼 큰 가구와 가전은 한 화면에 다 보이게 찍어 주세요.
+너무 어둡거나 빠르게 흔들린 영상은 분석이 어려워요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]') AND KEYWORDS = q'[#촬영방법#찍는법#어떻게찍#촬영팁#잘찍]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]'), q'[#영상길이#몇분#몇분까지#올릴수#업로드#용량#파일형식#mp4#mov]',
+       q'[MP4·MOV 동영상을 올릴 수 있고, 최대 5분까지 분석해요.
+보통 1~3분이면 집 전체를 충분히 담을 수 있어요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]') AND KEYWORDS = q'[#영상길이#몇분#몇분까지#올릴수#업로드#용량#파일형식#mp4#mov]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]'), q'[#정확도#정확한가#실제견적#최종견적#차이]',
+       q'[AI 예상 견적은 영상에서 찾은 가구·가전을 표준 크기로 계산한 추정 금액이에요.
+담당자가 내용을 확인한 뒤 최종 견적서를 보내드리고, 짐의 양이나 현장 조건(층수·사다리차 등)에 따라 금액이 달라질 수 있어요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]') AND KEYWORDS = q'[#정확도#정확한가#실제견적#최종견적#차이]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]'), q'[#품목수정#빠진짐#잘못인식#품목추가#수량수정]',
+       q'[AI 분석이 끝나면 찾은 품목 목록이 나와요.
+품목을 누르면 종류·크기·수량을 고칠 수 있고, 빠진 짐은 '빠진 품목 추가하기'로 넣을 수 있어요. 고친 내용대로 부피와 예상 견적이 다시 계산돼요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]') AND KEYWORDS = q'[#품목수정#빠진짐#잘못인식#품목추가#수량수정]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]'), q'[#얼굴#개인정보#촬영주의#사람]',
+       q'[촬영할 때 사람 얼굴이나 우편물·택배 상자의 주소가 찍히지 않게 해 주세요.
+짐이 잘 보이는 것만으로 충분해요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[영상 분석 견적]') AND KEYWORDS = q'[#얼굴#개인정보#촬영주의#사람]')
+/
+
+-- ---------- 이사 비용·견적 ----------
+INSERT INTO TBL_CHATBOT_TOPIC (TOPIC_ID, TITLE, INTRO, TOPIC_TYPE, IS_ACTIVE, UPDATED_AT)
+SELECT SEQ_CHATBOT_TOPIC.NEXTVAL, q'[이사 비용·견적]', q'[이사 비용이 정해지는 기준과 추가 요금을 안내합니다.]', '01', 'Y', SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]'), q'[#이사비용#비용이#얼마#가격#요금#견적금액]',
+       q'[이사 비용은 아래 조건에 따라 정해져요.
+· 짐의 양(차량 크기·톤수)
+· 이사 방식(일반·반포장·포장)
+· 이동 거리
+· 층수와 사다리차·엘리베이터 사용 여부
+· 이사 날짜(주말·월말·손 없는 날)
+· 에어컨·피아노 같은 특수 품목
+홈에서 집 안 영상을 올리면 예상 금액을 바로 확인할 수 있고, 담당자가 확인한 최종 견적서를 보내드려요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]') AND KEYWORDS = q'[#이사비용#비용이#얼마#가격#요금#견적금액]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]'), q'[#추가요금#추가비용#웃돈#수고비#더내라#추가로]',
+       q'[견적서(계약서)에 없는 수고비 같은 비용은 따로 받을 수 없어요. (이사화물 표준약관)
+견적서에 '별도'로 적힌 항목(예: 에어컨 설치, 사다리차)이나 계약 때보다 짐이 크게 늘어난 경우에만 비용이 달라질 수 있어요.
+현장에서 예상 못 한 추가 요금을 요구받으면 바로 결제하지 마시고 상담사 연결로 알려 주세요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]') AND KEYWORDS = q'[#추가요금#추가비용#웃돈#수고비#더내라#추가로]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]'), q'[#방문견적#방문#직접와서#실측#집에와서]',
+       q'[영상만으로도 예상 견적을 받을 수 있어요.
+짐이 많거나 현장 확인이 꼭 필요하면 담당자가 방문 견적 일정을 잡아 드려요. 상담사 연결로 원하는 날짜를 남겨 주세요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]') AND KEYWORDS = q'[#방문견적#방문#직접와서#실측#집에와서]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]'), q'[#견적서#유효기간#견적만료#견적서기간#확정기한]',
+       q'[견적서는 '내 이사 > 견적 정보'에서 볼 수 있어요.
+견적서에 표시된 기간 안에 '견적 확정'을 눌러야 예약이 진행되고, 기간이 지나면 만료되어 다시 요청해야 해요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]') AND KEYWORDS = q'[#견적서#유효기간#견적만료#견적서기간#확정기한]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]'), q'[#사다리차#사다리차비용#사다리비용#엘리베이터#승강기#고층#계단]',
+       q'[엘리베이터가 없거나 큰 가구가 엘리베이터에 들어가지 않으면 사다리차를 써요.
+사다리차 비용은 층수와 작업 시간에 따라 달라지고 높을수록 올라가요. 계단으로 나르는 경우도 층수에 따라 추가 비용이 생길 수 있어요.
+아파트는 관리사무소에 엘리베이터 사용 예약을 미리 해 주세요. 정확한 금액은 견적서에서 확인할 수 있어요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 비용·견적]') AND KEYWORDS = q'[#사다리차#사다리차비용#사다리비용#엘리베이터#승강기#고층#계단]')
+/
+
+-- ---------- 이사 방식 안내 ----------
+INSERT INTO TBL_CHATBOT_TOPIC (TOPIC_ID, TITLE, INTRO, TOPIC_TYPE, IS_ACTIVE, UPDATED_AT)
+SELECT SEQ_CHATBOT_TOPIC.NEXTVAL, q'[이사 방식 안내]', q'[일반·반포장·포장·보관 이사의 차이를 안내합니다.]', '01', 'Y', SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]'), q'[#포장이사#반포장#일반이사#차이#방식]',
+       q'[이사 방식은 이렇게 달라요.
+· 일반이사: 짐 포장은 고객님이 하고, 업체는 운반만 해요. 가장 저렴해요.
+· 반포장이사: 큰 가구·가전 포장과 운반은 업체가, 잔짐(옷·책·주방용품) 포장과 정리는 고객님이 해요.
+· 포장이사: 포장부터 운반, 배치, 기본 정리까지 업체가 해요. 귀중품만 직접 챙기시면 돼요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]') AND KEYWORDS = q'[#포장이사#반포장#일반이사#차이#방식]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]'), q'[#보관이사#짐보관#보관#입주날짜#날짜가안맞]',
+       q'[나가는 날과 들어가는 날이 맞지 않으면 보관이사를 이용할 수 있어요.
+짐을 보관 창고에 맡겼다가 새집 입주일에 옮겨 드려요. 운반이 두 번이고 보관 기간만큼 보관료가 더해져 일반 이사보다 비용이 높아요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]') AND KEYWORDS = q'[#보관이사#짐보관#보관#입주날짜#날짜가안맞]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]'), q'[#원룸이사#원룸#오피스텔#소형이사#용달#짐이적#혼자]',
+       q'[원룸·오피스텔처럼 짐이 적으면 보통 1톤 차량으로 이사해요.
+짐이 적을수록 일반이사나 반포장이사로도 충분할 수 있어요. 영상 견적으로 짐 양을 먼저 확인해 보세요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]') AND KEYWORDS = q'[#원룸이사#원룸#오피스텔#소형이사#용달#짐이적#혼자]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]'), q'[#사무실이사#기업이사#사무실#회사]',
+       q'[사무실 이사는 업무에 지장이 없도록 일정을 먼저 정하는 게 중요해요.
+컴퓨터·서류는 부서별로 상자에 이름을 붙여 두시고, 인터넷·전화 이전 설치도 미리 신청해 주세요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]') AND KEYWORDS = q'[#사무실이사#기업이사#사무실#회사]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]'), q'[#아무것도안해#다해주나#정리까지#고객이할일]',
+       q'[포장이사도 귀중품(현금·보석·통장·중요 서류)은 직접 챙겨 주세요.
+버릴 짐은 미리 정리하고, 냉장고는 전날 비워 두시면 작업이 훨씬 빨라요. 새집에서는 가구 놓을 위치를 알려 주세요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 방식 안내]') AND KEYWORDS = q'[#아무것도안해#다해주나#정리까지#고객이할일]')
+/
+
+-- ---------- 이사 날짜·손 없는 날 ----------
+INSERT INTO TBL_CHATBOT_TOPIC (TOPIC_ID, TITLE, INTRO, TOPIC_TYPE, IS_ACTIVE, UPDATED_AT)
+SELECT SEQ_CHATBOT_TOPIC.NEXTVAL, q'[이사 날짜·손 없는 날]', q'[날짜 선택, 손 없는 날, 이사 시간을 안내합니다.]', '01', 'Y', SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]'), q'[#손없는날#손이없는#길일]',
+       q'[손 없는 날은 악귀(손)가 없다고 여기는 날로, 음력 날짜 끝자리가 9·0인 날(9·10·19·20·29·30일)이에요.
+이 날은 이사가 몰려 비용이 오르고 예약도 빨리 마감돼요. 이사 날짜 달력에 파란 점으로 표시돼 있어요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]') AND KEYWORDS = q'[#손없는날#손이없는#길일]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]'), q'[#주말#월말#성수기#저렴한날#싼날#비싼날]',
+       q'[주말, 월말, 손 없는 날, 새 학기 전(2~3월)에는 이사가 몰려 비용이 오르고 예약이 빨리 차요.
+비용을 아끼려면 평일, 그중에서도 월 중순을 추천해요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]') AND KEYWORDS = q'[#주말#월말#성수기#저렴한날#싼날#비싼날]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]'), q'[#언제예약#미리예약#며칠전#예약시기#빨리]',
+       q'[이사 2~4주 전에는 예약하시는 게 좋아요.
+손 없는 날·주말·성수기는 한 달 이상 전에 마감되기도 해요. 날짜를 아직 못 정했다면 '아직 날짜를 모르겠어요'로 예상 견적부터 받아 보세요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]') AND KEYWORDS = q'[#언제예약#미리예약#며칠전#예약시기#빨리]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]'), q'[#날짜변경#일정변경#날짜바꾸#시간변경#미루]',
+       q'[예약한 날짜나 시간을 바꾸려면 상담사 연결로 알려 주세요.
+바꾸려는 날짜에 예약이 가능한지 확인한 뒤 안내해 드려요. 이사일이 가까울수록 변경이 어려울 수 있어요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]') AND KEYWORDS = q'[#날짜변경#일정변경#날짜바꾸#시간변경#미루]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]'), q'[#비오는날#눈오는날#비와도#우천#날씨]',
+       q'[비나 눈이 와도 이사는 진행해요.
+짐은 비닐·방수 포장으로 보호하고, 젖기 쉬운 짐은 따로 먼저 옮겨요. 태풍·폭설처럼 작업이 위험한 날에는 일정을 다시 협의해요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]') AND KEYWORDS = q'[#비오는날#눈오는날#비와도#우천#날씨]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]'), q'[#몇시#작업시간#소요시간#얼마나걸려#시작시간]',
+       q'[이사 시작 시간은 오전 6시부터 오후 8시 사이에서 정시로 고를 수 있어요.
+걸리는 시간은 짐 양·층수·거리에 따라 달라요. 보통 원룸은 반나절, 가족 이사는 하루 정도 걸려요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 날짜·손 없는 날]') AND KEYWORDS = q'[#몇시#작업시간#소요시간#얼마나걸려#시작시간]')
+/
+
+-- ---------- 이사 준비 체크리스트 ----------
+INSERT INTO TBL_CHATBOT_TOPIC (TOPIC_ID, TITLE, INTRO, TOPIC_TYPE, IS_ACTIVE, UPDATED_AT)
+SELECT SEQ_CHATBOT_TOPIC.NEXTVAL, q'[이사 준비 체크리스트]', q'[이사 전과 당일에 챙길 일을 안내합니다.]', '01', 'Y', SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]'), q'[#전입신고#전입신고언제#신고기한#주소이전#확정일자#주민센터#정부24]',
+       q'[전입신고는 이사한 날부터 14일 안에 해야 해요. 늦으면 과태료가 나올 수 있어요.
+정부24(온라인)나 주민센터에서 할 수 있고, 전세·월세라면 임대차계약서로 확정일자도 함께 받아 두세요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]') AND KEYWORDS = q'[#전입신고#전입신고언제#신고기한#주소이전#확정일자#주민센터#정부24]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]'), q'[#도시가스#가스#전기#수도#공과금#관리비#정산]',
+       q'[이사 전에 공과금을 정산해 주세요.
+· 전기·수도·가스 계량기 숫자를 사진으로 남겨 두세요.
+· 도시가스는 가스회사에 이사 전 철거, 새집 개통(설치)을 미리 예약해야 해요.
+· 아파트는 관리사무소에서 관리비를 정산해요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]') AND KEYWORDS = q'[#도시가스#가스#전기#수도#공과금#관리비#정산]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]'), q'[#인터넷#iptv#통신#와이파이#티비이전]',
+       q'[인터넷·IPTV 이전 설치는 통신사에 1~2주 전에 신청해 두세요.
+이사 당일 바로 쓰려면 설치 날짜를 이사일에 맞춰 잡는 게 좋아요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]') AND KEYWORDS = q'[#인터넷#iptv#통신#와이파이#티비이전]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]'), q'[#우편물#주소변경#카드사#은행#택배주소]',
+       q'[우편물은 인터넷우체국의 주거이전 서비스로 새 주소로 보내도록 신청할 수 있어요.
+카드사·은행·보험·쇼핑몰 배송지 주소도 미리 바꿔 두세요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]') AND KEYWORDS = q'[#우편물#주소변경#카드사#은행#택배주소]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]'), q'[#관리사무소#엘리베이터예약#주차#이사차량]',
+       q'[아파트·오피스텔은 관리사무소에 이사 날짜를 알리고 엘리베이터 사용과 이사 차량 주차 자리를 예약해 주세요.
+출발지와 도착지 모두 확인해야 해요. 사용료가 있는 곳도 있어요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]') AND KEYWORDS = q'[#관리사무소#엘리베이터예약#주차#이사차량]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]'), q'[#냉장고#냉동실#김치냉장고#성에]',
+       q'[냉장고는 이사 전날 음식을 비우고 전원을 꺼서 성에와 물받이 물을 정리해 주세요.
+새집에 설치한 뒤에는 바로 켜기보다 1~2시간 정도 두었다가 전원을 켜는 게 좋아요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]') AND KEYWORDS = q'[#냉장고#냉동실#김치냉장고#성에]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]'), q'[#세탁기#물빼기#배수#드럼세탁기]',
+       q'[세탁기는 이사 전에 수도꼭지를 잠그고 급수·배수 호스의 물을 빼 주세요.
+드럼세탁기는 운반 중 통이 흔들리지 않도록 고정 볼트가 있으면 다시 끼워 두는 게 좋아요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]') AND KEYWORDS = q'[#세탁기#물빼기#배수#드럼세탁기]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]'), q'[#이사당일#당일#할일#도착하면#마지막점검]',
+       q'[이사 당일에는 이렇게 챙겨 주세요.
+· 귀중품은 직접 들고 이동해 주세요.
+· 떠나기 전 창문·가스·두고 가는 짐을 마지막으로 확인해 주세요.
+· 새집에서는 가구 놓을 위치를 알려 주세요.
+· 작업이 끝나면 파손된 짐이 없는지 확인한 뒤 마무리해 주세요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]') AND KEYWORDS = q'[#이사당일#당일#할일#도착하면#마지막점검]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]'), q'[#입주청소#청소#새집청소]',
+       q'[입주 청소는 짐이 들어가기 전에 하는 게 가장 깨끗하고 빨라요.
+이사 1~2일 전으로 청소 날짜를 잡아 두시면 좋아요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[이사 준비 체크리스트]') AND KEYWORDS = q'[#입주청소#청소#새집청소]')
+/
+
+-- ---------- 파손·분실 보상 ----------
+INSERT INTO TBL_CHATBOT_TOPIC (TOPIC_ID, TITLE, INTRO, TOPIC_TYPE, IS_ACTIVE, UPDATED_AT)
+SELECT SEQ_CHATBOT_TOPIC.NEXTVAL, q'[파손·분실 보상]', q'[이삿짐 파손·분실 시 대처 방법과 보상 기준을 안내합니다.]', '01', 'Y', SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[파손·분실 보상]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[파손·분실 보상]'), q'[#파손#파손됐#깨졌#망가#흠집#흠집이났#긁혔#찍혔#부서#보상]',
+       q'[이삿짐이 파손됐다면 이렇게 해 주세요.
+1. 파손된 곳을 바로 사진으로 남겨 주세요.
+2. 작업 책임자에게 알리고, 채팅으로 사진과 함께 접수해 주세요.
+이사화물 표준약관에 따라 이삿짐을 받은 날부터 30일 안에 알려 주셔야 배상받을 수 있어요. 업체는 잘못이 없음을 증명하지 못하면 배상하고, 훼손은 수리비, 분실은 물건 값 기준으로 배상해요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[파손·분실 보상]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[파손·분실 보상]') AND KEYWORDS = q'[#파손#파손됐#깨졌#망가#흠집#흠집이났#긁혔#찍혔#부서#보상]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[파손·분실 보상]'), q'[#분실#없어졌#잃어버#사라졌#안보여]',
+       q'[짐이 없어졌다면 어떤 물건인지 목록을 적어 상담사 연결로 바로 알려 주세요.
+작업 기록과 짐을 확인한 뒤 안내해 드려요. 이삿짐을 받은 날부터 30일 안에 알려 주셔야 배상받을 수 있어요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[파손·분실 보상]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[파손·분실 보상]') AND KEYWORDS = q'[#분실#없어졌#잃어버#사라졌#안보여]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[파손·분실 보상]'), q'[#귀중품#귀중품은#귀중품보관#현금#보석#통장#중요서류#금고]',
+       q'[현금·보석·통장·도장·중요 서류 같은 귀중품은 고객님이 직접 챙겨 주세요.
+이삿짐에 섞이면 찾기 어렵고 보상도 어려울 수 있어요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[파손·분실 보상]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[파손·분실 보상]') AND KEYWORDS = q'[#귀중품#귀중품은#귀중품보관#현금#보석#통장#중요서류#금고]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[파손·분실 보상]'), q'[#소비자원#피해구제#분쟁#신고#1372]',
+       q'[업체와 해결이 어려운 문제는 1372 소비자상담센터(국번 없이 1372)에서 상담받을 수 있어요.
+계약서(견적서), 사진, 대화 기록을 함께 준비해 두시면 좋아요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[파손·분실 보상]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[파손·분실 보상]') AND KEYWORDS = q'[#소비자원#피해구제#분쟁#신고#1372]')
+/
+
+-- ---------- 특수 품목·폐기물 ----------
+INSERT INTO TBL_CHATBOT_TOPIC (TOPIC_ID, TITLE, INTRO, TOPIC_TYPE, IS_ACTIVE, UPDATED_AT)
+SELECT SEQ_CHATBOT_TOPIC.NEXTVAL, q'[특수 품목·폐기물]', q'[에어컨·피아노 같은 특수 품목과 버릴 짐 처리를 안내합니다.]', '01', 'Y', SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]'), q'[#에어컨#실외기#에어컨이전#에어컨설치]',
+       q'[에어컨은 떼어 내고(탈착) 새집에 다시 다는(설치) 작업이 따로 필요해요.
+배관 연장이나 가스 충전이 필요하면 비용이 더해질 수 있고, 여름에는 설치 대기가 길어 미리 예약하는 게 좋아요. 견적 때 알려 주시면 견적서 옵션에 함께 넣어 드려요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]') AND KEYWORDS = q'[#에어컨#실외기#에어컨이전#에어컨설치]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]'), q'[#피아노#그랜드피아노#디지털피아노]',
+       q'[피아노는 무겁고 충격에 약해 전문 운반이 필요하고, 별도 비용이 생겨요.
+일반·그랜드 피아노에 따라 비용이 다르고, 옮긴 뒤에는 조율을 한 번 받는 걸 추천해요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]') AND KEYWORDS = q'[#피아노#그랜드피아노#디지털피아노]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]'), q'[#돌침대#안마의자#조립장#장롱조립#분해]',
+       q'[돌침대·안마의자·조립식 장롱은 분해하고 다시 조립해야 해서 작업이 따로 필요해요.
+견적 때 알려 주시면 견적서 옵션에 넣어 드려요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]') AND KEYWORDS = q'[#돌침대#안마의자#조립장#장롱조립#분해]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]'), q'[#벽걸이tv#벽걸이#tv설치#티비설치]',
+       q'[벽걸이 TV는 떼어 내고 새집 벽에 다시 다는 작업이 필요해요.
+새집 벽 상태에 따라 설치가 어려울 수 있으니 미리 확인해 주세요. 견적서 옵션으로 넣을 수 있어요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]') AND KEYWORDS = q'[#벽걸이tv#벽걸이#tv설치#티비설치]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]'), q'[#반려동물#강아지#고양이#애완]',
+       q'[반려동물은 이삿짐 차량에 함께 태울 수 없어요. 고객님이 직접 데리고 이동해 주세요.
+작업 중에는 문이 계속 열려 있어 놀라거나 나갈 수 있으니, 이동장에 두거나 잠시 맡겨 두시면 안전해요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]') AND KEYWORDS = q'[#반려동물#강아지#고양이#애완]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]'), q'[#폐기물#버릴#대형폐기물#폐가전#스티커#버리]',
+       q'[버릴 짐은 이사 전에 정리해 주세요.
+· 가구 같은 대형 폐기물: 구청·주민센터나 온라인으로 배출 신고(스티커) 후 내놓아요.
+· 냉장고·세탁기 같은 폐가전: 폐가전제품 무상 방문수거(1599-0903)를 이용할 수 있어요. 소형 가전은 5개 이상일 때 수거해요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[특수 품목·폐기물]') AND KEYWORDS = q'[#폐기물#버릴#대형폐기물#폐가전#스티커#버리]')
+/
+
+-- ---------- 결제 및 환불 문의 ----------
+INSERT INTO TBL_CHATBOT_TOPIC (TOPIC_ID, TITLE, INTRO, TOPIC_TYPE, IS_ACTIVE, UPDATED_AT)
+SELECT SEQ_CHATBOT_TOPIC.NEXTVAL, q'[결제 및 환불 문의]', q'[계약금 결제와 취소·환불 기준을 안내합니다.]', '01', 'Y', SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[결제 및 환불 문의]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[결제 및 환불 문의]'), q'[#취소#환불#계약금돌려#위약금#해약]',
+       q'[예약 취소는 '내 이사 > 예약 상세'에서 할 수 있어요.
+이사화물 표준약관 기준으로 고객님 사정으로 취소하면
+· 이사 1일 전까지: 계약금은 돌려받기 어려워요.
+· 이사 당일: 계약금의 2배를 배상해야 해요.
+업체 사정으로 취소하면 업체가 계약금의 2배(2일 전)·4배(1일 전)·10배(통보 없이 취소)를 배상해요.
+정확한 기준은 견적서와 상담사 안내로 확인해 주세요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[결제 및 환불 문의]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[결제 및 환불 문의]') AND KEYWORDS = q'[#취소#환불#계약금돌려#위약금#해약]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[결제 및 환불 문의]'), q'[#계약금#얼마내#선금#예약금]',
+       q'[견적을 확정하면 계약금을 결제해 예약을 확정해요.
+계약금은 이사화물 표준약관상 총비용의 10% 안에서 정하고, 금액은 견적서에서 확인할 수 있어요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[결제 및 환불 문의]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[결제 및 환불 문의]') AND KEYWORDS = q'[#계약금#얼마내#선금#예약금]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[결제 및 환불 문의]'), q'[#잔금#잔금은#잔금결제#언제결제#결제방법#카드결제#현금영수증#계좌이체]',
+       q'[총비용에서 계약금을 뺀 잔금은 이사를 마친 뒤 결제해요.
+결제 수단과 현금영수증·세금계산서 발행은 담당자에게 확인해 주세요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[결제 및 환불 문의]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[결제 및 환불 문의]') AND KEYWORDS = q'[#잔금#잔금은#잔금결제#언제결제#결제방법#카드결제#현금영수증#계좌이체]')
+/
+INSERT INTO TBL_LOREBOOK (LOREBOOK_ID, TOPIC_ID, KEYWORDS, CONTENT, SORT_ORDER, UPDATED_AT)
+SELECT SEQ_LOREBOOK.NEXTVAL, (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[결제 및 환불 문의]'), q'[#늦게와#지연#안와#늦어#도착안]',
+       q'[약속한 시간에 작업팀이 늦어지면 상담사 연결로 바로 알려 주세요.
+이사화물 표준약관은 업체 사정으로 늦어진 경우 늦어진 시간과 계약금을 기준으로 배상하도록 정하고 있어요.]',
+       (SELECT NVL(MAX(SORT_ORDER), 0) + 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[결제 및 환불 문의]')), SYSDATE FROM DUAL
+ WHERE NOT EXISTS (SELECT 1 FROM TBL_LOREBOOK WHERE TOPIC_ID = (SELECT MIN(TOPIC_ID) FROM TBL_CHATBOT_TOPIC WHERE TITLE = q'[결제 및 환불 문의]') AND KEYWORDS = q'[#늦게와#지연#안와#늦어#도착안]')
+/
+
+COMMIT
+/
