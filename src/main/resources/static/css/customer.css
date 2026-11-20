@@ -2011,3 +2011,21 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 /* 알림 상단 '모두읽음' (form 안 버튼이라 따로 지정) */
 .notification-header form .action { min-height: 40px; padding: 0 6px 0 10px; color: #5d6b5f; font-family: "Pretendard:SemiBold"; font-size: 14px; }
 .notification-header form .action:hover { color: var(--green); }
+
+/* 로그인 도움말 (번호가 바뀌었을 때) */
+.lh-page { padding-bottom: 40px; }
+.lh-title { margin: 6px 0 0; color: var(--ink); font-family: "Pretendard:Bold"; font-size: 22px; }
+.lh-lead { margin: 10px 0 0; color: #6b746d; font-size: 14px; line-height: 1.6; }
+.lh-card { margin-top: 16px; padding: 20px 18px; border-radius: 22px; background: var(--surface); display: flex; gap: 14px; }
+.lh-card:first-of-type { margin-top: 28px; }
+.lh-step { width: 28px; height: 28px; flex: none; border-radius: 50%; background: var(--green); color: var(--white); display: grid; place-items: center; font-family: "Pretendard:Bold"; font-size: 14px; }
+.lh-card > div { min-width: 0; flex: 1; }
+.lh-card strong { display: block; padding-top: 3px; color: var(--ink); font-family: "Pretendard:Bold"; font-size: 16px; word-break: keep-all; }
+.lh-card p { margin: 8px 0 0; color: #6b746d; font-size: 14px; line-height: 1.6; word-break: keep-all; }
+.lh-card b { color: var(--ink); font-family: "Pretendard:SemiBold"; }
+.lh-button { min-height: 48px; margin-top: 14px; border-radius: 14px; background: var(--green); color: var(--white); display: flex; align-items: center; justify-content: center; font-family: "Pretendard:Bold"; font-size: 15px; }
+.lh-button.outline { border: 1.5px solid var(--green); background: var(--white); color: var(--green); }
+.easy-mode .lh-title { font-size: 24px; }
+.easy-mode .lh-card strong { font-size: 18px; }
+.easy-mode .lh-card p, .easy-mode .lh-lead { font-size: 16px; }
+.easy-mode .lh-button { min-height: 56px; font-size: 17px; }

@@ -185,6 +185,12 @@ public class CustomerPageController {
 		return "customer/auth/phone-login";
 	}
 
+	/** 로그인 도움말: 휴대폰 번호가 바뀐 경우 (휴대전화 로그인은 번호가 곧 계정이라 '계정 찾기'가 따로 없음) */
+	@GetMapping("/login/help")
+	public String loginHelp() {
+		return "customer/auth/login-help";
+	}
+
 	/**
 	 * 휴대전화 로그인: 관리자 번호면 관리자 화면, 회원이면 고객 홈, 처음 보는 번호면 회원가입으로.
 	 * (샘플: 010-9445-8224 관리자 김선국 / 010-5678-1234 김코드 / 010-4321-8765 김무브)
