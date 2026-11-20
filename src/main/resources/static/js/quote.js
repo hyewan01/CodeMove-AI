@@ -192,7 +192,6 @@
 	const sheet = $('.item-sheet');
 	let draft = null;
 	let adding = false;
-	let pickerTab = '';
 	const showView = (view) => {
 		sheet.dataset.sheetView = view;
 		if (view === 'picker') {
@@ -238,37 +237,67 @@
 		$('[data-edit-count="-1"]').disabled = draft.count <= 1;
 		$('[data-edit-cbm]').textContent = itemCbm(draft).toFixed(1);
 	}
+	/* 품목 선택: 분류별 제목 아래 한 목록으로 보여 주고, 위쪽 분류 버튼은 그 제목으로 이동. 검색하면 맞는 품목만 */
+	const pickerGrid = $('[data-picker-grid]');
+	const pickerTabs = $('.picker-tabs');
+	function pickerButton(c) {
+		const b = document.createElement('button');
+		b.type = 'button';
+		b.className = 'action picker-item' + (draft && draft.name === c.name ? ' active' : '');
+		b.innerHTML = `<span><img alt="" src="${A}${c.icon}"></span><strong>${esc(c.name)}</strong>`;
+		b.addEventListener('click', () => {
+			draft.name = c.name;
+			if (!c.sizes.some((z) => z.code === draft.sizeCode)) draft.sizeCode = '02';
+			showView('detail');
+			renderDraft();
+		});
+		return b;
+	}
 	function renderPicker() {
 		const q = $('[data-picker-search]').value.trim();
-		const grid = $('[data-picker-grid]');
-		grid.innerHTML = '';
-		$$('[data-picker-tab]').forEach((t) => {
-			const on = t.dataset.pickerTab === pickerTab;
-			t.classList.toggle('active', on);
-			t.setAttribute('aria-selected', String(on));
-		});
-		const found = CATALOG.filter((c) => (!pickerTab || c.category === pickerTab) && (!q || c.name.includes(q)));
-		if (!found.length) {
-			grid.innerHTML = '<p class="picker-empty">찾는 품목이 없어요.<br>가장 비슷한 품목을 골라주세요.</p>';
+		pickerGrid.innerHTML = '';
+		pickerTabs.hidden = !!q;
+		if (q) {
+			const found = CATALOG.filter((c) => c.name.includes(q));
+			if (!found.length) {
+				pickerGrid.innerHTML = '<p class="picker-empty">찾는 품목이 없어요.<br>가장 비슷한 품목을 골라주세요.</p>';
+				return;
+			}
+			found.forEach((c) => pickerGrid.appendChild(pickerButton(c)));
 			return;
 		}
-		found.forEach((c) => {
-			const b = document.createElement('button');
-			b.type = 'button';
-			b.className = 'action picker-item' + (draft && draft.name === c.name ? ' active' : '');
-			b.innerHTML = `<span><img alt="" src="${A}${c.icon}"></span><strong>${esc(c.name)}</strong>`;
-			b.addEventListener('click', () => {
-				draft.name = c.name;
-				if (!c.sizes.some((z) => z.code === draft.sizeCode)) draft.sizeCode = '02';
-				showView('detail');
-				renderDraft();
-			});
-			grid.appendChild(b);
+		Object.keys(CATEGORY_NAME).forEach((code) => {
+			const items = CATALOG.filter((c) => c.category === code);
+			if (!items.length) return;
+			const h = document.createElement('p');
+			h.className = 'picker-group';
+			h.dataset.group = code;
+			h.textContent = CATEGORY_NAME[code];
+			pickerGrid.appendChild(h);
+			items.forEach((c) => pickerGrid.appendChild(pickerButton(c)));
+		});
+		markPickerTab();
+	}
+	/* 스크롤 위치에 맞는 분류 버튼 표시 */
+	function markPickerTab() {
+		const top = pickerGrid.scrollTop + 8;
+		const atEnd = pickerGrid.scrollTop + pickerGrid.clientHeight >= pickerGrid.scrollHeight - 4;
+		const groups = $$('.picker-group', pickerGrid);
+		let current = groups[0]?.dataset.group;
+		groups.forEach((g) => { if (g.offsetTop - pickerGrid.offsetTop <= top) current = g.dataset.group; });
+		if (atEnd && groups.length) current = groups[groups.length - 1].dataset.group;
+		$$('[data-picker-tab]').forEach((t) => {
+			const on = t.dataset.pickerTab === current;
+			t.classList.toggle('active', on);
+			t.setAttribute('aria-current', on ? 'true' : 'false');
 		});
 	}
-	/* 검색은 분류와 상관없이 전체에서 찾음 */
-	$('[data-picker-search]').addEventListener('input', () => { pickerTab = ''; renderPicker(); });
-	$$('[data-picker-tab]').forEach((t) => t.addEventListener('click', () => { pickerTab = t.dataset.pickerTab; renderPicker(); }));
+	pickerGrid.addEventListener('scroll', markPickerTab, { passive: true });
+	$('[data-picker-search]').addEventListener('input', renderPicker);
+	$$('[data-picker-tab]').forEach((t) => t.addEventListener('click', () => {
+		const g = $(`.picker-group[data-group="${t.dataset.pickerTab}"]`, pickerGrid);
+		if (g) pickerGrid.scrollTo({ top: g.offsetTop - pickerGrid.offsetTop - 4, behavior: 'smooth' });
+	}));
 	$('[data-edit-change]').addEventListener('click', () => showView('picker'));
 	/* 추가 중에 아직 품목을 안 골랐으면 시트를 닫고, 아니면 상세로 돌아감 */
 	$('[data-picker-back]').addEventListener('click', () => {

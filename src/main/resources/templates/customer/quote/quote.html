@@ -338,11 +338,10 @@
 				<svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><circle cx="9" cy="9" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m13.2 13.2 3.3 3.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
 				<input type="search" placeholder="품목 이름으로 찾기" aria-label="품목 이름으로 찾기" data-picker-search>
 			</label>
-			<div class="picker-tabs" role="tablist" aria-label="품목 분류">
-				<button type="button" class="action active" role="tab" data-picker-tab="">전체</button>
-				<button type="button" class="action" role="tab" th:each="c : ${categories}" th:data-picker-tab="${c.code}" th:text="${c.name}">가구</button>
-			</div>
-			<div class="picker-grid designed-scroll" data-picker-grid></div>
+			<nav class="picker-tabs" aria-label="분류로 이동">
+				<button type="button" class="action" th:each="c : ${categories}" th:data-picker-tab="${c.code}" th:text="${c.name}">가구</button>
+			</nav>
+			<div class="picker-grid" data-picker-grid></div>
 		</div>
 	</div>
 </form>
