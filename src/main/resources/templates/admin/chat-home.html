@@ -5,20 +5,20 @@
 <th:block th:fragment="content">
 <div class="h-full overflow-y-auto bg-[#f5f6f8] px-4 pb-6 pt-5">
 	<div class="mb-5">
-		<p class="text-[10px] font-bold tracking-[0.12em] text-[#879189]">CHAT SERVICE</p>
-		<h1 class="mt-1 text-xl font-extrabold tracking-[-0.04em] text-[#253328]">채팅 관리</h1>
+		<p class="text-[14px] font-bold tracking-[0.12em] text-[#879189]">CHAT SERVICE</p>
+		<h1 class="mt-1 text-[21px] font-extrabold tracking-[-0.04em] text-[#253328]">채팅 관리</h1>
 	</div>
 
 	<section class="rounded-[22px] border border-[#f2dedb] bg-white p-5 shadow-[0_8px_24px_rgba(89,54,48,.08)]">
 		<div class="flex items-center gap-2 text-[#a8433b]">
 			<span class="grid h-8 w-8 place-items-center rounded-xl bg-[#fff0ee]"><svg th:replace="~{admin/fragments/icon :: icon2('alert', 18, '')}"></svg></span>
-			<h2 class="text-sm font-extrabold text-[#3a403b]">실시간 상담 현황</h2>
+			<h2 class="text-[15px] font-extrabold text-[#3a403b]">실시간 상담 현황</h2>
 		</div>
 		<div class="py-6 text-center">
-			<strong class="text-[42px] font-extrabold tracking-[-0.06em] text-[#c34f45]"><th:block th:text="${waitingCount}">5</th:block><span class="ml-1 text-lg tracking-normal">건</span></strong>
-			<p class="mt-2 text-xs font-semibold text-[#8a615d]">상담사 연결을 요청한 고객 (답장 전)</p>
+			<strong class="text-[42px] font-extrabold tracking-[-0.06em] text-[#c34f45]"><th:block th:text="${waitingCount}">5</th:block><span class="ml-1 text-[19px] tracking-normal">건</span></strong>
+			<p class="mt-2 text-[14px] font-semibold text-[#8a615d]">상담사 연결을 요청한 고객 (답장 전)</p>
 		</div>
-		<a class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#fff0ee] text-xs font-bold text-[#b64b42]" th:href="@{/admin/chats(filter='waiting',from='management')}">
+		<a class="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#fff0ee] text-[14px] font-bold text-[#b64b42]" th:href="@{/admin/chats(filter='waiting',from='management')}">
 			대기 상담 바로 확인 <svg th:replace="~{admin/fragments/icon :: icon2('arrowRight', 15, '')}"></svg>
 		</a>
 	</section>
@@ -28,10 +28,10 @@
 		   th:href="@{/admin/chats(filter='unread',from='management')}">
 			<span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon2('chat', 22, '')}"></svg></span>
 			<span class="min-w-0 flex-1">
-				<strong class="block text-sm text-[#2e3630]">채팅 내역</strong>
-				<span class="mt-1 block text-xs text-[#858d87]">모든 손님 대화 목록</span>
+				<strong class="block text-[15px] text-[#2e3630]">채팅 내역</strong>
+				<span class="mt-1 block text-[14px] text-[#858d87]">모든 손님 대화 목록</span>
 			</span>
-			<span class="grid h-6 min-w-6 place-items-center rounded-full bg-[#346538] px-1.5 text-[10px] font-extrabold text-white" th:text="${unreadCount}">16</span>
+			<span class="grid h-6 min-w-6 place-items-center rounded-full bg-[#346538] px-1.5 text-[14px] font-extrabold text-white" th:text="${unreadCount}">16</span>
 			<svg th:replace="~{admin/fragments/icon :: icon2('arrowRight', 18, 'text-[#9aa19b]')}"></svg>
 		</a>
 		<a th:each="m : ${ { {'/admin/chat-management/operation', 'settings', '채팅 운영 설정', '챗봇 켜기/끄기, 운영 시간, 답변 못 할 때 대응'},
@@ -41,8 +41,8 @@
 		   th:href="@{${m[0]}}">
 			<span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon2(${m[1]}, 22, '')}"></svg></span>
 			<span class="min-w-0 flex-1">
-				<strong class="block text-sm text-[#2e3630]" th:text="${m[2]}"></strong>
-				<span class="mt-1 block text-xs leading-5 text-[#858d87]" th:text="${m[3]}"></span>
+				<strong class="block text-[15px] text-[#2e3630]" th:text="${m[2]}"></strong>
+				<span class="mt-1 block text-[14px] leading-5 text-[#858d87]" th:text="${m[3]}"></span>
 			</span>
 			<svg th:replace="~{admin/fragments/icon :: icon2('arrowRight', 18, 'text-[#9aa19b]')}"></svg>
 		</a>

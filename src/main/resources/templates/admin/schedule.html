@@ -4,45 +4,52 @@
 <!-- 일정 캘린더 (SCR-A-020) · 일정 등록 (SCR-A-021) -->
 <th:block th:fragment="content">
 <div class="px-4 pb-28 pt-6" data-schedule>
-	<h2 class="px-1 text-[24px] font-extrabold tracking-[-0.04em] text-[#346538]">일정 캘린더</h2>
+	<h2 class="px-1 text-[26px] font-extrabold tracking-[-0.04em] text-[#346538]">일정 캘린더</h2>
 	<section class="mt-5 rounded-[20px] bg-white p-4 shadow-[0_5px_18px_rgba(36,58,39,.06)] transition-all" data-calendar-section>
 		<div class="flex items-center justify-center gap-4">
 			<a aria-label="이전 달" class="grid h-8 w-8 rotate-180 place-items-center text-[#586159]"
 			   th:href="@{/admin/schedule(y=${prev.year},m=${prev.monthValue},d=1)}"><svg th:replace="~{admin/fragments/icon :: icon('arrowRight', 17, '')}"></svg></a>
-			<button class="flex items-center gap-1 text-[15px] font-extrabold text-[#29312b]" type="button" data-toggle="month-picker">
+			<button class="flex items-center gap-1 text-[17px] font-extrabold text-[#29312b]" type="button" data-toggle="month-picker">
 				<th:block th:text="${y} + '년 ' + ${m} + '월'"></th:block> <svg th:replace="~{admin/fragments/icon :: icon('chevron', 14, '')}"></svg>
 			</button>
 			<a aria-label="다음 달" class="grid h-8 w-8 place-items-center text-[#586159]"
 			   th:href="@{/admin/schedule(y=${next.year},m=${next.monthValue},d=1)}"><svg th:replace="~{admin/fragments/icon :: icon('arrowRight', 17, '')}"></svg></a>
 		</div>
-		<div class="mt-4 grid grid-cols-7 text-center text-[9px] font-bold">
+		<div class="mt-4 grid grid-cols-7 text-center text-[13px] font-bold">
 			<span th:each="w, it : ${ {'일', '월', '화', '수', '목', '금', '토'} }" th:text="${w}"
 				  th:class="${it.index == 0} ? 'text-[#c85f57]' : (${it.index == 6} ? 'text-[#557fa3]' : 'text-[#858d87]')"></span>
 		</div>
+		<!-- 달력 칸: 날짜 + (손 없는 날·공휴일 점은 날짜 옆) + 일정 막대 최대 2개, 넘치면 +N. 자세한 내용은 아래 날짜 상세 -->
 		<div class="mt-2 grid grid-cols-7">
 			<th:block th:each="c : ${cells}">
-				<span th:if="${c.day == null}" class="h-[58px]"></span>
+				<span th:if="${c.day == null}" class="min-h-[78px]"></span>
 				<a th:unless="${c.day == null}" th:href="@{/admin/schedule(y=${y},m=${m},d=${c.day})}"
-				   class="relative flex h-[58px] flex-col items-start border-t border-[#f0f2f0] p-1 text-left" th:classappend="${c.day == d} ? 'bg-[#edf3ed]'">
-					<span class="relative flex h-5 w-4 shrink-0 items-end justify-center">
-						<span th:if="${c.noMove}" class="absolute left-1/2 top-0 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#4f80ac]"></span>
-						<span th:if="${c.holiday}" class="absolute left-1/2 top-0 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[#c85f57]"></span>
-						<span class="text-[10px] font-bold" th:classappend="${c.holiday or c.weekday == 0} ? 'text-[#c85f57]' : 'text-[#555e57]'" th:text="${c.day}">1</span>
+				   th:with="n=${(c.managed != null ? 1 : 0) + (c.full ? 1 : 0) + (c.event != null ? 1 : 0) + (c.manual != null ? 1 : 0)}"
+				   class="flex min-h-[78px] min-w-0 flex-col gap-[3px] border-t border-[#f0f2f0] px-[3px] pb-1.5 pt-1.5 text-left"
+				   th:classappend="${c.day == d} ? 'rounded-lg bg-[#edf3ed]'">
+					<span class="flex items-center gap-1 pl-0.5">
+						<span class="text-[15px] font-bold leading-none" th:classappend="${c.holiday or c.weekday == 0} ? 'text-[#c85f57]' : (${c.weekday == 6} ? 'text-[#557fa3]' : 'text-[#3f4741]')" th:text="${c.day}">1</span>
+						<span th:if="${c.noMove}" class="h-1.5 w-1.5 shrink-0 rounded-full bg-[#4f80ac]" title="손 없는 날"></span>
+						<span th:if="${c.holiday}" class="h-1.5 w-1.5 shrink-0 rounded-full bg-[#c85f57]" title="공휴일"></span>
 					</span>
-					<span th:if="${c.event}" class="mt-1 block w-full truncate rounded px-1 py-0.5 text-[7px] font-bold text-white"
-						  th:classappend="${c.event.status == '승인 대기'} ? 'bg-[#4f80ac]' : (${c.event.status == '예약 확정'} ? 'bg-[#4f8b55]' : 'bg-[#59635b]')"
-						  th:text="${c.more > 0} ? ${c.event.name} + ' 외 ' + ${c.more} : ${c.event.name}"></span>
-					<span th:if="${c.full}" class="mt-1 block w-full truncate rounded bg-[#c34f45] px-1 py-0.5 text-[7px] font-bold text-white">예약 마감</span>
-					<span th:if="${c.manual}" class="mt-1 block w-full truncate rounded px-1 py-0.5 text-[7px] font-bold text-white"
-						  th:classappend="${c.manual.category == '업체 휴무일'} ? 'bg-[#343a35]' : (${c.manual.category == '견적 상담'} ? 'bg-[#7a6db0]' : 'bg-[#7a837c]')"
-						  th:text="${c.manual.title}"></span>
-					<span th:if="${c.managed}" class="mt-1 block w-full truncate rounded px-1 py-0.5 text-[7px] font-bold text-white"
-						  th:classappend="${c.managed == 'closed'} ? 'bg-[#343a35]' : 'bg-[#F57C00]'"
+					<!-- 상태(휴무·불가·마감)는 잘리지 않게 줄바꿈, 이름은 길면 … -->
+					<span th:if="${c.managed}" class="block w-full rounded-md px-1 py-[3px] text-center text-[12px] font-bold leading-[1.2] text-white break-keep"
+						  th:classappend="${c.managed == 'closed'} ? 'bg-[#343a35]' : 'bg-[#E8740C]'"
 						  th:text="${c.managed == 'closed'} ? '업체 휴무' : '예약 불가'"></span>
+					<span th:if="${c.full}" class="block w-full rounded-md bg-[#c34f45] px-1 py-[3px] text-center text-[12px] font-bold leading-[1.2] text-white break-keep">예약 마감</span>
+					<span th:if="${c.event != null and (c.managed == null and !c.full or n &lt;= 2)}" class="line-clamp-2 block w-full rounded-md px-1 py-[3px] text-center text-[12px] font-bold leading-[1.2] text-white break-keep"
+						  th:classappend="${c.event.status == '승인 대기'} ? 'bg-[#4f80ac]' : (${c.event.status == '예약 확정'} ? 'bg-[#4f8b55]' : 'bg-[#59635b]')"
+						  th:title="${c.more > 0} ? ${c.event.name} + ' 외 ' + ${c.more} + '건' : ${c.event.name}"
+						  th:text="${c.event.name}"></span>
+					<span th:if="${c.manual != null and n &lt;= 2}" class="line-clamp-2 block w-full rounded-md px-1 py-[3px] text-center text-[12px] font-bold leading-[1.2] text-white break-keep"
+						  th:classappend="${c.manual.category == '업체 휴무일'} ? 'bg-[#343a35]' : (${c.manual.category == '견적 상담'} ? 'bg-[#7a6db0]' : 'bg-[#7a837c]')"
+						  th:title="${c.manual.title}" th:text="${c.manual.title}"></span>
+					<!-- th:if 가 th:with 보다 먼저 계산되어 식을 그대로 씀 -->
+					<span th:if="${c.more + (n > 2 ? n - 2 : 0) > 0}" class="text-center text-[12px] font-bold text-[#6f7a71]" th:text="'+' + ${c.more + (n > 2 ? n - 2 : 0)} + '건'">+1건</span>
 				</a>
 			</th:block>
 		</div>
-		<div class="mt-3 flex flex-wrap gap-3 border-t border-[#edf0ed] pt-3 text-[8px] text-[#727a74]">
+		<div class="mt-3 flex flex-wrap gap-x-3 gap-y-1.5 border-t border-[#edf0ed] pt-3 text-[13px] text-[#5f6761]">
 			<span><b class="mr-1 inline-block h-2 w-2 bg-[#343a35]"></b>업체 휴무일</span>
 			<span><b class="mr-1 inline-block h-2 w-2 bg-[#F57C00]"></b>예약 불가</span>
 			<span><b class="mr-1 inline-block h-2 w-2 bg-[#4f80ac]"></b>승인 대기</span>
@@ -57,29 +64,29 @@
 	<section class="mt-4 rounded-[20px] bg-white p-5 shadow-[0_5px_18px_rgba(36,58,39,.06)] transition-all" data-day-section>
 		<div class="flex items-center justify-between">
 			<div>
-				<p class="text-[10px] font-bold text-[#89918b]" th:text="${y} + '년 ' + ${m} + '월'">2026년 9월</p>
+				<p class="text-[14px] font-bold text-[#89918b]" th:text="${y} + '년 ' + ${m} + '월'">2026년 9월</p>
 				<div class="mt-1 flex items-baseline gap-2">
-					<h3 class="text-[17px] font-extrabold" th:text="${m} + '월 ' + ${d} + '일'">9월 27일</h3>
-					<span class="text-[9px] font-semibold text-[#89918b]" th:text="${lunar}">음 8.15</span>
-					<span th:if="${noMove}" class="text-[9px] font-bold text-[#4f80ac]">손 없는 날</span>
-					<span th:if="${holiday}" class="text-[9px] font-bold text-[#c85f57]">공휴일</span>
+					<h3 class="text-[19px] font-extrabold" th:text="${m} + '월 ' + ${d} + '일'">9월 27일</h3>
+					<span class="text-[13px] font-semibold text-[#89918b]" th:text="${lunar}">음 8.15</span>
+					<span th:if="${noMove}" class="text-[13px] font-bold text-[#4f80ac]">손 없는 날</span>
+					<span th:if="${holiday}" class="text-[13px] font-bold text-[#c85f57]">공휴일</span>
 				</div>
 			</div>
-			<button class="text-[9px] font-bold text-[#7b837d]" type="button" data-expand>일정 펼치기</button>
+			<button class="text-[13px] font-bold text-[#7b837d]" type="button" data-expand>일정 펼치기</button>
 		</div>
 		<div class="mt-5 space-y-3">
 			<a th:each="r : ${daySchedules}" class="flex w-full gap-3 text-left" th:href="${baseUrl} + '&rsv=' + ${r.id}">
-				<span class="w-11 pt-3 text-[10px] font-bold text-[#687069]" th:text="${r.movingTime}">09:00</span>
+				<span class="w-11 pt-3 text-[14px] font-bold text-[#687069]" th:text="${r.movingTime}">09:00</span>
 				<span class="flex-1 rounded-xl border-l-4 bg-[#f5f8f5] p-3"
 					  th:classappend="${r.status == '승인 대기'} ? 'border-[#4f80ac]' : (${r.status == '예약 확정'} ? 'border-[#4f8b55]' : 'border-[#59635b]')">
-					<b class="block text-[11px]" th:text="${r.name}"></b>
-					<small class="mt-1 block text-[9px] text-[#727a74]" th:text="${r.status} + ' · ' + ${r.service}"></small>
+					<b class="block text-[15px]" th:text="${r.name}"></b>
+					<small class="mt-1 block text-[13px] text-[#727a74]" th:text="${r.status} + ' · ' + ${r.service}"></small>
 				</span>
 			</a>
 			<div class="relative" th:each="s : ${dayManuals}">
 				<a class="flex w-full gap-3 text-left" th:href="${baseUrl} + '&manual=' + ${s.id}">
-					<span class="w-11 pt-3 text-[10px] font-bold" th:text="${s.time}"></span>
-					<span class="flex-1 rounded-xl border-l-4 bg-[#f3f4f3] p-3 pr-10 text-[11px] font-bold"
+					<span class="w-11 pt-3 text-[14px] font-bold" th:text="${s.time}"></span>
+					<span class="flex-1 rounded-xl border-l-4 bg-[#f3f4f3] p-3 pr-10 text-[15px] font-bold"
 						  th:classappend="${s.category == '업체 휴무일'} ? 'border-[#343a35]' : (${s.category == '견적 상담'} ? 'border-[#7a6db0]' : 'border-[#7a837c]')">
 						<th:block th:text="${s.title}"></th:block>
 						<small class="mt-1 block font-normal text-[#7a827c]" th:text="${s.category} + (${#strings.isEmpty(s.place)} ? '' : ' · ' + ${s.place})"></small>
@@ -89,14 +96,14 @@
 				   th:href="${baseUrl} + '&del=' + ${s.id}"><svg th:replace="~{admin/fragments/icon :: icon('trash', 15, '')}"></svg></a>
 			</div>
 			<div class="flex gap-3" th:if="${dayManaged}">
-				<span class="w-11 pt-3 text-[10px] font-bold">종일</span>
-				<span class="flex-1 rounded-xl border-l-4 bg-[#f3f4f3] p-3 text-[11px] font-bold"
+				<span class="w-11 pt-3 text-[14px] font-bold">종일</span>
+				<span class="flex-1 rounded-xl border-l-4 bg-[#f3f4f3] p-3 text-[15px] font-bold"
 					  th:classappend="${dayManaged == 'closed'} ? 'border-[#343a35]' : 'border-[#F57C00]'"
 					  th:text="${dayManaged == 'closed'} ? '업체 휴무일' : '이사 예약 불가능'"></span>
 			</div>
-			<p th:if="${#lists.isEmpty(daySchedules) and #lists.isEmpty(dayManuals) and dayManaged == null}" class="py-8 text-center text-[10px] text-[#929994]">등록된 일정이 없습니다.</p>
+			<p th:if="${#lists.isEmpty(daySchedules) and #lists.isEmpty(dayManuals) and dayManaged == null}" class="py-8 text-center text-[14px] text-[#929994]">등록된 일정이 없습니다.</p>
 		</div>
-		<a class="mx-auto mt-5 block w-fit rounded-full border border-[#cfd6d0] px-5 py-2.5 text-[10px] font-bold text-[#346538]" th:href="${baseUrl} + '&modal=new'">+ 일정 등록</a>
+		<a class="mx-auto mt-5 block w-fit rounded-full border border-[#cfd6d0] px-5 py-2.5 text-[14px] font-bold text-[#346538]" th:href="${baseUrl} + '&modal=new'">+ 일정 등록</a>
 	</section>
 
 	<!-- 년·월 선택 -->
@@ -104,8 +111,8 @@
 		<form class="w-full rounded-[20px] bg-white p-5" method="get" th:action="@{/admin/schedule}" data-month-picker>
 			<div th:replace="~{admin/fragments/wheel :: wheel(${y}, ${m}, ${d})}"></div>
 			<div class="mt-5 grid grid-cols-2 gap-2">
-				<button class="h-11 rounded-xl border border-[#d9ded9] text-[11px] font-bold" type="button" data-toggle="month-picker">취소</button>
-				<button class="h-11 rounded-xl bg-[#346538] text-[11px] font-bold text-white" type="submit">완료</button>
+				<button class="h-11 rounded-xl border border-[#d9ded9] text-[15px] font-bold" type="button" data-toggle="month-picker">취소</button>
+				<button class="h-11 rounded-xl bg-[#346538] text-[15px] font-bold text-white" type="submit">완료</button>
 			</div>
 		</form>
 	</div>
@@ -114,10 +121,10 @@
 	<div th:if="${selectedManual}" class="absolute inset-x-0 bottom-[82px] top-[68px] z-50 grid place-items-center bg-[#1f2d21]/45 p-5 backdrop-blur-[2px]">
 		<div class="w-full rounded-[20px] bg-white p-5 shadow-2xl">
 			<div class="flex items-center justify-between">
-				<h3 class="text-[17px] font-extrabold">일정 상세</h3>
+				<h3 class="text-[19px] font-extrabold">일정 상세</h3>
 				<a aria-label="일정 상세 닫기" th:href="${baseUrl}"><svg th:replace="~{admin/fragments/icon :: icon('x', 18, '')}"></svg></a>
 			</div>
-			<div class="mt-5 space-y-3 rounded-xl bg-[#f7f8f7] p-4 text-[10px]">
+			<div class="mt-5 space-y-3 rounded-xl bg-[#f7f8f7] p-4 text-[14px]">
 				<p><b>제목</b><span class="float-right" th:text="${selectedManual.title}"></span></p>
 				<p><b>분류</b><span class="float-right" th:text="${selectedManual.category}"></span></p>
 				<p><b>요일·날짜</b><span class="float-right" th:text="${selectedManual.date}"></span></p>
@@ -125,19 +132,19 @@
 				<p><b>장소</b><span class="float-right" th:text="${#strings.isEmpty(selectedManual.place)} ? '미등록' : ${selectedManual.place}"></span></p>
 			</div>
 			<div th:if="${linkedMember}" class="mt-3 rounded-xl border border-[#e1e5e1] p-4">
-				<p class="text-[10px] font-extrabold text-[#346538]">연결 회원</p>
-				<p class="mt-2 text-[10px] font-bold" th:text="${linkedMember[0]}"></p>
-				<p class="mt-1 text-[9px] text-[#7c847e]" th:text="${linkedMember[1]}"></p>
+				<p class="text-[14px] font-extrabold text-[#346538]">연결 회원</p>
+				<p class="mt-2 text-[14px] font-bold" th:text="${linkedMember[0]}"></p>
+				<p class="mt-1 text-[13px] text-[#7c847e]" th:text="${linkedMember[1]}"></p>
 			</div>
 			<th:block th:if="${linkedReservation}">
 				<div class="mt-3 rounded-xl border border-[#e1e5e1] p-4">
 					<div class="flex items-center justify-between">
-						<p class="text-[10px] font-extrabold text-[#346538]">연결 예약</p>
-						<span class="rounded-full px-2 py-1 text-[8px] font-bold" th:classappend="${reservationTone.get(linkedReservation.status)}" th:text="${linkedReservation.status}"></span>
+						<p class="text-[14px] font-extrabold text-[#346538]">연결 예약</p>
+						<span class="rounded-full px-2 py-1 text-[12px] font-bold" th:classappend="${reservationTone.get(linkedReservation.status)}" th:text="${linkedReservation.status}"></span>
 					</div>
-					<p class="mt-2 truncate text-[9px] text-[#626a64]" th:text="${linkedReservation.origin} + ' → ' + ${linkedReservation.destination}"></p>
+					<p class="mt-2 truncate text-[13px] text-[#626a64]" th:text="${linkedReservation.origin} + ' → ' + ${linkedReservation.destination}"></p>
 				</div>
-				<a class="mt-5 grid h-11 w-full place-items-center rounded-xl bg-[#346538] text-[11px] font-bold text-white"
+				<a class="mt-5 grid h-11 w-full place-items-center rounded-xl bg-[#346538] text-[15px] font-bold text-white"
 				   th:href="@{/admin/estimates/{id}/document(id=${linkedReservation.quoteId},back=${baseUrl})}" th:if="${linkedReservation.quoteId != null}">상세 보기</a>
 			</th:block>
 		</div>
@@ -146,21 +153,21 @@
 	<!-- 예약 상세 정보 (예약 일정) -->
 	<div th:if="${selectedSchedule}" th:with="r=${selectedSchedule}" class="absolute inset-x-0 bottom-[82px] top-[68px] z-50 grid place-items-center bg-[#1f2d21]/45 p-5 backdrop-blur-[2px]">
 		<div class="w-full rounded-[20px] bg-white p-5">
-			<div class="flex items-center justify-between"><h3 class="text-[17px] font-extrabold">예약 상세 정보</h3>
+			<div class="flex items-center justify-between"><h3 class="text-[19px] font-extrabold">예약 상세 정보</h3>
 				<a aria-label="닫기" th:href="${baseUrl}"><svg th:replace="~{admin/fragments/icon :: icon('x', 18, '')}"></svg></a></div>
 			<div class="mt-4 flex items-center justify-between">
-				<span class="rounded-full px-2 py-1 text-[9px] font-bold" th:classappend="${r.displayStatus() == '예약 취소'} ? 'bg-[#fbefed] text-[#b9574f]' : 'bg-[#edf4ed] text-[#346538]'" th:text="${r.displayStatus()}"></span>
-				<span class="text-[9px] text-[#858d87]" th:text="'신청일 ' + ${r.appliedDate}"></span>
+				<span class="rounded-full px-2 py-1 text-[13px] font-bold" th:classappend="${r.displayStatus() == '예약 취소'} ? 'bg-[#fbefed] text-[#b9574f]' : 'bg-[#edf4ed] text-[#346538]'" th:text="${r.displayStatus()}"></span>
+				<span class="text-[13px] text-[#858d87]" th:text="'신청일 ' + ${r.appliedDate}"></span>
 			</div>
 			<div class="mt-4 space-y-3">
-				<section class="rounded-xl bg-[#f7f8f7] p-4"><h4 class="text-[11px] font-extrabold text-[#346538]">연동 정보</h4>
-					<div class="mt-3 grid grid-cols-[88px_1fr] gap-y-2 text-[10px]">
+				<section class="rounded-xl bg-[#f7f8f7] p-4"><h4 class="text-[15px] font-extrabold text-[#346538]">연동 정보</h4>
+					<div class="mt-3 grid grid-cols-[88px_1fr] gap-y-2 text-[14px]">
 						<span class="font-bold text-[#737b75]">회원 정보</span><span th:text="${r.name}"></span>
 						<span class="font-bold text-[#737b75]">견적 번호</span><span th:text="${r.quoteNo} ?: '-'"></span>
 						<span class="font-bold text-[#737b75]">예약 번호</span><span th:text="${r.reservationNo}"></span>
 					</div></section>
-				<section class="rounded-xl bg-[#f7f8f7] p-4"><h4 class="text-[11px] font-extrabold text-[#346538]">예약 상세 내역</h4>
-					<div class="mt-3 grid grid-cols-[88px_1fr] gap-y-2 text-[10px]">
+				<section class="rounded-xl bg-[#f7f8f7] p-4"><h4 class="text-[15px] font-extrabold text-[#346538]">예약 상세 내역</h4>
+					<div class="mt-3 grid grid-cols-[88px_1fr] gap-y-2 text-[14px]">
 						<span class="font-bold text-[#737b75]">이사 유형</span><span th:text="${r.service}"></span>
 						<span class="font-bold text-[#737b75]">이사일</span><span th:text="${r.movingDate} ?: '-'"></span>
 						<span class="font-bold text-[#737b75]">이사 시간</span><span th:text="${r.movingTime} ?: '-'"></span>
@@ -168,7 +175,7 @@
 						<span class="font-bold text-[#737b75]">도착지</span><span th:text="${r.destination}"></span>
 					</div></section>
 			</div>
-			<a class="mt-5 grid h-11 w-full place-items-center rounded-xl bg-[#346538] text-[11px] font-bold text-white"
+			<a class="mt-5 grid h-11 w-full place-items-center rounded-xl bg-[#346538] text-[15px] font-bold text-white"
 			   th:href="@{/admin/estimates/{id}/document(id=${r.quoteId},back=${baseUrl})}" th:if="${r.quoteId != null}">상세 보기</a>
 		</div>
 	</div>
@@ -178,11 +185,11 @@
 		  class="absolute inset-x-0 bottom-[82px] top-[68px] z-[70] grid place-items-center bg-[#1f2d21]/45 p-6 backdrop-blur-[2px]">
 		<input type="hidden" name="back" th:value="${baseUrl}">
 		<div class="w-full rounded-[20px] bg-white p-6 text-center shadow-2xl">
-			<h3 class="text-[17px] font-extrabold text-[#29312b]">정말 삭제하시겠습니까?</h3>
-			<p class="mt-2 text-[10px] text-[#8b928d]">삭제된 데이터는 복구할 수 없습니다.</p>
+			<h3 class="text-[19px] font-extrabold text-[#29312b]">정말 삭제하시겠습니까?</h3>
+			<p class="mt-2 text-[14px] text-[#8b928d]">삭제된 데이터는 복구할 수 없습니다.</p>
 			<div class="mt-6 grid grid-cols-2 gap-2">
-				<a class="grid h-11 place-items-center rounded-xl border border-[#d9ded9] text-[11px] font-bold text-[#69716b]" th:href="${baseUrl}">취소</a>
-				<button class="h-11 rounded-xl bg-[#c75f56] text-[11px] font-bold text-white" type="submit">삭제</button>
+				<a class="grid h-11 place-items-center rounded-xl border border-[#d9ded9] text-[15px] font-bold text-[#69716b]" th:href="${baseUrl}">취소</a>
+				<button class="h-11 rounded-xl bg-[#c75f56] text-[15px] font-bold text-white" type="submit">삭제</button>
 			</div>
 		</div>
 	</form>
@@ -191,51 +198,51 @@
 	<div th:if="${modal == 'new'}" class="absolute inset-x-0 bottom-[82px] top-[68px] z-50 grid place-items-center overflow-y-auto bg-[#1f2d21]/45 p-5 backdrop-blur-[2px]">
 		<form class="my-auto w-full rounded-[20px] bg-white p-5 shadow-2xl" method="post" th:action="@{/admin/schedule/manual}" data-manual-form>
 			<div class="flex items-center justify-between">
-				<h3 class="text-[17px] font-extrabold">일정 등록</h3>
+				<h3 class="text-[19px] font-extrabold">일정 등록</h3>
 				<a aria-label="일정 등록 닫기" th:href="${baseUrl}"><svg th:replace="~{admin/fragments/icon :: icon('x', 18, '')}"></svg></a>
 			</div>
 			<div class="mt-4 max-h-[480px] space-y-3 overflow-y-auto pr-1">
-				<label class="block"><span class="mb-1 block text-[9px] font-bold">제목 <b class="text-[#c75f56]">*</b></span>
-					<input class="h-10 w-full rounded-lg border border-[#dfe4df] px-3 text-[11px] outline-none focus:border-[#346538]" name="title" placeholder="일정 제목을 입력하세요"></label>
+				<label class="block"><span class="mb-1 block text-[13px] font-bold">제목 <b class="text-[#c75f56]">*</b></span>
+					<input class="h-10 w-full rounded-lg border border-[#dfe4df] px-3 text-[15px] outline-none focus:border-[#346538]" name="title" placeholder="일정 제목을 입력하세요"></label>
 				<div class="block">
-					<span class="mb-1 block text-[9px] font-bold">분류 <b class="text-[#c75f56]">*</b></span>
+					<span class="mb-1 block text-[13px] font-bold">분류 <b class="text-[#c75f56]">*</b></span>
 					<input type="hidden" name="category" value="견적 상담" data-category-value>
-					<button class="flex h-10 w-full items-center justify-between rounded-lg border border-[#dfe4df] bg-white px-3 text-left text-[11px]" type="button" data-toggle="category">
+					<button class="flex h-10 w-full items-center justify-between rounded-lg border border-[#dfe4df] bg-white px-3 text-left text-[15px]" type="button" data-toggle="category">
 						<span class="font-semibold text-[#424a44]" data-category-label>견적 상담</span>
 						<svg th:replace="~{admin/fragments/icon :: icon('chevron', 14, '')}"></svg>
 					</button>
 					<div class="mt-1.5 overflow-hidden rounded-lg border border-[#dfe4df] bg-white shadow-[0_8px_20px_rgba(36,58,39,.12)]" data-toggle-target="category" hidden>
 						<button th:each="c : ${ {'견적 상담', '기타', '직접 입력'} }" type="button" th:data-category="${c}" th:text="${c}"
-								class="flex h-10 w-full items-center border-b border-[#edf0ed] px-3 text-left text-[11px] font-semibold text-[#59625b] last:border-none hover:bg-[#f5f7f5]"></button>
+								class="flex h-10 w-full items-center border-b border-[#edf0ed] px-3 text-left text-[15px] font-semibold text-[#59625b] last:border-none hover:bg-[#f5f7f5]"></button>
 					</div>
-					<input class="mt-2 h-10 w-full rounded-lg border border-[#dfe4df] px-3 text-[11px] outline-none focus:border-[#346538]"
+					<input class="mt-2 h-10 w-full rounded-lg border border-[#dfe4df] px-3 text-[15px] outline-none focus:border-[#346538]"
 						   placeholder="분류명을 직접 입력하세요" data-category-custom hidden>
 				</div>
 				<div class="grid grid-cols-2 gap-2">
-					<label class="block"><span class="mb-1 block text-[9px] font-bold">요일·날짜 <b class="text-[#c75f56]">*</b></span>
-						<input class="h-10 w-full rounded-lg border border-[#dfe4df] px-2 text-[10px]" name="date" type="date" th:value="${newDate}"></label>
-					<label class="block"><span class="mb-1 block text-[9px] font-bold">시간 <b class="text-[#c75f56]">*</b></span>
-						<input class="h-10 w-full rounded-lg border border-[#dfe4df] px-2 text-[10px]" name="time" type="time"></label>
+					<label class="block"><span class="mb-1 block text-[13px] font-bold">요일·날짜 <b class="text-[#c75f56]">*</b></span>
+						<input class="h-10 w-full rounded-lg border border-[#dfe4df] px-2 text-[14px]" name="date" type="date" th:value="${newDate}"></label>
+					<label class="block"><span class="mb-1 block text-[13px] font-bold">시간 <b class="text-[#c75f56]">*</b></span>
+						<input class="h-10 w-full rounded-lg border border-[#dfe4df] px-2 text-[14px]" name="time" type="time"></label>
 				</div>
-				<label class="block"><span class="mb-1 block text-[9px] font-bold">장소</span>
-					<input class="h-10 w-full rounded-lg border border-[#dfe4df] px-3 text-[11px]" name="place" placeholder="일정 장소를 입력하세요"></label>
+				<label class="block"><span class="mb-1 block text-[13px] font-bold">장소</span>
+					<input class="h-10 w-full rounded-lg border border-[#dfe4df] px-3 text-[15px]" name="place" placeholder="일정 장소를 입력하세요"></label>
 
 				<div class="rounded-xl bg-[#f7f8f7] p-3">
-					<p class="text-[10px] font-extrabold text-[#346538]">회원 연결</p>
+					<p class="text-[14px] font-extrabold text-[#346538]">회원 연결</p>
 					<input type="hidden" name="memberId" data-member-id>
-					<input class="mt-2 h-9 w-full rounded-lg border border-[#dfe4df] bg-white px-3 text-[10px]" placeholder="회원 이름이나 휴대전화를 입력하세요" data-member-query>
+					<input class="mt-2 h-9 w-full rounded-lg border border-[#dfe4df] bg-white px-3 text-[14px]" placeholder="회원 이름이나 휴대전화를 입력하세요" data-member-query>
 					<div class="mt-2 max-h-28 overflow-y-auto rounded-lg border border-[#e1e5e1] bg-white" data-member-results hidden></div>
 				</div>
 				<div class="rounded-xl bg-[#f7f8f7] p-3">
-					<p class="text-[10px] font-extrabold text-[#346538]">예약 내역 연결</p>
+					<p class="text-[14px] font-extrabold text-[#346538]">예약 내역 연결</p>
 					<input type="hidden" name="reservationId" data-reservation-id>
-					<input class="mt-2 h-9 w-full rounded-lg border border-[#dfe4df] bg-white px-3 text-[10px]" placeholder="이름, 휴대전화 또는 주소를 입력하세요" data-reservation-query>
+					<input class="mt-2 h-9 w-full rounded-lg border border-[#dfe4df] bg-white px-3 text-[14px]" placeholder="이름, 휴대전화 또는 주소를 입력하세요" data-reservation-query>
 					<div class="mt-2 max-h-36 overflow-y-auto rounded-lg border border-[#e1e5e1] bg-white" data-reservation-results hidden></div>
 				</div>
 			</div>
 			<div class="mt-5 grid grid-cols-2 gap-2">
-				<a class="grid h-11 place-items-center rounded-xl border border-[#d9ded9] text-[11px] font-bold" th:href="${baseUrl}">취소</a>
-				<button class="h-11 rounded-xl bg-[#346538] text-[11px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-40" type="submit" disabled data-manual-submit>등록</button>
+				<a class="grid h-11 place-items-center rounded-xl border border-[#d9ded9] text-[15px] font-bold" th:href="${baseUrl}">취소</a>
+				<button class="h-11 rounded-xl bg-[#346538] text-[15px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-40" type="submit" disabled data-manual-submit>등록</button>
 			</div>
 		</form>
 	</div>
@@ -299,7 +306,7 @@
 			const q = memberQ.value.toLowerCase();
 			memberBox.hidden = !q || !!memberId.value;
 			memberBox.innerHTML = customers.filter((c) => `${c[0]}${c[2]}`.toLowerCase().includes(q)).slice(0, 5)
-				.map((c) => `<button class="flex w-full justify-between border-b border-[#edf0ed] px-3 py-2 text-left text-[9px] last:border-none" type="button" data-pick-member="${esc(c[1])}"><b>${esc(c[0])}</b><span class="text-[#858d87]">${esc(c[2])}</span></button>`).join('');
+				.map((c) => `<button class="flex w-full justify-between border-b border-[#edf0ed] px-3 py-2 text-left text-[13px] last:border-none" type="button" data-pick-member="${esc(c[1])}"><b>${esc(c[0])}</b><span class="text-[#858d87]">${esc(c[2])}</span></button>`).join('');
 		};
 		const renderReservations = () => {
 			const q = rsvQ.value.toLowerCase();
@@ -307,8 +314,8 @@
 			const list = reservations.filter((r) => !memberId.value || r.userId === memberId.value)
 				.filter((r) => !q || `${r.name}${r.phone}${r.origin}${r.destination}`.toLowerCase().includes(q)).slice(0, 6);
 			rsvBox.innerHTML = list.length
-				? list.map((r) => `<button class="w-full border-b border-[#edf0ed] px-3 py-2 text-left text-[9px] last:border-none ${String(r.id) === rsvId.value ? 'bg-[#edf3ed]' : ''}" type="button" data-pick-reservation="${r.id}"><b class="block">${esc(r.name)} · ${esc(r.phone)}</b><span class="mt-1 block truncate text-[#7d857f]">${esc(r.origin)} → ${esc(r.destination)}</span></button>`).join('')
-				: '<p class="p-3 text-center text-[9px] text-[#939a95]">일치하는 예약이 없습니다.</p>';
+				? list.map((r) => `<button class="w-full border-b border-[#edf0ed] px-3 py-2 text-left text-[13px] last:border-none ${String(r.id) === rsvId.value ? 'bg-[#edf3ed]' : ''}" type="button" data-pick-reservation="${r.id}"><b class="block">${esc(r.name)} · ${esc(r.phone)}</b><span class="mt-1 block truncate text-[#7d857f]">${esc(r.origin)} → ${esc(r.destination)}</span></button>`).join('')
+				: '<p class="p-3 text-center text-[13px] text-[#939a95]">일치하는 예약이 없습니다.</p>';
 		};
 		memberQ.addEventListener('input', () => { memberId.value = ''; renderMembers(); renderReservations(); });
 		rsvQ.addEventListener('input', () => { rsvId.value = ''; renderReservations(); });

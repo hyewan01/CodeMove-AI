@@ -7,7 +7,7 @@
 	· 값은 hidden input y·m·d 에 들어가고, 바뀔 때마다 wheelchange 이벤트 (detail: {y, m, d})
 -->
 <div th:fragment="wheel(y, m, d)" th:data-y="${y}" th:data-m="${m}" th:data-d="${d}" data-wheel>
-	<p class="text-center text-[16px] font-extrabold text-[#29312b]" aria-live="polite" data-wheel-label></p>
+	<p class="text-center text-[18px] font-extrabold text-[#29312b]" aria-live="polite" data-wheel-label></p>
 	<div class="relative mt-3 grid select-none grid-cols-3">
 		<div class="pointer-events-none absolute inset-x-1 top-1/2 h-12 -translate-y-1/2 rounded-xl bg-[#f1f4f1]"></div>
 		<div class="relative flex flex-col items-center" th:each="c : ${ { {'y', '연도'}, {'m', '월'}, {'d', '일'} } }" th:data-wheel-col="${c[0]}">
@@ -33,7 +33,7 @@
 	· 화면 스크립트에서 el.timeSet('HH:mm') 으로 값 넣기, el.timeValue() 로 'HH:mm'(24시간) 읽기
 -->
 <div th:fragment="timeWheel" data-time="09:00" data-time-wheel>
-	<p class="text-center text-[16px] font-extrabold text-[#29312b]" aria-live="polite" data-wheel-label></p>
+	<p class="text-center text-[18px] font-extrabold text-[#29312b]" aria-live="polite" data-wheel-label></p>
 	<div class="relative mt-3 grid select-none grid-cols-3">
 		<div class="pointer-events-none absolute inset-x-1 top-1/2 h-12 -translate-y-1/2 rounded-xl bg-[#f1f4f1]"></div>
 		<div class="relative flex flex-col items-center" th:each="c : ${ { {'p', '오전 오후'}, {'h', '시'}, {'m', '분'} } }" th:data-wheel-col="${c[0]}">

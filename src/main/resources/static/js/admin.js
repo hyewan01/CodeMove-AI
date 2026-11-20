@@ -221,7 +221,7 @@
 		});
 		/* 값 칸 두 번 누르기 → 그 칸 글자 전체를 선택하고 복사 */
 		const hint = document.createElement('div');
-		hint.className = 'pointer-events-none absolute bottom-6 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#263129]/85 px-3.5 py-2 text-[10px] font-bold text-white opacity-0 transition-opacity';
+		hint.className = 'pointer-events-none absolute bottom-6 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#263129]/85 px-3.5 py-2 text-[14px] font-bold text-white opacity-0 transition-opacity';
 		viewer.append(hint);
 		let hintTimer = null;
 		viewport.addEventListener('dblclick', (e) => {
@@ -260,7 +260,7 @@
 	/* texts: 위에서부터 7개 글자 (없는 칸은 null), offset: 그리기 시작 위치, animate: 가운데로 미끄러지기 */
 	const drawWheelStrip = (strip, texts, offset = 0, animate = false) => {
 		strip.innerHTML = texts.map((t, i) => `<div class="grid h-12 place-items-center ${i === 3
-			? 'text-[20px] font-extrabold text-[#222a24]' : 'text-[16px] font-bold text-[#b7beb9]'}">${t == null ? '' : t}</div>`).join('');
+			? 'text-[22px] font-extrabold text-[#222a24]' : 'text-[18px] font-bold text-[#b7beb9]'}">${t == null ? '' : t}</div>`).join('');
 		strip.style.transition = 'none';
 		strip.style.transform = `translateY(${offset - 2 * ITEM}px)`;
 		if (animate) {

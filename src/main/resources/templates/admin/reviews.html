@@ -4,7 +4,7 @@
 <!-- 후기 관리 (SCR-A-012) -->
 <th:block th:fragment="content">
 <div class="space-y-5 px-4 pb-28 pt-6" th:with="baseUrl=@{/admin/reviews(rating=${rating})}">
-	<h2 class="px-1 text-[24px] font-extrabold tracking-[-0.04em] text-[#346538]">후기 관리</h2>
+	<h2 class="px-1 text-[26px] font-extrabold tracking-[-0.04em] text-[#346538]">후기 관리</h2>
 
 	<section class="flex items-center gap-5 rounded-[20px] bg-white p-5 shadow-[0_5px_18px_rgba(36,58,39,.06)]">
 		<div class="w-[100px] shrink-0 border-r border-[#edf0ed] pr-5 text-center">
@@ -12,25 +12,25 @@
 			<div class="mt-2 flex justify-center">
 				<div th:replace="~{admin/reviews :: stars(${averageStars}, 13)}"></div>
 			</div>
-			<p class="mt-2 text-[9px] text-[#969d98]">평균 별점</p>
+			<p class="mt-2 text-[13px] text-[#969d98]">평균 별점</p>
 		</div>
 		<div class="flex-1 space-y-2">
 			<div class="flex items-center gap-2" th:each="d : ${distribution}">
-				<span class="w-5 text-[9px] font-bold text-[#777f79]" th:text="${d[0]} + '점'">5점</span>
+				<span class="w-5 text-[13px] font-bold text-[#777f79]" th:text="${d[0]} + '점'">5점</span>
 				<div class="h-1.5 flex-1 overflow-hidden rounded-full bg-[#eef0ee]">
 					<div class="h-full rounded-full bg-[#f2b84b]" th:style="'width: ' + ${d[2]} + '%'"></div>
 				</div>
-				<span class="w-3 text-right text-[9px] font-semibold text-[#8c938e]" th:text="${d[1]}">7</span>
+				<span class="w-3 text-right text-[13px] font-semibold text-[#8c938e]" th:text="${d[1]}">7</span>
 			</div>
 		</div>
 	</section>
 
 	<form class="flex items-center justify-between px-1" method="get" th:action="@{/admin/reviews}">
-		<p class="text-[14px] font-extrabold text-[#303832]">전체 후기 <span class="text-[#346538]" th:text="${reviewCount} + '개'">12개</span></p>
+		<p class="text-[17px] font-extrabold text-[#303832]">전체 후기 <span class="text-[#346538]" th:text="${reviewCount} + '개'">12개</span></p>
 		<input type="hidden" name="reply" value="-1">
 		<label class="relative">
 			<span class="sr-only">별점 분류</span>
-			<select class="h-9 appearance-none rounded-lg border border-[#dfe4df] bg-white pl-3 pr-8 text-[11px] font-semibold text-[#535b55] outline-none focus:border-[#346538]"
+			<select class="h-9 appearance-none rounded-lg border border-[#dfe4df] bg-white pl-3 pr-8 text-[15px] font-semibold text-[#535b55] outline-none focus:border-[#346538]"
 					name="rating" data-auto-submit>
 				<option value="전체" th:selected="${rating == '전체'}">전체</option>
 				<option th:each="s : ${ {5, 4, 3, 2, 1} }" th:value="${s}" th:text="${s} + '점'" th:selected="${rating == '' + s}"></option>
@@ -43,12 +43,12 @@
 		<article class="rounded-[20px] bg-white p-5 shadow-[0_5px_18px_rgba(36,58,39,.06)]" th:each="review : ${reviews}"
 				 th:with="answer=${replies.get(review.id)}">
 			<div class="flex items-start gap-3">
-				<span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#edf3ed] text-[13px] font-extrabold text-[#346538]" th:text="${review.initial()}">김</span>
+				<span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#edf3ed] text-[16px] font-extrabold text-[#346538]" th:text="${review.initial()}">김</span>
 				<div class="min-w-0 flex-1">
-					<p class="truncate text-[12px] font-bold text-[#303832]" th:text="${review.name}">김명품</p>
-					<p class="mt-1 text-[9px] text-[#9ca29d]" th:text="${review.date}">2026-06-02</p>
+					<p class="truncate text-[16px] font-bold text-[#303832]" th:text="${review.name}">김명품</p>
+					<p class="mt-1 text-[13px] text-[#9ca29d]" th:text="${review.date}">2026-06-02</p>
 				</div>
-				<span class="flex shrink-0 items-center gap-2 text-[9px] font-semibold text-[#8b928d]">
+				<span class="flex shrink-0 items-center gap-2 text-[13px] font-semibold text-[#8b928d]">
 					<b class="rounded-full bg-[#edf3ed] px-2 py-1 text-[#346538]" th:text="${review.type}">가정이사</b>
 					<span th:text="'이용 ' + ${review.usageCount} + '회차'">이용 3회차</span>
 				</span>
@@ -56,7 +56,7 @@
 
 			<div class="mt-4">
 				<div th:replace="~{admin/reviews :: stars(${review.rating}, 14)}"></div>
-				<p class="mt-3 text-[12px] leading-5 text-[#505852]" th:text="${review.text}"></p>
+				<p class="mt-3 text-[16px] leading-5 text-[#505852]" th:text="${review.text}"></p>
 			</div>
 
 			<div class="mt-3 overflow-x-auto" th:if="${review.photo}">
@@ -68,7 +68,7 @@
 				  th:action="@{/admin/reviews/{id}/reply(id=${review.id})}">
 				<input type="hidden" name="rating" th:value="${rating}">
 				<div class="flex items-center justify-between">
-					<p class="text-[11px] font-extrabold text-[#465048]">관리자 답변</p>
+					<p class="text-[15px] font-extrabold text-[#465048]">관리자 답변</p>
 					<button th:if="${editing == review.id}" aria-label="답변 수정 완료" type="submit"
 							class="grid h-8 w-8 place-items-center rounded-lg bg-[#346538] text-white">
 						<svg th:replace="~{admin/fragments/icon :: icon('check', 16, '')}"></svg>
@@ -79,9 +79,9 @@
 					</a>
 				</div>
 				<textarea th:if="${editing == review.id}" name="content" th:id="'review-' + ${review.id}" autofocus
-						  class="mt-2 min-h-20 w-full resize-none rounded-lg border border-[#dbe1dc] bg-white p-3 text-[11px] leading-5 text-[#505852] outline-none focus:border-[#346538]"
+						  class="mt-2 min-h-20 w-full resize-none rounded-lg border border-[#dbe1dc] bg-white p-3 text-[15px] leading-5 text-[#505852] outline-none focus:border-[#346538]"
 						  th:text="${answer}"></textarea>
-				<p th:unless="${editing == review.id}" class="mt-2 text-[11px] leading-5 text-[#69716b]" th:text="${answer}"></p>
+				<p th:unless="${editing == review.id}" class="mt-2 text-[15px] leading-5 text-[#69716b]" th:text="${answer}"></p>
 			</form>
 
 			<!-- 답변 작성 중 -->
@@ -89,16 +89,16 @@
 				  th:action="@{/admin/reviews/{id}/reply(id=${review.id})}">
 				<input type="hidden" name="rating" th:value="${rating}">
 				<textarea name="content" th:id="'review-' + ${review.id}" autofocus
-						  class="min-h-20 w-full resize-none rounded-lg border border-[#dbe1dc] bg-white p-3 text-[11px] leading-5 text-[#505852] outline-none placeholder:text-[#a8aea9] focus:border-[#346538]"
+						  class="min-h-20 w-full resize-none rounded-lg border border-[#dbe1dc] bg-white p-3 text-[15px] leading-5 text-[#505852] outline-none placeholder:text-[#a8aea9] focus:border-[#346538]"
 						  placeholder="답변 내용을 입력하세요..."></textarea>
 				<div class="mt-2 flex justify-end gap-2">
-					<a class="rounded-lg border border-[#d9ded9] bg-white px-3 py-2 text-[10px] font-bold text-[#737b75]" th:href="${baseUrl} + '&reply=-1'">취소</a>
-					<button class="rounded-lg bg-[#346538] px-3 py-2 text-[10px] font-bold text-white" type="submit">답변 등록</button>
+					<a class="rounded-lg border border-[#d9ded9] bg-white px-3 py-2 text-[14px] font-bold text-[#737b75]" th:href="${baseUrl} + '&reply=-1'">취소</a>
+					<button class="rounded-lg bg-[#346538] px-3 py-2 text-[14px] font-bold text-white" type="submit">답변 등록</button>
 				</div>
 			</form>
 
 			<!-- 답변 없음 -->
-			<a th:if="${answer == null and replyingTo != review.id}" class="mt-4 flex w-fit items-center gap-1.5 text-[11px] font-bold text-[#346538]"
+			<a th:if="${answer == null and replyingTo != review.id}" class="mt-4 flex w-fit items-center gap-1.5 text-[15px] font-bold text-[#346538]"
 			   th:href="${baseUrl} + '&reply=' + ${review.id} + '#review-' + ${review.id}">
 				<svg th:replace="~{admin/fragments/icon :: icon('chat', 15, '')}"></svg>
 				답변 달기

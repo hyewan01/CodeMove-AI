@@ -105,7 +105,8 @@ public class AdminScheduleController {
 		List<CalendarCell> cells = new ArrayList<>();
 		int firstDow = first.getDayOfWeek().getValue() % 7;
 		Map<LocalDate, String> blocked = booking.blockedDates(first, first.plusMonths(1));
-		for (int i = 0; i < 42; i++) {
+		int cellCount = (firstDow + first.lengthOfMonth() + 6) / 7 * 7;
+		for (int i = 0; i < cellCount; i++) {
 			int dd = i - firstDow + 1;
 			if (dd < 1 || dd > first.lengthOfMonth()) {
 				cells.add(new CalendarCell(null, null, i % 7, null, null, null, false, false, 0, false));

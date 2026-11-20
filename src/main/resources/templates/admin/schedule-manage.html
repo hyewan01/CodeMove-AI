@@ -4,25 +4,25 @@
 <!-- 일정 관리 (SCR-A-022): 수정 모드에서 날짜별 상태 초안을 만들고 [수정 완료] → 저장 -->
 <th:block th:fragment="content">
 <div class="px-4 pb-28 pt-6" data-manage>
-	<h2 class="px-1 text-[24px] font-extrabold tracking-[-0.04em] text-[#346538]">일정 관리</h2>
+	<h2 class="px-1 text-[26px] font-extrabold tracking-[-0.04em] text-[#346538]">일정 관리</h2>
 	<section class="mt-5 rounded-[20px] bg-white p-4 shadow-[0_5px_18px_rgba(36,58,39,.06)]">
 		<div class="relative flex items-center justify-center gap-4">
 			<button aria-label="이전 달" class="grid h-8 w-8 rotate-180 place-items-center" type="button" data-month-step="-1"><svg th:replace="~{admin/fragments/icon :: icon('arrowRight', 17, '')}"></svg></button>
-			<button class="flex items-center gap-1 text-[15px] font-extrabold" type="button" data-open-month>
+			<button class="flex items-center gap-1 text-[17px] font-extrabold" type="button" data-open-month>
 				<span data-title>2026년 9월</span> <svg th:replace="~{admin/fragments/icon :: icon('chevron', 14, '')}"></svg>
 			</button>
 			<button aria-label="다음 달" class="grid h-8 w-8 place-items-center" type="button" data-month-step="1"><svg th:replace="~{admin/fragments/icon :: icon('arrowRight', 17, '')}"></svg></button>
-			<button class="absolute right-0 text-[10px] font-extrabold text-[#346538]" type="button" data-finish hidden>수정 완료</button>
+			<button class="absolute right-0 text-[14px] font-extrabold text-[#346538]" type="button" data-finish hidden>수정 완료</button>
 			<button aria-label="일정 수정" class="absolute right-0 grid h-8 w-8 place-items-center text-[#346538]" type="button" data-begin>
 				<svg th:replace="~{admin/fragments/icon :: icon('edit', 17, '')}"></svg>
 			</button>
 		</div>
-		<div class="mt-4 grid grid-cols-7 text-center text-[9px] font-bold">
+		<div class="mt-4 grid grid-cols-7 text-center text-[13px] font-bold">
 			<span th:each="w, it : ${ {'일', '월', '화', '수', '목', '금', '토'} }" th:text="${w}"
 				  th:class="${it.index == 0} ? 'text-[#c85f57]' : (${it.index == 6} ? 'text-[#557fa3]' : 'text-[#858d87]')"></span>
 		</div>
 		<div class="mt-2 grid grid-cols-7" data-cells></div>
-		<div class="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-[#edf0ed] pt-3 text-[8px] text-[#727a74]">
+		<div class="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-[#edf0ed] pt-3 text-[12px] text-[#727a74]">
 			<span><b class="mr-1 inline-block h-2 w-2 bg-[#343a35]"></b>업체 휴무일</span>
 			<span><b class="mr-1 inline-block h-2 w-2 bg-[#F57C00]"></b>이사 예약 불가능</span>
 			<span><b class="mr-1 inline-block h-2 w-2 bg-[#8d958f]"></b>정기 휴무 (자동)</span>
@@ -35,31 +35,31 @@
 		<div class="flex items-center gap-3">
 			<span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon('calendar', 19, '')}"></svg></span>
 			<div class="min-w-0 flex-1">
-				<h3 class="text-[14px] font-extrabold text-[#303832]">예약 설정</h3>
-				<p class="mt-0.5 text-[10px] leading-4 text-[#8a918c]">조건에 맞는 날은 고객 달력에서 자동으로 막혀요</p>
+				<h3 class="text-[17px] font-extrabold text-[#303832]">예약 설정</h3>
+				<p class="mt-0.5 text-[14px] leading-4 text-[#8a918c]">조건에 맞는 날은 고객 달력에서 자동으로 막혀요</p>
 			</div>
 		</div>
 
 		<div class="mt-4 flex items-center justify-between rounded-xl bg-[#f7f8f7] p-3">
 			<div>
-				<p class="text-[12px] font-bold text-[#3b443d]">하루 최대 예약</p>
-				<p class="mt-0.5 text-[10px] text-[#8a918c]">이 수만큼 예약되면 그날은 '마감'</p>
+				<p class="text-[16px] font-bold text-[#3b443d]">하루 최대 예약</p>
+				<p class="mt-0.5 text-[14px] text-[#8a918c]">이 수만큼 예약되면 그날은 '마감'</p>
 			</div>
 			<div class="flex items-center gap-2">
-				<button class="grid h-8 w-8 place-items-center rounded-full border border-[#d9ded9] bg-white text-[16px] font-bold text-[#346538] disabled:opacity-40" type="button" aria-label="하루 최대 예약 줄이기" data-cap-step="-1">−</button>
-				<input class="w-10 bg-transparent text-center text-[16px] font-extrabold text-[#29312b] outline-none" name="capacity" type="number" min="1" max="10"
+				<button class="grid h-8 w-8 place-items-center rounded-full border border-[#d9ded9] bg-white text-[18px] font-bold text-[#346538] disabled:opacity-40" type="button" aria-label="하루 최대 예약 줄이기" data-cap-step="-1">−</button>
+				<input class="w-10 bg-transparent text-center text-[18px] font-extrabold text-[#29312b] outline-none" name="capacity" type="number" min="1" max="10"
 					   th:value="${capacity}" aria-label="하루 최대 예약 건수" readonly data-capacity>
-				<button class="grid h-8 w-8 place-items-center rounded-full border border-[#d9ded9] bg-white text-[16px] font-bold text-[#346538] disabled:opacity-40" type="button" aria-label="하루 최대 예약 늘리기" data-cap-step="1">+</button>
+				<button class="grid h-8 w-8 place-items-center rounded-full border border-[#d9ded9] bg-white text-[18px] font-bold text-[#346538] disabled:opacity-40" type="button" aria-label="하루 최대 예약 늘리기" data-cap-step="1">+</button>
 			</div>
 		</div>
 
 		<div class="mt-3 rounded-xl bg-[#f7f8f7] p-3">
-			<p class="text-[12px] font-bold text-[#3b443d]">정기 휴무 요일</p>
-			<p class="mt-0.5 text-[10px] text-[#8a918c]">매주 쉬는 요일 (여러 개 선택)</p>
+			<p class="text-[16px] font-bold text-[#3b443d]">정기 휴무 요일</p>
+			<p class="mt-0.5 text-[14px] text-[#8a918c]">매주 쉬는 요일 (여러 개 선택)</p>
 			<div class="mt-2.5 grid grid-cols-7 gap-1.5">
 				<label th:each="w, it : ${ {'일', '월', '화', '수', '목', '금', '토'} }" class="cursor-pointer">
 					<input class="peer sr-only" name="weekdays" type="checkbox" th:value="${it.index}" th:checked="${#lists.contains(closedWeekdays, it.index)}">
-					<span class="grid h-9 place-items-center rounded-lg border border-[#dfe4df] bg-white text-[11px] font-bold text-[#59625b] peer-checked:border-[#343a35] peer-checked:bg-[#343a35] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#346538]/40"
+					<span class="grid h-9 place-items-center rounded-lg border border-[#dfe4df] bg-white text-[15px] font-bold text-[#59625b] peer-checked:border-[#343a35] peer-checked:bg-[#343a35] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#346538]/40"
 						  th:text="${w}"></span>
 				</label>
 			</div>
@@ -67,18 +67,18 @@
 
 		<label class="mt-3 flex cursor-pointer items-center justify-between rounded-xl bg-[#f7f8f7] p-3">
 			<span>
-				<span class="block text-[12px] font-bold text-[#3b443d]">공휴일 휴무</span>
-				<span class="mt-0.5 block text-[10px] text-[#8a918c]">법정 공휴일에는 예약을 받지 않아요</span>
+				<span class="block text-[16px] font-bold text-[#3b443d]">공휴일 휴무</span>
+				<span class="mt-0.5 block text-[14px] text-[#8a918c]">법정 공휴일에는 예약을 받지 않아요</span>
 			</span>
 			<input class="peer sr-only" name="holidayClosed" type="checkbox" value="true" th:checked="${setting.holidayClosed == 'Y'}">
 			<span class="relative h-6 w-11 shrink-0 rounded-full bg-[#cfd5d0] transition after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow after:transition peer-checked:bg-[#346538] peer-checked:after:translate-x-5"></span>
 		</label>
 
-		<button class="mt-4 h-11 w-full rounded-xl bg-[#346538] text-[12px] font-bold text-white" type="submit">예약 설정 저장</button>
-		<p th:if="${param.saved}" class="mt-2 text-center text-[10px] font-semibold text-[#346538]" role="status">저장했어요. 고객 달력에 바로 반영돼요.</p>
+		<button class="mt-4 h-11 w-full rounded-xl bg-[#346538] text-[16px] font-bold text-white" type="submit">예약 설정 저장</button>
+		<p th:if="${param.saved}" class="mt-2 text-center text-[14px] font-semibold text-[#346538]" role="status">저장했어요. 고객 달력에 바로 반영돼요.</p>
 	</form>
 
-	<div class="absolute bottom-[92px] left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-[#263129]/85 px-4 py-2.5 text-[10px] font-bold text-white shadow-lg" data-editing-badge hidden>
+	<div class="absolute bottom-[92px] left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-[#263129]/85 px-4 py-2.5 text-[14px] font-bold text-white shadow-lg" data-editing-badge hidden>
 		<svg th:replace="~{admin/fragments/icon :: icon('edit', 14, '')}"></svg>
 		현재 수정 중입니다
 	</div>
@@ -86,18 +86,18 @@
 	<!-- 날짜 상태 설정 -->
 	<div class="absolute inset-x-0 bottom-[82px] top-[68px] z-50 grid place-items-center bg-[#1f2d21]/45 p-5 backdrop-blur-[2px]" data-date-modal hidden>
 		<div class="w-full rounded-[20px] bg-white p-5 shadow-2xl">
-			<div class="flex items-center justify-between"><h3 class="text-[17px] font-extrabold">날짜 상태 설정</h3>
+			<div class="flex items-center justify-between"><h3 class="text-[19px] font-extrabold">날짜 상태 설정</h3>
 				<button aria-label="닫기" type="button" data-close-date><svg th:replace="~{admin/fragments/icon :: icon('x', 18, '')}"></svg></button></div>
-			<p class="mt-2 text-[10px] text-[#858d87]" data-date-label></p>
+			<p class="mt-2 text-[14px] text-[#858d87]" data-date-label></p>
 			<div class="mt-5 space-y-3">
 				<label th:each="o : ${ { {'unavailable', '이사 예약 불가능'}, {'closed', '업체 휴무일'} } }"
-					   class="flex cursor-pointer items-center gap-3 rounded-xl border border-[#dfe4df] p-4 text-[12px] font-bold has-checked:border-[#346538] has-checked:bg-[#edf3ed]">
+					   class="flex cursor-pointer items-center gap-3 rounded-xl border border-[#dfe4df] p-4 text-[16px] font-bold has-checked:border-[#346538] has-checked:bg-[#edf3ed]">
 					<input name="dateStatus" type="radio" th:value="${o[0]}"><th:block th:text="${o[1]}"></th:block>
 				</label>
 			</div>
 			<div class="mt-5 grid gap-2" data-date-actions>
-				<button class="h-11 rounded-xl border border-[#d9ded9] text-[11px] font-bold text-[#59625b]" type="button" data-date-cancel>등록 취소</button>
-				<button class="h-11 rounded-xl bg-[#346538] text-[11px] font-bold text-white" type="button" data-date-save>등록</button>
+				<button class="h-11 rounded-xl border border-[#d9ded9] text-[15px] font-bold text-[#59625b]" type="button" data-date-cancel>등록 취소</button>
+				<button class="h-11 rounded-xl bg-[#346538] text-[15px] font-bold text-white" type="button" data-date-save>등록</button>
 			</div>
 		</div>
 	</div>
@@ -109,12 +109,12 @@
 			<button aria-label="확인 창 닫기" class="absolute right-5 top-5 grid h-7 w-7 place-items-center text-[#59625b]" type="button" data-close-confirm>
 				<svg th:replace="~{admin/fragments/icon :: icon('x', 18, '')}"></svg>
 			</button>
-			<h3 class="text-[17px] font-extrabold">정말 수정 하시겠습니까?</h3>
-			<p class="mt-2 text-[10px] text-[#8b928d]">수정된 데이터는 복구할 수 없습니다.</p>
+			<h3 class="text-[19px] font-extrabold">정말 수정 하시겠습니까?</h3>
+			<p class="mt-2 text-[14px] text-[#8b928d]">수정된 데이터는 복구할 수 없습니다.</p>
 			<div data-entries></div>
 			<div class="mt-6 grid grid-cols-2 gap-2">
-				<button class="h-11 rounded-xl border border-[#d9ded9] text-[11px] font-bold" type="button" data-cancel-edit>취소</button>
-				<button class="h-11 rounded-xl bg-[#346538] text-[11px] font-bold text-white" type="submit">저장</button>
+				<button class="h-11 rounded-xl border border-[#d9ded9] text-[15px] font-bold" type="button" data-cancel-edit>취소</button>
+				<button class="h-11 rounded-xl bg-[#346538] text-[15px] font-bold text-white" type="submit">저장</button>
 			</div>
 		</div>
 	</form>
@@ -124,8 +124,8 @@
 		<div class="w-full rounded-[20px] bg-white p-5">
 			<div th:replace="~{admin/fragments/wheel :: wheel(2026, 9, 1)}"></div>
 			<div class="mt-5 grid grid-cols-2 gap-2">
-				<button class="h-11 rounded-xl border border-[#d9ded9] text-[11px] font-bold" type="button" data-month-cancel>취소</button>
-				<button class="h-11 rounded-xl bg-[#346538] text-[11px] font-bold text-white" type="button" data-month-done>완료</button>
+				<button class="h-11 rounded-xl border border-[#d9ded9] text-[15px] font-bold" type="button" data-month-cancel>취소</button>
+				<button class="h-11 rounded-xl bg-[#346538] text-[15px] font-bold text-white" type="button" data-month-done>완료</button>
 			</div>
 		</div>
 	</div>
@@ -154,21 +154,23 @@
 			const first = new Date(year, month - 1, 1).getDay();
 			const days = new Date(year, month, 0).getDate();
 			let html = '';
-			for (let i = 0; i < 42; i++) {
+			const cellCount = Math.ceil((first + days) / 7) * 7; /* 빈 마지막 주는 그리지 않음 */
+			for (let i = 0; i < cellCount; i++) {
 				const d = i - first + 1;
-				if (d < 1 || d > days) { html += '<span class="h-[62px]"></span>'; continue; }
+				if (d < 1 || d > days) { html += '<span class="min-h-[78px]"></span>'; continue; }
 				const k = key(d);
 				const state = statuses[k];
 				/* 직접 지정한 상태 > 자동(정기 휴무 · 예약 마감) > 그날 예약 */
-				const chip = (cls, text) => `<span class="block w-full truncate rounded px-1 py-0.5 text-[7px] font-bold text-white ${cls}">${text}</span>`;
-				const booked = counts[k] ? `<span class="mt-0.5 block text-[7px] font-semibold text-[#7e8a80]">예약 ${counts[k]}/${capacity}</span>` : '';
+				/* 상태 표시는 잘리지 않게 줄바꿈, 이름은 길면 … */
+				const chip = (cls, text, name) => `<span class="block w-full rounded-md px-1 py-[3px] text-[12px] font-bold leading-[1.2] text-white line-clamp-2 text-center break-keep ${cls}"${name ? ` title="${text}"` : ''}>${text}</span>`;
+				const booked = counts[k] ? `<span class="block text-center text-[12px] font-semibold text-[#6f7a71]">예약 ${counts[k]}/${capacity}</span>` : '';
 				const badge = state
 					? chip(state === 'closed' ? 'bg-[#343a35]' : 'bg-[#F57C00]', state === 'closed' ? '업체 휴무' : '예약 불가')
 					: auto[k] === 'full' ? chip('bg-[#c34f45]', '예약 마감') + booked
 					: auto[k] === 'weekly' ? chip('bg-[#8d958f]', '정기 휴무')
-					: events[k] ? chip('bg-[#7e8a80]', esc(events[k])) + booked : '';
-				html += `<button class="flex h-[62px] flex-col items-start border-t border-[#f0f2f0] p-1 text-left ${k === focusKey ? 'bg-[#edf3ed]' : ''} ${editing ? 'hover:bg-[#f4f7f4]' : ''}" type="button" data-day="${k}">`
-					+ `<span class="h-5 text-[10px] font-bold ${i % 7 === 0 ? 'text-[#c85f57]' : 'text-[#555e57]'}">${d}</span>${badge}</button>`;
+					: events[k] ? chip('bg-[#7e8a80]', esc(events[k]), true) + booked : '';
+				html += `<button class="flex min-h-[78px] min-w-0 flex-col items-stretch gap-[3px] border-t border-[#f0f2f0] px-[3px] pb-1.5 pt-1.5 text-left ${k === focusKey ? 'rounded-lg bg-[#edf3ed]' : ''} ${editing ? 'hover:bg-[#f4f7f4]' : ''}" type="button" data-day="${k}">`
+					+ `<span class="pl-0.5 text-[15px] font-bold leading-none ${i % 7 === 0 ? 'text-[#c85f57]' : i % 7 === 6 ? 'text-[#557fa3]' : 'text-[#3f4741]'}">${d}</span>${badge}</button>`;
 			}
 			$('[data-cells]').innerHTML = html;
 			$('[data-begin]').hidden = editing;
