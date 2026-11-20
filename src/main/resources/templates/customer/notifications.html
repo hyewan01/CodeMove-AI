@@ -4,7 +4,7 @@
 <body>
 <div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
 <!-- SCR-U-030 알림 (종류별 보기) - TBL_NOTIFICATION -->
-<div class="screen notifications-screen" data-notifications th:data-read-url="@{/notifications/read}">
+<div class="screen notifications-screen soft-page" data-notifications th:data-read-url="@{/notifications/read}">
 	<div class="notification-header">
 		<a th:replace="~{customer/fragments/common :: back('/home')}"></a>
 		<div>알림</div>

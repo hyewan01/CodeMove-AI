@@ -4,7 +4,7 @@
 <body>
 <div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
 <!-- SCR-U-015 예약 상세 (결제 금액 · 요청사항 · 예약 취소) - TBL_RESERVATION / TBL_QUOTE -->
-<div class="screen form-page">
+<div class="screen form-page soft-page">
 	<div th:replace="~{customer/fragments/common :: formHead('/move', '예약 상세')}"></div>
 	<div class="form-content reservation-detail-page">
 		<div class="reservation-detail-hero">

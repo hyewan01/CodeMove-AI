@@ -7,7 +7,7 @@
 	SCR-U-003~010 영상 견적
 	영상 업로드 → AI 분석(품목 수정) → 주거형태·포장방식 → 출발지·도착지 → 날짜·시간(미정 가능) → 예상 견적 → 이사 요청
 -->
-<form class="screen flow-screen" th:classappend="${cs.easy} ? 'easy-quote'" method="post" enctype="multipart/form-data"
+<form class="screen flow-screen soft-page" th:classappend="${cs.easy} ? 'easy-quote'" method="post" enctype="multipart/form-data"
 	  th:action="@{/quote}" data-quote th:data-easy="${cs.easy}" th:data-back-url="@{/home}">
 	<div class="flow-head">
 		<button type="button" class="action back" aria-label="뒤로 가기" data-step-back><img alt="" th:src="@{/assets/4bbcf.svg}"></button>

@@ -1899,3 +1899,92 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
   .quote-doc-close { width: 28px; }
 }
 
+
+/* ==================================================
+   고객 화면 디자인 통일 (홈과 같은 형태)
+   연한 회녹색 바탕 + 테두리 없는 흰 카드(둥근 모서리·옅은 그림자) + 연한 색 아이콘 칸.
+   .soft-page 를 붙인 내용 화면에만 적용. 로그인·회원가입 같은 입력 화면과 쉬운 모드는 그대로
+   ================================================== */
+:root { --page-bg: #f5f7f4; --card-shadow: 0 6px 20px rgb(26 58 30 / .06); --card-radius: 24px; }
+.app-shell:not(.easy-mode) .soft-page { background: var(--page-bg); }
+.app-shell:not(.easy-mode) .soft-page :is(.app-header, .form-head, .move-sticky-nav, .notification-header, .flow-head) { background: rgb(245 247 244 / .96); }
+.app-shell:not(.easy-mode) .soft-page .notification-controls { background: transparent; }
+
+/* 공통 카드: 테두리 없애고 흰 바탕 + 그림자 */
+.app-shell:not(.easy-mode) .soft-page :is(.move-estimate-card, .move-estimate-detail, .personal-settings-card, .linked-login-card,
+	.account-meta, .reservation-info-card, .detail-status, .estimate-arrived-card, .upcoming-reservation-card, .summary-card, .calendar) {
+	border: 0; border-radius: var(--card-radius); background: var(--white); box-shadow: var(--card-shadow);
+}
+.app-shell:not(.easy-mode) .soft-page .my-booking-card { border: 0; box-shadow: var(--card-shadow); }
+.app-shell:not(.easy-mode) .soft-page .reservation-request-card { background: var(--white); box-shadow: var(--card-shadow); }
+.app-shell:not(.easy-mode) .soft-page .estimate-detail-tabs { background: var(--white); box-shadow: var(--card-shadow); }
+.app-shell:not(.easy-mode) .soft-page .empty-card { border: 0; border-radius: var(--card-radius); background: var(--white); box-shadow: var(--card-shadow); }
+
+/* 목록은 흰 카드 하나에 담음 */
+.app-shell:not(.easy-mode) .soft-page :is(.estimate-history-list, .past-reservation-list) {
+	padding: 0 18px; border-radius: var(--card-radius); background: var(--white); box-shadow: var(--card-shadow);
+}
+.app-shell:not(.easy-mode) .soft-page :is(.estimate-history-list, .past-reservation-list) > :last-child { border-bottom: 0; }
+.app-shell:not(.easy-mode) .soft-page :is(.estimate-list-head, .reservation-past-head, .review-history-label) { border-bottom: 0; }
+.app-shell:not(.easy-mode) .soft-page :is(.past-reservation-empty, .reservation-empty) {
+	padding: 28px 16px; border-radius: var(--card-radius); background: var(--white); box-shadow: var(--card-shadow);
+}
+.app-shell:not(.easy-mode) .soft-page .my-review { margin-top: 10px; padding: 18px; border: 0; border-radius: 22px; background: var(--white); box-shadow: var(--card-shadow); }
+.app-shell:not(.easy-mode) .soft-page .review-prompt { background: var(--white); box-shadow: var(--card-shadow); border-radius: var(--card-radius); }
+
+/* 더보기 */
+.app-shell:not(.easy-mode) .soft-page .profile-card { border-radius: var(--card-radius); }
+.app-shell:not(.easy-mode) .soft-page .menu-list { margin-top: 14px; padding: 0 18px; border: 0; border-radius: var(--card-radius); background: var(--white); box-shadow: var(--card-shadow); }
+.app-shell:not(.easy-mode) .soft-page .menu-list .action { border-bottom-color: #f0f1ef; }
+.app-shell:not(.easy-mode) .soft-page .menu-list .action:last-child { border-bottom: 0; }
+
+/* 알림 */
+.app-shell:not(.easy-mode) .soft-page .notification-feed { margin: 0 16px; border-radius: var(--card-radius); background: var(--white); box-shadow: var(--card-shadow); overflow: hidden; }
+.app-shell:not(.easy-mode) .soft-page .notification-day { background: var(--white); }
+
+/* 내 이사 */
+.app-shell:not(.easy-mode) .soft-page .info-card { margin: 16px 20px; padding: 16px 18px; border: 0; border-radius: var(--card-radius); background: var(--white); box-shadow: var(--card-shadow); }
+
+/* ---------- 이사 견적 (단계 화면) ---------- */
+.app-shell:not(.easy-mode) .soft-page.flow-screen::after { background: linear-gradient(180deg, rgb(245 247 244 / 0), var(--page-bg) 28%); }
+
+/* 1. 영상 올리기: 점선 상자 대신 아래 촬영 가이드와 같은 흰 카드 */
+.app-shell:not(.easy-mode) .soft-page .video-upload-card {
+	min-height: 0; margin-top: 28px; padding: 26px 22px 22px; border: 0; border-radius: var(--card-radius); background: var(--white); box-shadow: var(--card-shadow);
+}
+.app-shell:not(.easy-mode) .soft-page .video-upload-illustration { width: 76px; height: 76px; border-radius: 24px; background: var(--green-pale); }
+.app-shell:not(.easy-mode) .soft-page .video-upload-illustration img { width: 58px; height: 58px; }
+.app-shell:not(.easy-mode) .soft-page .video-upload-card > strong { margin-top: 16px; font-size: 18px; }
+.app-shell:not(.easy-mode) .soft-page .video-upload-card > span { margin-top: 8px; padding: 5px 11px; border-radius: 999px; background: var(--surface); color: #5d6b5f; font-family: "Pretendard:SemiBold"; font-size: 12px; }
+.app-shell:not(.easy-mode) .soft-page .video-upload-button { width: 100%; min-height: 54px; margin-top: 20px; border-radius: 16px; font-size: 16px; }
+.app-shell:not(.easy-mode) .soft-page .video-upload-card.uploaded { border: 0; box-shadow: 0 0 0 2px var(--green) inset, var(--card-shadow); }
+.app-shell:not(.easy-mode) .soft-page .shoot-guide { margin-top: 14px; padding: 20px 18px 18px; border-radius: var(--card-radius); background: var(--white); box-shadow: var(--card-shadow); }
+.app-shell:not(.easy-mode) .soft-page .shoot-tips li + li { border-top: 1px solid #f0f1ef; }
+
+/* 2. 분석 결과: 찾은 품목 목록도 흰 카드 */
+.app-shell:not(.easy-mode) .soft-page .ai-summary { background: var(--white); box-shadow: var(--card-shadow); }
+.app-shell:not(.easy-mode) .soft-page .ai-summary-badge { background: var(--green-pale); }
+.app-shell:not(.easy-mode) .soft-page .found-list { padding: 4px 10px; border-radius: var(--card-radius); background: var(--white); box-shadow: var(--card-shadow); }
+.app-shell:not(.easy-mode) .soft-page .found-add { margin-top: 10px; padding: 0 10px; background: var(--white); box-shadow: var(--card-shadow); border-radius: 20px; }
+.app-shell:not(.easy-mode) .soft-page .analysis-card { border: 0; background: var(--white); box-shadow: var(--card-shadow); border-radius: var(--card-radius); }
+
+/* 3. 주거 형태·포장 방식 */
+.app-shell:not(.easy-mode) .soft-page .option { border: 2px solid transparent; border-radius: 20px; background: var(--white); box-shadow: var(--card-shadow); }
+.app-shell:not(.easy-mode) .soft-page .option.active { border-color: var(--green); background: var(--green-pale); }
+.app-shell:not(.easy-mode) .soft-page .option-group + .option-group { border-top: 0; padding-top: 4px; }
+
+/* 4. 주소: 출발지·도착지를 각각 흰 카드로 */
+.app-shell:not(.easy-mode) .soft-page .flow-stack { gap: 14px; }
+.app-shell:not(.easy-mode) .soft-page .addr-wrap { padding: 18px 18px 16px; border-radius: var(--card-radius); background: var(--white); box-shadow: var(--card-shadow); }
+.app-shell:not(.easy-mode) .soft-page .addr-search-row { border-bottom-color: #e8ebe7; }
+
+/* 5. 날짜 */
+.app-shell:not(.easy-mode) .soft-page .calendar { margin-top: 28px; }
+/* 항목이 없는 목록은 카드로 보이지 않게 (빈 안내 카드만 보임) */
+.app-shell:not(.easy-mode) .soft-page :is(.estimate-history-list, .past-reservation-list):not(:has(> a)) { padding: 0; background: none; box-shadow: none; }
+/* 알림 줄 너비를 카드에 맞춤 */
+.app-shell:not(.easy-mode) .soft-page .notification-row { width: 100%; }
+/* 영상 올리기 카드 안 문구 (표시용 묶음 안에 있어 따로 지정) */
+.app-shell:not(.easy-mode) .soft-page .video-upload-card :is([data-upload-empty], [data-upload-done]) > strong { margin-top: 16px; color: var(--ink); font-family: "Pretendard:Bold"; font-size: 18px; }
+.app-shell:not(.easy-mode) .soft-page .video-upload-card :is([data-upload-empty], [data-upload-done]) > span { margin-top: 10px; padding: 5px 11px; border-radius: 999px; background: var(--surface); color: #5d6b5f; font-family: "Pretendard:SemiBold"; font-size: 12px; }
+.app-shell:not(.easy-mode) .soft-page .video-upload-card .video-upload-change { margin-top: 14px; }

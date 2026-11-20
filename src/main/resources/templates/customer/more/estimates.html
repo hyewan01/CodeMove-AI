@@ -4,7 +4,7 @@
 <body>
 <div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
 <!-- SCR-U-033 견적내역 (상태 필터) -->
-<div class="screen form-page">
+<div class="screen form-page soft-page">
 	<div th:replace="~{customer/fragments/common :: formHead('/more', '견적내역')}"></div>
 	<div class="form-content estimate-history-page">
 		<a class="action estimate-arrived-card" aria-label="도착한 견적 상세" th:href="@{/move/estimate}" th:if="${cs.estimateStatus == 'approved'}">

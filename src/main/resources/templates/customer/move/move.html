@@ -5,7 +5,7 @@
 <div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'"
 	 th:with="status=${cs.estimateStatus}, confirmed=${cs.estimateStatus == 'confirmed'}">
 <!-- SCR-U-011 내 이사 (예약 정보 · 견적 정보 · 완료) -->
-<div class="screen page-with-nav">
+<div class="screen page-with-nav soft-page">
 	<div th:replace="~{customer/fragments/common :: header}"></div>
 	<main class="sub-content">
 		<div class="move-sticky-nav">
