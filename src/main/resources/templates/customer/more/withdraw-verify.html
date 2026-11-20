@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('본인인증')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+<!-- 회원 탈퇴 2/3: 휴대폰 본인인증 (회원가입 본인인증과 같은 입력 방식) -->
+<div class="screen form-page">
+	<div th:replace="~{customer/fragments/common :: formHead('/more/withdraw', null)}"></div>
+	<form class="form-content verify-page" method="post" th:action="@{/more/withdraw/verify}" data-verify>
+		<div class="signup-copy">본인 확인을 위해<br>인증번호를 입력해 주세요</div>
+		<div class="verify-help">인증번호 문자 메시지가 <b th:text="${maskedPhone}">010-****-5678</b>(으)로 발송되었습니다.</div>
+		<div class="otp-row" data-otp>
+			<input class="otp-box" inputmode="numeric" maxlength="1" type="text" aria-label="인증번호 1번째 자리" th:each="i : ${#numbers.sequence(1, 6)}">
+		</div>
+		<input type="hidden" name="code" data-otp-value>
+		<div class="otp-meta">
+			<span class="otp-timer" data-timer>03:00</span>
+			<button type="button" class="action otp-resend" data-resend>재발송</button>
+		</div>
+		<p class="wd-verify-note">인증을 마치면 바로 탈퇴되고 되돌릴 수 없어요.</p>
+		<button class="action form-submit verify-submit next-button is-disabled" data-submit>인증하고 탈퇴하기</button>
+	</form>
+</div>
+</div>
+</body>
+</html>

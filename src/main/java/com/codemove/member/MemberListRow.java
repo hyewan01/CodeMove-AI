@@ -16,4 +16,6 @@ public class MemberListRow {
 	private LocalDateTime joinedAt;
 	private String isAdmin;
 	private String lastAddress;
+	/** 탈퇴일시 (탈퇴 안 했으면 null) */
+	private LocalDateTime withdrawnAt;
 }

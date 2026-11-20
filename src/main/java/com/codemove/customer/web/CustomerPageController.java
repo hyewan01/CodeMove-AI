@@ -105,8 +105,11 @@ public class CustomerPageController {
 	@ModelAttribute
 	public void common(HttpSession session, Model model) {
 		CustomerSession cs = CustomerSession.of(session);
-		if (cs.isLoggedIn() && members.find(cs.getMemberId()) == null) {
-			cs.logout();
+		if (cs.isLoggedIn()) {
+			Member me = members.find(cs.getMemberId());
+			if (me == null || !"Y".equals(me.getIsActive())) {
+				cs.logout();
+			}
 		}
 		CurrentMove c = current(session);
 		model.addAttribute("cs", views.view(cs, c));
@@ -488,6 +491,71 @@ public class CustomerPageController {
 			return "redirect:/more/profile?error=taken";
 		}
 		return "redirect:/more/profile";
+	}
+
+	/* ---------- 회원 탈퇴: 안내 → 예/아니요 → 휴대폰 본인인증 → 완료 ---------- */
+
+	private static final String WITHDRAW_KEY = "withdrawConfirmed";
+
+	/** 예약이 확정된 이사가 남아 있으면 탈퇴 전에 먼저 취소하거나 이사를 마쳐야 함 */
+	private boolean hasBookedMove(HttpSession session) {
+		return "confirmed".equals(current(session).status());
+	}
+
+	@GetMapping("/more/withdraw")
+	public String withdrawInfo(HttpSession session, Model model) {
+		session.removeAttribute(WITHDRAW_KEY);
+		model.addAttribute("blocked", hasBookedMove(session));
+		return "customer/more/withdraw";
+	}
+
+	/** [예, 탈퇴할게요] → 본인인증 */
+	@PostMapping("/more/withdraw")
+	public String withdrawConfirm(HttpSession session) {
+		if (hasBookedMove(session)) {
+			return "redirect:/more/withdraw";
+		}
+		session.setAttribute(WITHDRAW_KEY, memberId(session));
+		return "redirect:/more/withdraw/verify";
+	}
+
+	@GetMapping("/more/withdraw/verify")
+	public String withdrawVerifyForm(HttpSession session, Model model) {
+		if (!Long.valueOf(memberId(session)).equals(session.getAttribute(WITHDRAW_KEY))) {
+			return "redirect:/more/withdraw";
+		}
+		Member me = members.find(memberId(session));
+		model.addAttribute("maskedPhone", Fmt.maskPhone(me.getPhone()));
+		return "customer/more/withdraw-verify";
+	}
+
+	/** 본인인증 완료 → 탈퇴 (문자 인증 연동 전: 인증번호 6자리 입력만 확인) */
+	@PostMapping("/more/withdraw/verify")
+	public String withdraw(@RequestParam(defaultValue = "") String code, HttpSession session) {
+		long id = memberId(session);
+		if (!Long.valueOf(id).equals(session.getAttribute(WITHDRAW_KEY)) || !code.matches("\\d{6}")) {
+			return "redirect:/more/withdraw";
+		}
+		if (hasBookedMove(session)) {
+			return "redirect:/more/withdraw";
+		}
+		String name = CustomerSession.of(session).getUserName();
+		members.withdraw(id);
+		session.removeAttribute(WITHDRAW_KEY);
+		CustomerSession.of(session).logout();
+		session.setAttribute("withdrawnName", name);
+		return "redirect:/withdrawn";
+	}
+
+	/** 탈퇴 완료 (로그인 없이 보는 화면) */
+	@GetMapping("/withdrawn")
+	public String withdrawn(HttpSession session, Model model) {
+		Object name = session.getAttribute("withdrawnName");
+		if (name == null) {
+			return "redirect:/";
+		}
+		model.addAttribute("name", name);
+		return "customer/more/withdrawn";
 	}
 
 	@GetMapping("/more/estimates")

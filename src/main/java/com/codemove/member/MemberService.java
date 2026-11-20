@@ -117,8 +117,8 @@ public class MemberService {
 			return;
 		}
 		Member m = members.findMember(id);
-		if (m == null) {
-			return;
+		if (m == null || !"Y".equals(m.getIsActive())) {
+			return; // 탈퇴 회원은 권한을 바꿀 수 없음
 		}
 		String digits = Fmt.digits(m.getPhone());
 		if (admin) {
@@ -137,10 +137,21 @@ public class MemberService {
 			members.deactivateAdmin(-id);
 			return;
 		}
-		Member m = members.findMember(id);
-		if (m != null) {
-			members.deactivateAdminByPhone(Fmt.digits(m.getPhone()));
-			members.withdrawMember(id);
+		withdraw(id);
+	}
+
+	/**
+	 * 회원 탈퇴 (고객이 직접 · 관리자가 삭제). 견적·예약·결제·후기 기록은 지우지 않고,
+	 * 회원을 사용 안 함으로 바꾸고 같은 번호의 관리자 권한과 간편로그인 연결만 끊음.
+	 */
+	@Transactional
+	public void withdraw(long memberId) {
+		Member m = members.findMember(memberId);
+		if (m == null || !"Y".equals(m.getIsActive())) {
+			return;
 		}
+		members.deactivateAdminByPhone(Fmt.digits(m.getPhone()));
+		members.deleteSocials(memberId);
+		members.withdrawMember(memberId);
 	}
 }

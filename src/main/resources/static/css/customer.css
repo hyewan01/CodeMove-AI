@@ -908,7 +908,49 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 .menu-list .action > div { display: flex; flex-direction: column; gap: 5px; }
 .menu-list strong { font-family: "Pretendard:SemiBold"; }
 .menu-list span { color: var(--muted); font-size: var(--text-caption); }
-.logout { width: fit-content; margin: 25px auto; color: var(--muted); text-decoration: underline; font-size: 13px; }
+/* 로그아웃 · 회원 탈퇴: 메뉴 아래쪽 가운데 */
+.account-actions { margin: 36px 0 8px; display: flex; align-items: center; justify-content: center; gap: 14px; }
+.account-actions > span { width: 1px; height: 12px; background: #d6d9d6; }
+.logout, .account-withdraw { min-height: 40px; padding: 0 6px; display: flex; align-items: center; color: #7d847e; font-family: "Pretendard:SemiBold"; font-size: 14px; }
+.account-withdraw { color: #a3a8a4; font-family: "Pretendard:Medium"; }
+.logout:hover, .account-withdraw:hover { color: var(--ink); }
+
+/* 회원 탈퇴 */
+.wd-page { padding-bottom: 40px; }
+.wd-title { margin: 6px 0 0; color: var(--ink); font-family: "Pretendard:Bold"; font-size: 21px; line-height: 1.4; word-break: keep-all; }
+.wd-notice { margin: 24px 0 0; padding: 6px 18px; border-radius: 20px; background: var(--surface); list-style: none; }
+.wd-notice li { padding: 14px 0; display: flex; gap: 12px; border-bottom: 1px solid #eceeeb; }
+.wd-notice li:last-child { border-bottom: 0; }
+.wd-icon { width: 36px; height: 36px; flex: none; border-radius: 12px; background: var(--white); color: #6b746d; display: grid; place-items: center; }
+.wd-icon svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.wd-notice div { min-width: 0; display: flex; flex-direction: column; gap: 4px; padding-top: 2px; }
+.wd-notice strong { color: var(--ink); font-family: "Pretendard:SemiBold"; font-size: 15px; word-break: keep-all; }
+.wd-notice small { color: #7d847e; font-size: 13px; line-height: 1.5; word-break: keep-all; }
+.wd-ask { margin-top: 28px; padding: 22px 18px 18px; border: 1.5px solid #f1d4cf; border-radius: 20px; background: #fffaf9; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.wd-ask > strong { color: var(--ink); font-family: "Pretendard:Bold"; font-size: 18px; }
+.wd-ask > span { color: #7d847e; font-size: 13px; }
+.wd-ask-actions { width: 100%; margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.wd-ask-actions .action { min-height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-family: "Pretendard:Bold"; font-size: 15px; }
+.wd-no { background: var(--green); color: var(--white); }
+.wd-yes { border: 1.5px solid #e2b3ac; background: var(--white); color: #c8473b; }
+.wd-yes:hover { background: #fdf0ee; }
+.wd-blocked { margin-top: 28px; padding: 18px; border-radius: 20px; background: var(--orange-pale); display: flex; flex-direction: column; gap: 6px; }
+.wd-blocked strong { color: #9a4f14; font-family: "Pretendard:Bold"; font-size: 15px; }
+.wd-blocked span { color: #a8805f; font-size: 13px; line-height: 1.5; }
+.wd-blocked-link { min-height: 46px; margin-top: 8px; border-radius: 12px; background: var(--white); color: #9a4f14; display: flex; align-items: center; justify-content: center; font-family: "Pretendard:Bold"; font-size: 14px; }
+.wd-verify-note { margin: 22px 0 0; padding: 12px 14px; border-radius: 12px; background: #fff3f1; color: #c8473b; font-family: "Pretendard:SemiBold"; font-size: 13px; }
+.wd-done { display: flex; flex-direction: column; }
+.wd-done-body { flex: 1; padding: 0 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
+.wd-done-icon { width: 72px; height: 72px; margin-bottom: 8px; border-radius: 50%; background: var(--green-pale); color: var(--green); display: grid; place-items: center; }
+.wd-done-icon svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.wd-done-body strong { color: var(--ink); font-family: "Pretendard:Bold"; font-size: 22px; }
+.wd-done-body p { margin: 0; color: #6b746d; font-size: 15px; line-height: 1.65; }
+.wd-done-button { width: auto; margin: 0 24px max(40px, calc(var(--safe-bottom) + 24px)); display: flex; align-items: center; justify-content: center; font-family: "Pretendard:Bold"; }
+.easy-mode .wd-title { font-size: 24px; }
+.easy-mode .wd-notice strong { font-size: 17px; }
+.easy-mode .wd-notice small, .easy-mode .wd-ask > span { font-size: 15px; }
+.easy-mode .wd-ask-actions .action { min-height: 58px; font-size: 17px; }
+.easy-mode .logout, .easy-mode .account-withdraw { font-size: 16px; }
 .personal-page-content { padding-bottom: max(36px, calc(var(--safe-bottom) + 24px)); }
 .form-page:has(.personal-page-content) .form-head { justify-content: flex-start; }
 .form-page:has(.personal-page-content) .form-title { position: absolute; left: 50%; margin: 0; padding-bottom: 2px; transform: translateX(-50%); font-size: 20px; white-space: nowrap; }

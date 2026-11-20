@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('탈퇴 완료')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+<!-- 회원 탈퇴 3/3: 완료 -->
+<div class="screen form-page wd-done">
+	<div class="wd-done-body">
+		<span class="wd-done-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+		<strong>탈퇴가 완료됐어요</strong>
+		<p><th:block th:text="${name}">김무브</th:block>님, 그동안 명품익스프레스를<br>이용해 주셔서 감사합니다.<br>다음 이사 때 다시 만나요.</p>
+	</div>
+	<a class="action form-submit primary wd-done-button" th:href="@{/}">처음으로</a>
+</div>
+</div>
+</body>
+</html>

@@ -48,5 +48,7 @@ public interface MemberMapper {
 
 	int withdrawMember(long memberId);
 
+	int deleteSocials(long memberId);
+
 	Admin findAdmin(long adminId);
 }

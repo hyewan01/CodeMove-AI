@@ -162,7 +162,7 @@ public class AdminScheduleController {
 		if ("new".equals(modal)) {
 			model.addAttribute("newDate", Fmt.dash(selected));
 			// 회원·예약 연결 검색용 [이름, 회원 번호, 연락처]
-			model.addAttribute("linkCustomers", views.members().stream().filter(x -> x.id() > 0)
+			model.addAttribute("linkCustomers", views.members().stream().filter(x -> x.id() > 0 && !x.isWithdrawn())
 					.map(x -> new String[] { x.name(), String.valueOf(x.id()), x.phone() }).toList());
 			model.addAttribute("linkReservations", all.stream().map(r -> Map.<String, Object>of("id", r.id(),
 					"userId", r.userId(), "name", r.name(), "phone", r.phone(), "origin", r.origin(),

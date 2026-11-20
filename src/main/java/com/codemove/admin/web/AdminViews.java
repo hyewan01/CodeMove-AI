@@ -97,8 +97,14 @@ public class AdminViews {
 	/* ---------- 회원 · 후기 ---------- */
 
 	/** id 가 음수면 회원 정보 없는 관리자 계정, type: 고객 | 관리자 */
+	/** type: 고객 · 관리자 · 탈퇴, withdrawnOn: 탈퇴일 yyyy.MM.dd (탈퇴 안 했으면 빈 문자열) */
 	public record Member(long id, String name, String userId, String type, boolean isNew, String phone, String joined,
-			String address) {
+			String address, String withdrawnOn) {
+
+		public boolean isWithdrawn() {
+			return "탈퇴".equals(type);
+		}
+
 
 		public String initial() {
 			return name.substring(0, 1);
@@ -189,10 +195,12 @@ public class AdminViews {
 	public List<Member> members() {
 		LocalDate weekAgo = LocalDate.now().minusDays(7);
 		return members.listForAdmin().stream().map((MemberListRow r) -> new Member(r.getId(), r.getName(),
-				String.valueOf(Math.abs(r.getId())), "Y".equals(r.getIsAdmin()) ? "관리자" : "고객",
-				r.getJoinedAt() != null && !r.getJoinedAt().toLocalDate().isBefore(weekAgo), r.getPhone(),
-				r.getJoinedAt() == null ? "" : Fmt.dot(r.getJoinedAt().toLocalDate()).replace(" ", ""),
-				Fmt.region(r.getLastAddress()))).toList();
+				String.valueOf(Math.abs(r.getId())),
+				r.getWithdrawnAt() != null ? "탈퇴" : "Y".equals(r.getIsAdmin()) ? "관리자" : "고객",
+				r.getWithdrawnAt() == null && r.getJoinedAt() != null && !r.getJoinedAt().toLocalDate().isBefore(weekAgo),
+				r.getPhone(), r.getJoinedAt() == null ? "" : Fmt.dot(r.getJoinedAt().toLocalDate()).replace(" ", ""),
+				Fmt.region(r.getLastAddress()),
+				r.getWithdrawnAt() == null ? "" : Fmt.dot(r.getWithdrawnAt().toLocalDate()).replace(" ", ""))).toList();
 	}
 
 	public List<Review> reviews() {

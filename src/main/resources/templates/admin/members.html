@@ -11,7 +11,7 @@
 			<h3 class="text-[16px] font-extrabold text-[#29312b]">회원 관리 목록</h3>
 			<div class="relative mt-3 flex items-center gap-2">
 				<select class="h-9 rounded-lg border border-[#dfe4df] bg-white px-2 text-[10px] font-semibold" name="type" data-auto-submit>
-					<option th:each="t : ${ {'전체', '고객', '관리자'} }" th:value="${t}" th:text="${t}" th:selected="${t == type}"></option>
+					<option th:each="t : ${ {'전체', '고객', '관리자', '탈퇴'} }" th:value="${t}" th:text="${t}" th:selected="${t == type}"></option>
 				</select>
 				<div class="ml-auto flex items-center gap-1">
 					<a class="grid h-9 place-items-center rounded-lg bg-[#346538] px-3 text-[10px] font-bold text-white" th:href="${listUrl} + '&modal=register'">+ 등록</a>
@@ -38,9 +38,13 @@
 				<a class="absolute inset-0" th:href="${listUrl} + '&modal=detail&id=' + ${m.id}" th:aria-label="${m.name} + ' 상세 정보'"></a>
 				<span class="text-center text-[#8b928d]" th:text="${rowOffset + it.count}">1</span>
 				<span class="justify-self-center rounded-full px-2 py-1 text-[9px] font-bold"
-					  th:classappend="${m.type == '관리자'} ? 'bg-[#fff1e8] text-[#ba6a35]' : 'bg-[#edf3f8] text-[#4d7599]'" th:text="${m.type}">고객</span>
-				<span class="truncate px-1 font-semibold text-[#424a44]" th:text="${m.name}">홍길동</span>
-				<div class="relative flex justify-end">
+					  th:classappend="${m.isWithdrawn()} ? 'bg-[#fdecea] text-[#d23f31]' : (${m.type == '관리자'} ? 'bg-[#fff1e8] text-[#ba6a35]' : 'bg-[#edf3f8] text-[#4d7599]')" th:text="${m.type}">고객</span>
+				<span class="truncate px-1 font-semibold" th:classappend="${m.isWithdrawn()} ? 'text-[#a0a6a1]' : 'text-[#424a44]'">
+					<th:block th:text="${m.name}">홍길동</th:block>
+					<small th:if="${m.isWithdrawn()}" class="ml-1 text-[9px] font-bold text-[#d23f31]" th:text="${m.withdrawnOn} + ' 탈퇴'">2026.11.20 탈퇴</small>
+				</span>
+				<span th:if="${m.isWithdrawn()}" class="text-center text-[9px] text-[#b3b8b4]">-</span>
+				<div class="relative flex justify-end" th:unless="${m.isWithdrawn()}">
 					<a class="grid h-7 w-7 place-items-center text-[#4f80ac]" th:aria-label="${m.name} + ' 권한 수정'" th:href="${listUrl} + '&modal=edit&id=' + ${m.id}">
 						<svg th:replace="~{admin/fragments/icon :: icon('edit', 14, '')}"></svg>
 					</a>
@@ -99,7 +103,11 @@
 				</div>
 				<div class="mt-5 divide-y divide-[#edf0ed] rounded-xl bg-[#f8f9f8] px-4">
 					<div class="flex justify-between py-2.5 text-[10px]" th:each="f : ${ { {'이름', selected.name}, {'연락처', selected.phone}, {'가입일', #strings.isEmpty(selected.joined) ? '-' : selected.joined}, {'분류', selected.type} } }">
-						<span class="font-bold text-[#737b75]" th:text="${f[0]}"></span><span class="text-[#444c46]" th:text="${f[1]}"></span>
+						<span class="font-bold text-[#737b75]" th:text="${f[0]}"></span>
+						<span th:classappend="${f[0] == '분류' and selected.isWithdrawn()} ? 'font-bold text-[#d23f31]' : 'text-[#444c46]'" th:text="${f[1]}"></span>
+					</div>
+					<div class="flex justify-between py-2.5 text-[10px]" th:if="${selected.isWithdrawn()}">
+						<span class="font-bold text-[#737b75]">탈퇴일</span><span class="font-bold text-[#d23f31]" th:text="${selected.withdrawnOn}">2026.11.20</span>
 					</div>
 				</div>
 				<a class="mt-5 grid h-11 w-full place-items-center rounded-xl bg-[#346538] text-[11px] font-bold text-white" th:href="${listUrl}">닫기</a>
@@ -127,7 +135,7 @@
 			<form th:if="${modal == 'delete' and selected != null}" method="post" th:action="@{/admin/members/{id}/delete(id=${selected.id})}">
 				<input type="hidden" name="back" th:value="${listUrl}">
 				<h3 class="text-center text-[17px] font-extrabold">정말 삭제하시겠습니까?</h3>
-				<p class="mt-2 text-center text-[10px] text-[#8b928d]">삭제된 데이터는 복구할 수 없습니다.</p>
+				<p class="mt-2 text-center text-[10px] text-[#8b928d]">회원은 탈퇴 처리되고 되돌릴 수 없습니다.<br>견적·예약 기록은 그대로 남습니다.</p>
 				<div class="mt-6 grid grid-cols-2 gap-2">
 					<a class="grid h-11 place-items-center rounded-xl border border-[#d9ded9] text-[11px] font-bold" th:href="${listUrl}">취소</a>
 					<button class="h-11 rounded-xl bg-[#c75f56] text-[11px] font-bold text-white" type="submit">삭제</button>

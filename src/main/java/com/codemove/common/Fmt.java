@@ -136,6 +136,13 @@ public final class Fmt {
 		return raw == null ? "" : raw.trim();
 	}
 
+	/** 010-1234-5678 → 010-****-5678 (본인인증 화면 안내용) */
+	public static String maskPhone(String raw) {
+		String p = phone(raw);
+		String[] parts = p.split("-");
+		return parts.length == 3 ? parts[0] + "-" + "*".repeat(parts[1].length()) + "-" + parts[2] : p;
+	}
+
 	/** "서울 강남구 테헤란로 123" → "강남구" (시·도 다음 시·군·구) */
 	public static String district(String address) {
 		if (address == null || address.isBlank()) {
