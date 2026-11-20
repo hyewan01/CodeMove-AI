@@ -1,0 +1,90 @@
+품목명,크기코드,브랜드,모델명,가로mm,깊이mm,높이mm,CBM,출처URL
+냉장고,01,삼성,"RR09BG014WW (89L 1도어)",475,448,842,0.179,https://www.samsung.com/sec/support/model/RR09BG014WW/
+냉장고,01,LG,"B103W14 (90L)",463,482,820,0.183,https://www.lge.co.kr/product/refrigerators/b103w14
+냉장고,01,LG,"B053W14 (43L)",443,450,501,0.100,https://www.lge.co.kr/product/refrigerators/b053w14
+냉장고,02,삼성,"RT31CB5624C3 (298L 2도어)",600,647,1715,0.666,https://www.samsung.com/sec/support/model/RT31CB5624C3/
+냉장고,02,LG,"B312W31 (317L)",600,710,1640,0.699,https://www.lge.co.kr/product/refrigerators/b312w31
+냉장고,03,삼성,"RS84B5041SA (846L 양문형)",912,915,1780,1.485,https://www.samsung.com/sec/support/model/RS84B5041SA/
+냉장고,03,LG,"S834MEE111 (832L 양문형)",913,913,1790,1.492,https://www.lge.co.kr/product/refrigerators/s834mee111
+냉장고,03,LG,"M875AAA031 (875L 4도어)",914,918,1860,1.561,https://www.lge.co.kr/product/refrigerators/m875aaa031
+김치냉장고,01,삼성,"RP22C3111Z1 (221L 뚜껑형)",925,702,973,0.632,https://www.samsung.com/sec/support/model/RP22C3111Z1/
+김치냉장고,01,LG,"K220S111 (217L 뚜껑형)",920,691,949,0.603,https://www.lge.co.kr/product/kimchi-refrigerators/k220s111
+김치냉장고,02,삼성,"RQ33DG71J3EW (328L 3도어)",693,649,1797,0.808,https://www.samsung.com/sec/support/model/RQ33DG71J3EW/
+김치냉장고,02,LG,"Z330MEEF11 (327L 3도어)",666,737,1787,0.877,https://www.lge.co.kr/kimchi-refrigerators/z330meef11
+김치냉장고,03,삼성,"RK70F49M2Z (490L 4도어)",799,794,1853,1.176,https://www.samsung.com/sec/support/model/RK70F49M2Z/
+김치냉장고,03,LG,"Z490MQQF11 (491L 4도어)",835,838,1795,1.256,https://www.lge.co.kr/product/kimchi-refrigerators/z490mqqf11
+세탁기,01,삼성,"WA30F1K6QSA (아가사랑 3kg)",450,540,809,0.197,https://www.samsung.com/sec/support/model/WA30F1K6QSA/
+세탁기,02,삼성,"WA19CG6745BW (19kg 통돌이)",637,701,1093,0.488,https://www.samsung.com/sec/support/model/WA19CG6745BW/
+세탁기,02,삼성,"WF21DG6650BV (21kg 드럼)",686,796,984,0.537,https://www.samsung.com/sec/support/model/WF21DG6650BV/
+세탁기,02,LG,"FX25GFG (25kg 드럼)",700,830,990,0.575,https://www.lge.co.kr/product/all-in-one-laundry/kx25gfg-5gg
+세탁기,03,LG,"WA2525TAP6Z (워시타워)",700,830,1890,1.098,https://www.lge.co.kr/wash-tower/wa2525tap6z
+세탁기,03,삼성,"WD90F25CHW (AI 콤보)",686,875,1110,0.666,https://www.samsung.com/sec/support/model/WD90F25CHW/
+건조기,01,삼성,"DV10BB8440GB (10kg)",600,650,850,0.332,https://www.samsung.com/sec/support/model/DV10BB8440GB/
+건조기,01,LG,"RH10WTA (10kg)",600,660,850,0.337,https://www.lge.co.kr/product/dryers/rh10wta-akor
+건조기,02,삼성,"DV20CB8800BE (20kg)",686,872,984,0.589,https://www.samsung.com/sec/support/model/DV20CB8800BE/
+건조기,02,LG,"RD20GN (20kg)",700,820,990,0.568,https://www.lge.co.kr/dryers/rd20gn
+건조기,03,삼성,"DV90F22CDY (22kg)",686,872,984,0.589,https://www.samsung.com/sec/support/model/DV90F22CDY/
+건조기,03,LG,"RD22GS (22kg)",700,820,990,0.568,https://www.lge.co.kr/product/dryers/rd22gs-r1
+건조기,03,LG,"RD25GSG (25kg)",700,824,990,0.571,https://www.lge.co.kr/product/dryers/rd25gsg
+TV,01,삼성,"KU43UD7000FXKR (43"", 스탠드 포함)",967.5,191,609.7,0.113,https://www.samsung.com/sec/support/model/KU43UD7000FXKR
+TV,01,LG,"43UT8300ENA (43"", 스탠드 포함)",967,216,621,0.130,https://www.lge.co.kr/tvs/43ut8300ena-stand
+TV,02,삼성,"KU55UD7000FXKR (55"", 스탠드 포함)",1234.1,237,758.0,0.222,https://www.samsung.com/sec/support/model/KU55UD7000FXKR
+TV,02,삼성,"KU65UD7000FXKR (65"", 스탠드 포함)",1452.9,267.4,879.5,0.342,https://www.samsung.com/sec/support/model/KU65UD7000FXKR
+TV,02,LG,"55UT8300ENA (55"", 스탠드 포함)",1235,231,776,0.221,https://www.lge.co.kr/tvs/55ut8300ena-stand
+TV,02,LG,"65UT8300ENA (65"", 스탠드 포함)",1454,269,906,0.354,https://www.lge.co.kr/tvs/65ut8300ena-stand
+TV,03,삼성,"KU75UD7000FXKR (75"", 스탠드 포함)",1677.5,325,1006.3,0.549,https://www.samsung.com/sec/support/model/KU75UD7000FXKR
+TV,03,LG,"75UT8300ENA (75"", 스탠드 포함)",1678,361,1027,0.622,https://www.lge.co.kr/tvs/75ut8300ena-stand
+TV,03,LG,"86UT8300ENA (86"", 스탠드 포함)",1927,362,1167,0.814,https://www.lge.co.kr/tvs/86ut8300ena-stand
+에어컨,01,삼성,"AR07B9350GBN 실내기",820,215,345,0.061,https://www.samsung.com/sec/support/model/AR07B9350GBN/
+에어컨,01,삼성,"AR07B9350GCX 실외기",790,285,548,0.123,https://www.samsung.com/sec/support/model/AR07B9350GCX/
+에어컨,01,LG,"SW09BAJWAS 실내기",837,189,302,0.048,https://www.lge.co.kr/air-conditioners/sw09bajwas
+에어컨,01,LG,"SW09BAJWAS 실외기",770,288,545,0.121,https://www.lge.co.kr/air-conditioners/sw09bajwas
+에어컨,01,LG,"SQ06EJ7HAJ 실내기",837,192,348,0.056,https://www.lge.co.kr/product/air-conditioners/sq06ej7haj-akor
+에어컨,02,삼성,"AF17CX738WSN 실내기",415,309,1830,0.235,https://www.samsung.com/sec/support/model/AF17CX738WSN/
+에어컨,02,삼성,"AF17CX732DCX 실외기",880,310,638,0.174,https://www.samsung.com/sec/support/model/AF17CX732DCX/
+에어컨,02,삼성,"AF16T5774WSN 실내기",360,390,1850,0.260,https://www.samsung.com/sec/support/model/AF16T5774WSN/
+에어컨,02,LG,"FQ18PBNGP1M 실내기",380,295,1915,0.215,https://www.lge.co.kr/air-conditioners/fq18pbngp1m
+에어컨,02,LG,"FQ25BNBU 실외기",870,330,650,0.187,https://www.lge.co.kr/air-conditioners/fq18pbngp1m
+에어컨,03,삼성,"AF17B7538GZN 스탠드 실내기",363,294,1883,0.201,https://www.samsung.com/sec/support/model/AF17B7538GZN/
+에어컨,03,삼성,"AR06B9150HNQ 벽걸이 실내기",820,215,299,0.053,https://www.samsung.com/sec/support/model/AR06B9150HNQ/
+에어컨,03,삼성,"AF17B7530DCX 실외기",880,310,638,0.174,https://www.samsung.com/sec/support/model/AF17B7530DCX/
+에어컨,03,LG,"FQ18GN5BA2 스탠드 실내기",380,295,1915,0.215,https://www.lge.co.kr/product/air-conditioners/fq18gn5ba2
+에어컨,03,LG,"SQ06GS3EBJ 벽걸이 실내기",799,235,307,0.058,https://www.lge.co.kr/product/air-conditioners/fq18gn5ba2
+에어컨,03,LG,"FQ24GNGU 실외기",870,330,650,0.187,https://www.lge.co.kr/product/air-conditioners/fq18gn5ba2
+전자레인지,01,LG,"MW20GDN (20L)",454,328,261,0.039,https://www.lge.co.kr/product/microwaves-and-ovens/mw20gdn
+전자레인지,01,LG,"MWJ20EDN (20L)",454,328,261,0.039,https://www.lge.co.kr/product/object-collection/mwj20edn
+전자레인지,02,삼성,"MS23K3513AW (23L)",489,374,275,0.050,https://www.samsung.com/sec/support/model/MS23K3513AW/
+전자레인지,02,LG,"MW23BD (23L)",476,369,272,0.048,https://www.lge.co.kr/microwaves-and-ovens/mw23bd
+전자레인지,03,삼성,"MC32K7055CT (32L)",523,479,309,0.077,https://www.samsung.com/sec/support/model/MC32K7055CT/
+전자레인지,03,LG,"ML32BW1 (32L)",527,472,389,0.097,https://www.lge.co.kr/microwaves-and-ovens/ml32bw1
+전자레인지,03,LG,"MLJ32HWS (32L)",527,480,394,0.100,https://www.lge.co.kr/microwaves-and-ovens/mlj32hws
+침대,01,일룸,"쿠시노 코지 다리형 침대 S (매트별도)",1027,2065,1000,1.060,https://prod.danawa.com/info/?pcode=20623481
+침대,01,이케아,"SLÄKT 침대프레임 90x200",960,2060,780,0.989,https://www.ikea.com/kr/ko/p/slaekt-bed-frame-with-slatted-bed-base-white-s59227756/
+침대,02,시몬스,"D2178A 침대 SS",1125,2048,1058,1.152,https://prod.danawa.com/info/?pcode=4346034
+침대,02,일룸,"멘디 침대 SS",1139,2037,721,1.160,https://prod.danawa.com/info/?pcode=12934694
+침대,02,한샘,"포에트 호텔 침대 Q",1660,2147,1034,1.782,https://prod.danawa.com/info/?pcode=67621334
+침대,02,이케아,"MALM 높은침대프레임 150x200",1660,2090,1000,1.735,https://www.ikea.com/kr/ko/p/malm-bed-frame-high-white-loenset-s39019188/
+침대,03,에이스침대,"LUCE3 침대 K",1748,2228,1178,1.947,https://prod.danawa.com/info/?pcode=124744979
+침대,03,이케아,"IDANÄS 침대프레임 180x200",1910,2070,1120,1.977,https://www.ikea.com/kr/ko/p/idanaes-bed-frame-dark-brown-stained-40458902/
+소파,01,이케아,"EKTORP 2인용소파",1790,880,880,1.386,https://www.ikea.com/kr/ko/p/ektorp-2-seat-sofa-kilanda-light-beige-s29509026/
+소파,01,자코모,"밀리 천연가죽 소파 2인용",1890,960,960,1.742,https://prod.danawa.com/info/?pcode=56269241
+소파,02,이케아,"KIVIK 3인용소파",2280,950,830,1.798,https://www.ikea.com/kr/ko/p/kivik-3-seat-sofa-tresund-light-beige-s49482832/
+소파,02,자코모,"에비뉴엘 소파 3인용",2000,980,930,1.823,https://prod.danawa.com/info/?pcode=5418698
+소파,02,한샘,"코타 천연가죽 소파 3인용",2020,950,940,1.804,https://prod.danawa.com/info/?pcode=20528648
+소파,03,자코모,"쿠시 플러스 코너 소파 4인용",3000,2250,970,6.548,https://prod.danawa.com/info/?pcode=6040773
+소파,03,자코모,"노바 소파 4인용(일자형)",3000,970,930,2.706,https://prod.danawa.com/info/?pcode=6915535
+소파,03,이케아,"VIMLE 코너소파4",2490,2350,800,3.026,https://www.ikea.com/kr/ko/p/vimle-corner-sofa-4-seat-with-open-end-grann-bomstad-black-s69306729/
+옷장,01,이케아,"BRIMNES 옷장+도어2",780,500,1900,0.741,https://www.ikea.com/kr/ko/p/brimnes-wardrobe-with-2-doors-white-20400479/
+옷장,01,한샘,"바이엘 채널 2단 행거형 옷장 1000",1000,600,2170,1.302,https://prod.danawa.com/info/?pcode=10941333
+옷장,02,이케아,"PAX/FORSAND 옷장 150",1500,600,2012,1.811,https://www.ikea.com/kr/ko/p/pax-forsand-wardrobe-combination-white-white-s19500696/
+옷장,02,현대리바트,"뉴트 B 옷장세트 2000",1960,610,2200,2.630,https://prod.danawa.com/info/?pcode=5915492
+옷장,02,한샘,"샘베딩 스테디 옷장세트 1600",1600,620,1940,1.924,https://prod.danawa.com/info/?pcode=4525980
+옷장,03,이케아,"PAX/GRIMO 옷장 300",3000,600,2012,3.622,https://www.ikea.com/kr/en/p/pax-grimo-wardrobe-combination-white-grey-green-s99579285
+옷장,03,현대리바트,"뉴트 옷장세트 3350",3350,610,2200,4.496,https://prod.danawa.com/info/?pcode=5915586
+옷장,03,한샘,"바이엘 스톤 옷장세트",3500,620,2176,4.722,https://prod.danawa.com/info/?pcode=124838307
+에어컨,01,세트,"세트 01a 합계(실내기+실외기)",,,,0.184,
+에어컨,02,세트,"세트 02a 합계(실내기+실외기)",,,,0.409,
+에어컨,01,세트,"세트 01b 합계(실내기+실외기)",,,,0.169,
+에어컨,03,세트,"세트 03a 합계(실내기+실외기)",,,,0.428,
+에어컨,02,세트,"세트 02b 합계(실내기+실외기)",,,,0.401,
+에어컨,03,세트,"세트 03b 합계(실내기+실외기)",,,,0.459,
