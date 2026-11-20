@@ -245,6 +245,19 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 .hm-types, .hm-reviews { margin-top: 12px; padding: 2px 20px 6px; display: grid; grid-auto-flow: column; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 20px; scrollbar-width: none; }
 .hm-types::-webkit-scrollbar, .hm-reviews::-webkit-scrollbar { display: none; }
 .hm-types { grid-auto-columns: 42%; }
+/* 컴퓨터(마우스)에서만: 좌우 화살표 + 끌어서 넘기기. 손가락 터치는 그대로 */
+.hm-carousel { position: relative; }
+.hm-arrow { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .hm-arrow { position: absolute; z-index: 2; top: 50%; width: 38px; height: 38px; border-radius: 50%; background: var(--white); color: var(--ink); display: grid; place-items: center; box-shadow: 0 4px 14px rgb(20 40 22 / .16); transform: translateY(-50%); transition: opacity .15s ease; }
+  .hm-arrow:hover { background: var(--green-pale); color: var(--green); }
+  .hm-arrow.prev { left: 10px; }
+  .hm-arrow.next { right: 10px; }
+  .hm-arrow:disabled { opacity: 0; pointer-events: none; }
+  [data-carousel-track] { cursor: grab; }
+  [data-carousel-track].dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
+  [data-carousel-track].dragging * { pointer-events: none; }
+}
 .hm-type { position: relative; min-height: 152px; padding: 16px; box-sizing: border-box; border-radius: 22px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; scroll-snap-align: start; }
 .hm-type small { font-family: "Pretendard:SemiBold"; font-size: 12px; }
 .hm-type strong { color: var(--ink); font-family: "Pretendard:Bold"; font-size: 16px; word-break: keep-all; }

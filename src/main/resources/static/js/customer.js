@@ -3,6 +3,67 @@
 	const $ = (sel, root = document) => root.querySelector(sel);
 	const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+	/* 가로로 넘기는 카드 (홈 이사 종류 · 후기): 마우스로는 화살표 버튼과 끌어서 넘기기 */
+	$$('[data-carousel]').forEach((box) => {
+		const track = $('[data-carousel-track]', box);
+		const prev = $('[data-carousel-prev]', box);
+		const next = $('[data-carousel-next]', box);
+		const update = () => {
+			const max = track.scrollWidth - track.clientWidth - 2;
+			prev.disabled = track.scrollLeft <= 2;
+			next.disabled = track.scrollLeft >= max;
+		};
+		const page = (dir) => track.scrollBy({ left: dir * track.clientWidth * 0.8, behavior: 'smooth' });
+		prev.addEventListener('click', () => page(-1));
+		next.addEventListener('click', () => page(1));
+		track.addEventListener('scroll', update, { passive: true });
+		window.addEventListener('resize', update);
+		update();
+
+		let startX = 0;
+		let startLeft = 0;
+		let dragged = false;
+		let down = false;
+		track.addEventListener('pointerdown', (e) => {
+			if (e.pointerType !== 'mouse' || e.button !== 0) return;
+			down = true;
+			dragged = false;
+			startX = e.clientX;
+			startLeft = track.scrollLeft;
+		});
+		window.addEventListener('pointermove', (e) => {
+			if (!down) return;
+			const dx = e.clientX - startX;
+			if (!dragged && Math.abs(dx) > 5) {
+				dragged = true;
+				track.classList.add('dragging');
+			}
+			if (dragged) track.scrollLeft = startLeft - dx;
+		});
+		window.addEventListener('pointerup', () => {
+			if (!down) return;
+			down = false;
+			if (!dragged) return;
+			// 끌기를 끝낸 자리에서 가장 가까운 카드에 맞춤
+			const left = track.scrollLeft;
+			track.classList.remove('dragging');
+			track.scrollLeft = left;
+			const cards = Array.from(track.children);
+			const pad = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+			const target = cards.reduce((best, c) => Math.abs(c.offsetLeft - pad - left) < Math.abs(best - left) ? c.offsetLeft - pad : best, 0);
+			track.scrollTo({ left: target, behavior: 'smooth' });
+		});
+		// 끌었을 때는 카드 링크가 눌리지 않게
+		track.addEventListener('click', (e) => {
+			if (dragged) {
+				e.preventDefault();
+				e.stopPropagation();
+				dragged = false;
+			}
+		}, true);
+		track.addEventListener('dragstart', (e) => e.preventDefault());
+	});
+
 	/* 뒤로 가기: 같은 사이트에서 왔으면 history.back() */
 	$$('a[data-back]').forEach((a) => a.addEventListener('click', (e) => {
 		if (document.referrer.startsWith(location.origin) && history.length > 1) {

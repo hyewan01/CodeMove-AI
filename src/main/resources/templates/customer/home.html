@@ -99,7 +99,10 @@
 				<strong>어떤 이사를 준비하세요?</strong>
 				<a class="action" th:href="@{/quote}">견적 받기<img th:replace="~{customer/fragments/common :: chevron}"></a>
 			</div>
-			<div class="hm-types">
+			<div class="hm-carousel" data-carousel>
+				<button type="button" class="action hm-arrow prev" aria-label="이전" data-carousel-prev disabled><svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><path d="m12 4.5-5.5 5.5 5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+				<button type="button" class="action hm-arrow next" aria-label="다음" data-carousel-next><svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><path d="m8 4.5 5.5 5.5L8 15.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+			<div class="hm-types" data-carousel-track>
 				<a class="action hm-type t-studio" th:href="@{/quote}">
 					<small>1~2인 가구</small><strong>원룸 · 오피스텔</strong>
 					<img alt="" th:src="@{/assets/easy-home-studio.svg}">
@@ -117,6 +120,7 @@
 					<img alt="" th:src="@{/assets/easy-home-office.svg}">
 				</a>
 			</div>
+			</div>
 		</section>
 
 		<!-- 실제 고객 후기 (가로로 넘겨 보기) -->
@@ -124,7 +128,10 @@
 			<div class="hm-section-head">
 				<strong>실제 고객들의 칭찬 후기</strong>
 			</div>
-			<div class="hm-reviews">
+			<div class="hm-carousel" data-carousel>
+				<button type="button" class="action hm-arrow prev" aria-label="이전" data-carousel-prev disabled><svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><path d="m12 4.5-5.5 5.5 5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+				<button type="button" class="action hm-arrow next" aria-label="다음" data-carousel-next><svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18"><path d="m8 4.5 5.5 5.5L8 15.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+			<div class="hm-reviews" data-carousel-track>
 				<article class="hm-review" th:each="review : ${homeReviews}">
 					<div class="hm-review-top">
 						<span class="hm-avatar" th:text="${#strings.isEmpty(review.name)} ? '·' : ${#strings.substring(review.name, 0, 1)}">김</span>
@@ -139,6 +146,7 @@
 					</div>
 					<p th:text="${review.content}"></p>
 				</article>
+			</div>
 			</div>
 		</section>
 	</main>
