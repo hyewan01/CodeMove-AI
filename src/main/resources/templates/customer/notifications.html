@@ -19,53 +19,58 @@
 			<img th:replace="~{customer/fragments/common :: chevron}">
 		</button>
 	</div>
+	<!-- 날짜별 카드: 이번 주 · 지난 알림 … (안 읽은 알림은 제목 굵게 + 초록 점) -->
 	<div class="notification-feed">
-		<th:block th:each="n, st : ${alerts}">
-		<div class="notification-day" th:if="${st.first or alerts[st.index - 1].day != n.day}" th:text="${n.day}">어제</div>
+		<section class="ntf-group" th:each="g : ${alertGroups}" data-ntf-group>
+			<p class="ntf-group-title" th:text="${g.key}">이번 주</p>
+			<div class="ntf-card">
+		<th:block th:each="n : ${g.value}">
 		<button type="button" class="action notification-row"
 				th:classappend="${n.unread} ? 'unread'"
 				th:aria-label="${n.title}" th:data-ntf-id="${n.id}" th:data-ntf-type="${n.type}">
 			<div class="notification-type-icon" th:switch="${n.type}">
-				<svg th:case="'예약/일정 정보'" aria-hidden="true" fill="none" viewBox="0 0 44 44">
-					<rect fill="#EEF4F0" height="44" rx="13" width="44"/>
-					<rect fill="white" height="25" rx="4" width="27" x="8.5" y="10.5"/>
-					<path d="M8.5 16.5h27" stroke="#346538" stroke-width="3"/>
-					<path d="M15 8.5v4M29 8.5v4" stroke="#346538" stroke-linecap="round" stroke-width="2"/>
-					<path d="m16 26 3 3 8-8" stroke="#F5831A" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"/>
-				</svg>
-				<svg th:case="'견적 정보'" aria-hidden="true" fill="none" viewBox="0 0 44 44">
-					<rect fill="#F3F0FF" height="44" rx="13" width="44"/>
-					<path d="M9 12a3 3 0 0 1 3-3h18l5 5v20a3 3 0 0 1-3 3H12a3 3 0 0 1-3-3V12Z" fill="white"/>
-					<path d="M30 9v4a2 2 0 0 0 2 2h3" fill="#DCD8F6"/>
-					<path d="M15 19h11M15 23h8M15 27h10" stroke="#7568D9" stroke-linecap="round" stroke-width="2"/>
-					<circle cx="32.5" cy="31.5" fill="#F5831A" r="7.5"/>
-					<path d="m29 31.5 2.2 2.2 4.3-4.4" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/>
-				</svg>
-				<svg th:case="'결제 정보'" aria-hidden="true" fill="none" viewBox="0 0 44 44">
-					<rect fill="#FFFBF0" height="44" rx="13" width="44"/>
-					<rect fill="#F5C65D" height="22" rx="5" width="29" x="7.5" y="12"/>
-					<path d="M7.5 18h29" stroke="#D99A2B" stroke-width="3"/>
-					<circle cx="31.5" cy="31.5" fill="#65BFA8" r="7.5"/>
-					<path d="m28 31.5 2.2 2.2 4.3-4.4" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/>
-				</svg>
-				<svg th:case="*" aria-hidden="true" fill="none" viewBox="0 0 44 44">
-					<rect fill="#F0F7FF" height="44" rx="13" width="44"/>
-					<path d="M7.5 13.5c0-2.2 1.8-4 4-4h15c2.2 0 4 1.8 4 4v10c0 2.2-1.8 4-4 4H18l-6 5v-5h-.5c-2.2 0-4-1.8-4-4v-10Z" fill="#6CA8E8"/>
-					<circle cx="15" cy="18.5" fill="white" r="1.5"/>
-					<circle cx="20" cy="18.5" fill="white" r="1.5"/>
-					<circle cx="25" cy="18.5" fill="white" r="1.5"/>
-					<path d="M25 30h8.5c1.7 0 3-1.3 3-3v-8c0-1.7-1.3-3-3-3h-1" stroke="#7568D9" stroke-linecap="round" stroke-width="2"/>
-				</svg>
-			</div>
-			<div class="notification-copy">
-				<strong th:text="${n.title}"></strong>
-				<p th:text="${n.body}"></p>
-				<small th:text="${n.time}"></small>
-			</div>
-			<i th:if="${n.unread}"></i>
+					<svg th:case="'예약/일정 정보'" aria-hidden="true" fill="none" viewBox="0 0 44 44">
+						<rect fill="#EEF4F0" height="44" rx="13" width="44"/>
+						<rect fill="white" height="25" rx="4" width="27" x="8.5" y="10.5"/>
+						<path d="M8.5 16.5h27" stroke="#346538" stroke-width="3"/>
+						<path d="M15 8.5v4M29 8.5v4" stroke="#346538" stroke-linecap="round" stroke-width="2"/>
+						<path d="m16 26 3 3 8-8" stroke="#F5831A" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"/>
+					</svg>
+					<svg th:case="'견적 정보'" aria-hidden="true" fill="none" viewBox="0 0 44 44">
+						<rect fill="#F3F0FF" height="44" rx="13" width="44"/>
+						<path d="M9 12a3 3 0 0 1 3-3h18l5 5v20a3 3 0 0 1-3 3H12a3 3 0 0 1-3-3V12Z" fill="white"/>
+						<path d="M30 9v4a2 2 0 0 0 2 2h3" fill="#DCD8F6"/>
+						<path d="M15 19h11M15 23h8M15 27h10" stroke="#7568D9" stroke-linecap="round" stroke-width="2"/>
+						<circle cx="32.5" cy="31.5" fill="#F5831A" r="7.5"/>
+						<path d="m29 31.5 2.2 2.2 4.3-4.4" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/>
+					</svg>
+					<svg th:case="'결제 정보'" aria-hidden="true" fill="none" viewBox="0 0 44 44">
+						<rect fill="#FFFBF0" height="44" rx="13" width="44"/>
+						<rect fill="#F5C65D" height="22" rx="5" width="29" x="7.5" y="12"/>
+						<path d="M7.5 18h29" stroke="#D99A2B" stroke-width="3"/>
+						<circle cx="31.5" cy="31.5" fill="#65BFA8" r="7.5"/>
+						<path d="m28 31.5 2.2 2.2 4.3-4.4" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"/>
+					</svg>
+					<svg th:case="*" aria-hidden="true" fill="none" viewBox="0 0 44 44">
+						<rect fill="#F0F7FF" height="44" rx="13" width="44"/>
+						<path d="M7.5 13.5c0-2.2 1.8-4 4-4h15c2.2 0 4 1.8 4 4v10c0 2.2-1.8 4-4 4H18l-6 5v-5h-.5c-2.2 0-4-1.8-4-4v-10Z" fill="#6CA8E8"/>
+						<circle cx="15" cy="18.5" fill="white" r="1.5"/>
+						<circle cx="20" cy="18.5" fill="white" r="1.5"/>
+						<circle cx="25" cy="18.5" fill="white" r="1.5"/>
+						<path d="M25 30h8.5c1.7 0 3-1.3 3-3v-8c0-1.7-1.3-3-3-3h-1" stroke="#7568D9" stroke-linecap="round" stroke-width="2"/>
+					</svg>
+				</div>
+				<div class="notification-copy">
+					<strong th:text="${n.title}"></strong>
+					<p th:text="${n.body}"></p>
+					<small th:text="${n.time}"></small>
+				</div>
+				<i th:if="${n.unread}" aria-label="안 읽음"></i>
 		</button>
 		</th:block>
-		<div class="past-reservation-empty" th:if="${#lists.isEmpty(alerts)}">받은 알림이 없어요.</div>
+			</div>
+		</section>
+		<div class="ntf-empty" th:hidden="${!#lists.isEmpty(alerts)}" data-ntf-empty>받은 알림이 없어요.</div>
 	</div>
 
 	<div class="notification-sheet-scrim" data-modal="ntf-filter" data-modal-close hidden></div>
@@ -104,6 +109,14 @@
 				b.querySelector('b').hidden = b !== btn;
 			});
 			rows.forEach((r) => (r.hidden = v !== '전체알림' && r.dataset.ntfType !== v));
+			// 보이는 알림이 없는 날짜 묶음은 숨기고, 전부 없으면 빈 안내
+			let any = false;
+			root.querySelectorAll('[data-ntf-group]').forEach((g) => {
+				const visible = [...g.querySelectorAll('[data-ntf-id]')].some((r) => !r.hidden);
+				g.hidden = !visible;
+				any = any || visible;
+			});
+			root.querySelector('[data-ntf-empty]').hidden = any;
 		}));
 	})();
 </script>

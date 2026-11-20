@@ -1939,8 +1939,6 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 .app-shell:not(.easy-mode) .soft-page .menu-list .action:last-child { border-bottom: 0; }
 
 /* 알림 */
-.app-shell:not(.easy-mode) .soft-page .notification-feed { margin: 0 16px; border-radius: var(--card-radius); background: var(--white); box-shadow: var(--card-shadow); overflow: hidden; }
-.app-shell:not(.easy-mode) .soft-page .notification-day { background: var(--white); }
 
 /* 내 이사 */
 .app-shell:not(.easy-mode) .soft-page .info-card { margin: 16px 20px; padding: 16px 18px; border: 0; border-radius: var(--card-radius); background: var(--white); box-shadow: var(--card-shadow); }
@@ -1983,8 +1981,33 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 /* 항목이 없는 목록은 카드로 보이지 않게 (빈 안내 카드만 보임) */
 .app-shell:not(.easy-mode) .soft-page :is(.estimate-history-list, .past-reservation-list):not(:has(> a)) { padding: 0; background: none; box-shadow: none; }
 /* 알림 줄 너비를 카드에 맞춤 */
-.app-shell:not(.easy-mode) .soft-page .notification-row { width: 100%; }
 /* 영상 올리기 카드 안 문구 (표시용 묶음 안에 있어 따로 지정) */
 .app-shell:not(.easy-mode) .soft-page .video-upload-card :is([data-upload-empty], [data-upload-done]) > strong { margin-top: 16px; color: var(--ink); font-family: "Pretendard:Bold"; font-size: 18px; }
 .app-shell:not(.easy-mode) .soft-page .video-upload-card :is([data-upload-empty], [data-upload-done]) > span { margin-top: 10px; padding: 5px 11px; border-radius: 999px; background: var(--surface); color: #5d6b5f; font-family: "Pretendard:SemiBold"; font-size: 12px; }
 .app-shell:not(.easy-mode) .soft-page .video-upload-card .video-upload-change { margin-top: 14px; }
+
+/* ---------- 알림: 날짜별 흰 카드, 안 읽은 알림은 배경 대신 굵은 제목 + 초록 점 ---------- */
+.notification-feed { padding: 4px 0 max(28px, var(--safe-bottom)); background: transparent; }
+.ntf-group { margin-top: 14px; }
+.ntf-group[hidden] { display: none; }
+.ntf-group-title { margin: 0 0 8px; padding: 0 22px; color: #7d847e; font-family: "Pretendard:SemiBold"; font-size: 13px; }
+.ntf-card { margin: 0 16px; border-radius: var(--card-radius, 24px); background: var(--white); box-shadow: var(--card-shadow, 0 6px 20px rgb(26 58 30 / .06)); overflow: hidden; }
+.ntf-card .notification-row { width: 100%; min-height: 0; padding: 16px 40px 16px 16px; align-items: start; gap: 14px; border-bottom: 1px solid #f0f1ef; background: var(--white); text-align: left; }
+.ntf-card .notification-row:last-child { border-bottom: 0; }
+.ntf-card .notification-row:hover { background: #fafbf9; }
+.ntf-card .notification-row.unread { background: var(--white); }
+.ntf-card .notification-copy strong { color: #59605a; font-family: "Pretendard:Medium"; font-size: 15px; }
+.ntf-card .notification-row.unread .notification-copy strong { color: var(--ink); font-family: "Pretendard:Bold"; }
+.ntf-card .notification-copy p { color: #7d847e; font-size: 14px; line-height: 1.5; }
+.ntf-card .notification-copy small { margin-top: 2px; color: #a3a8a4; font-size: 12px; }
+.ntf-card .notification-row > i { right: 18px; top: 22px; width: 8px; height: 8px; background: var(--green); }
+.ntf-empty { margin: 16px; padding: 40px 16px; border-radius: var(--card-radius, 24px); background: var(--white); color: var(--muted); font-size: 14px; text-align: center; }
+.ntf-empty[hidden] { display: none; }
+.app-shell:not(.easy-mode) .soft-page .notification-header { border-bottom: 0; }
+.easy-mode .ntf-group-title { font-size: 15px; }
+.easy-mode .ntf-card .notification-copy strong { font-size: 17px; }
+.easy-mode .ntf-card .notification-copy p { font-size: 15px; }
+.easy-mode .ntf-card .notification-copy small { font-size: 13px; }
+/* 알림 상단 '모두읽음' (form 안 버튼이라 따로 지정) */
+.notification-header form .action { min-height: 40px; padding: 0 6px 0 10px; color: #5d6b5f; font-family: "Pretendard:SemiBold"; font-size: 14px; }
+.notification-header form .action:hover { color: var(--green); }

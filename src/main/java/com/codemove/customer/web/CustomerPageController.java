@@ -601,7 +601,11 @@ public class CustomerPageController {
 
 	@GetMapping("/notifications")
 	public String notifications(HttpSession session, Model model) {
-		model.addAttribute("alerts", views.alerts(memberId(session)));
+		List<CustomerViews.Alert> alerts = views.alerts(memberId(session));
+		Map<String, List<CustomerViews.Alert>> groups = new java.util.LinkedHashMap<>();
+		alerts.forEach(a -> groups.computeIfAbsent(a.day(), k -> new ArrayList<>()).add(a));
+		model.addAttribute("alerts", alerts);
+		model.addAttribute("alertGroups", groups);
 		model.addAttribute("categories", CustomerViews.ALERT_CATEGORIES);
 		return "customer/notifications";
 	}
