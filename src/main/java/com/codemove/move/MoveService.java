@@ -114,6 +114,16 @@ public class MoveService {
 
 	@Transactional
 	public MoveRequest request(long memberId, RequestForm f, MultipartFile video) {
+		return request(memberId, f, video, null, null, null);
+	}
+
+	/**
+	 * @param savedVideoUrl 분석 단계(/quote/analyze)에서 이미 저장한 영상 주소 (video 가 비었을 때 사용)
+	 * @param analysisSec   실제 AI 분석에 걸린 시간(초), 모르면 null
+	 */
+	@Transactional
+	public MoveRequest request(long memberId, RequestForm f, MultipartFile video, String savedVideoUrl,
+			String savedVideoName, Integer analysisSec) {
 		MoveRequest r = new MoveRequest();
 		r.setMemberId(memberId);
 		r.setHouseType(f.houseType());
@@ -135,7 +145,7 @@ public class MoveService {
 		r.setAiEstAmount(est.amount());
 		r.setAiEstMin(est.min());
 		r.setAiEstMax(est.max());
-		r.setAiAnalysisSec(38);
+		r.setAiAnalysisSec(analysisSec != null && analysisSec > 0 ? analysisSec : 38);
 		r.setAiConfidence(94);
 		moves.insertRequest(r);
 		for (RequestItem item : f.items()) {
@@ -148,6 +158,12 @@ public class MoveService {
 			String name = video.getOriginalFilename() == null ? "video" : video.getOriginalFilename();
 			v.setFileName(name.length() > 200 ? name.substring(name.length() - 200) : name);
 			v.setFilePath(files.save("videos", video));
+			moves.insertVideo(v);
+		} else if (savedVideoUrl != null) {
+			ReVideo v = new ReVideo();
+			v.setRequestId(r.getRequestId());
+			v.setFileName(savedVideoName == null ? "video" : savedVideoName);
+			v.setFilePath(savedVideoUrl);
 			moves.insertVideo(v);
 		}
 		Member m = members.findMember(memberId);

@@ -672,6 +672,18 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 @keyframes scan { to { top: 75%; } }
 .analysis-card strong { margin-top: 16px; font-family: "Pretendard:Bold"; font-size: 18px; }
 .analysis-card span { color: var(--muted); font-size: 13px; }
+.analysis-card[hidden] { display: none; }
+/* 분석 실패: 다시 분석 / 직접 입력 */
+.analysis-error { padding: 32px 20px 24px; text-align: center; }
+.analysis-error > i { width: 56px; height: 56px; border-radius: 50%; background: var(--orange-pale); color: var(--orange); display: grid; place-items: center; font-family: "Pretendard:ExtraBold"; font-size: 26px; font-style: normal; }
+.analysis-error > strong { margin-top: 10px; }
+.analysis-error > span { line-height: 1.5; }
+.analysis-error-actions { width: 100%; margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.analysis-error-actions button { min-height: 48px; border-radius: 14px; background: var(--surface); color: var(--ink); font-family: "Pretendard:Bold"; font-size: 14px; }
+.analysis-error-actions button:first-child { background: var(--green); color: var(--white); }
+/* AI가 남긴 메모 (닫힌 수납장 · 분해 가구 등) */
+.ai-memo { margin: 12px 0 0; padding: 12px 16px; border-radius: 16px; background: var(--surface); color: var(--muted); font-size: 13px; line-height: 1.55; }
+.ai-memo[hidden] { display: none; }
 .video-upload-card { min-height: 290px; margin-top: 36px; padding: 28px 22px; box-sizing: border-box; border: 1.5px dashed #b9cdbb; border-radius: 22px; background: #f8fbf8; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .video-upload-card.uploaded { border-style: solid; border-color: #c8d9ca; background: var(--white); box-shadow: 0 6px 18px rgb(36 70 39 / .07); }
 .video-file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

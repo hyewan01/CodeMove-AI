@@ -35,7 +35,8 @@
 		date: null,
 		time: '10:00',
 		dateSkipped: false,
-		items: (DATA.items || []).map((it) => ({ ...it })),
+		items: [], // /quote/analyze 가 채움
+		analyzedFile: null, // 분석을 마친 파일 (같은 파일이면 다시 분석하지 않음)
 	};
 
 	/* ---------- 공통 ---------- */
@@ -122,6 +123,8 @@
 		}
 		state.videoReady = true;
 		state.analysisDone = false;
+		state.analyzedFile = null;
+		videoInput.setAttribute('name', 'video');
 		$('[data-upload-card]').classList.add('uploaded');
 		$('[data-upload-empty]').hidden = true;
 		$('[data-upload-done]').hidden = false;
@@ -129,23 +132,66 @@
 		refreshNext();
 	});
 
-	/* ---------- 2. AI 분석 (화면 시연: 1.8초 후 완료) ---------- */
-	let analysisTimer = null;
-	function startAnalysis() {
-		$('[data-analysis-loading]').hidden = false;
-		$('[data-analysis-result]').hidden = true;
-		clearTimeout(analysisTimer);
-		analysisTimer = setTimeout(() => {
-			state.analysisDone = true;
-			$('[data-analysis-loading]').hidden = true;
-			$('[data-analysis-result]').hidden = false;
-			$('[data-flow-title]').textContent = STEPS[1].doneTitle;
-			$('[data-flow-subtitle]').textContent = STEPS[1].doneSubtitle;
-			renderItems();
-			refreshNext();
-			speakStep();
-		}, 1800);
+	/* ---------- 2. AI 분석: 영상을 /quote/analyze 로 올려 품목을 받음 ---------- */
+	let analysisRun = 0;
+	let progressTimer = null;
+	const PROGRESS = ['영상을 올리고 있어요', '방마다 가구와 가전을 찾고 있어요', '같은 물건을 두 번 세지 않게 맞춰 보고 있어요',
+		'짐 크기를 품목표와 맞추고 있어요', '거의 다 됐어요. 조금만 기다려주세요'];
+	function showAnalysis(view) {
+		$('[data-analysis-loading]').hidden = view !== 'loading';
+		$('[data-analysis-error]').hidden = view !== 'error';
+		$('[data-analysis-result]').hidden = view !== 'result';
 	}
+	function finishAnalysis(items, memo) {
+		clearInterval(progressTimer);
+		state.items = items.map((it, i) => ({ id: it.id || `ai${i}`, ...it }));
+		state.analysisDone = true;
+		showAnalysis('result');
+		const memoEl = $('[data-ai-memo]');
+		memoEl.hidden = !memo;
+		memoEl.textContent = memo || '';
+		$('[data-flow-title]').textContent = STEPS[1].doneTitle;
+		$('[data-flow-subtitle]').textContent = STEPS[1].doneSubtitle;
+		renderItems();
+		refreshNext();
+		speakStep();
+	}
+	function failAnalysis(message) {
+		clearInterval(progressTimer);
+		$('[data-analysis-error-message]').textContent = message || '잠시 후 다시 시도해 주세요';
+		showAnalysis('error');
+		refreshNext();
+	}
+	function startAnalysis() {
+		const file = videoInput.files && videoInput.files[0];
+		if (state.analyzedFile && state.analyzedFile === file) {
+			finishAnalysis(state.items, $('[data-ai-memo]').textContent);
+			return;
+		}
+		if (!file) { failAnalysis('영상 파일을 다시 선택해 주세요'); return; }
+		const run = ++analysisRun;
+		showAnalysis('loading');
+		let p = 0;
+		const progress = $('[data-analysis-progress]');
+		progress.textContent = PROGRESS[0];
+		clearInterval(progressTimer);
+		progressTimer = setInterval(() => { p = Math.min(p + 1, PROGRESS.length - 1); progress.textContent = PROGRESS[p]; }, 8000);
+		const body = new FormData();
+		body.append('video', file);
+		fetch(DATA.analyzeUrl || 'quote/analyze', { method: 'POST', body, credentials: 'same-origin' })
+			.then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
+			.then((res) => {
+				if (run !== analysisRun) return;
+				// 영상은 분석 전에 서버에 저장됐으므로 '이사 요청' 때 다시 보내지 않음
+				videoInput.removeAttribute('name');
+				if (!res.ok) { failAnalysis(res.message); return; }
+				state.analyzedFile = file;
+				finishAnalysis(res.items || [], [res.demo ? res.message : '', res.memo].filter(Boolean).join(' · '));
+			})
+			.catch(() => { if (run === analysisRun) failAnalysis('네트워크가 불안정해요. 다시 시도해 주세요'); });
+	}
+	$('[data-analysis-retry]').addEventListener('click', () => { state.analyzedFile = null; startAnalysis(); });
+	$('[data-analysis-manual]').addEventListener('click', () => finishAnalysis([], ''));
 
 	function renderItems() {
 		const list = $('[data-item-list]');

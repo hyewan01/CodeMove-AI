@@ -375,9 +375,16 @@ public class CustomerPageController {
 		String time = MoveService.moveTime(form.getMoveTime());
 		String house = form.getHouseType() != null && form.getHouseType().matches("0[1-4]") ? form.getHouseType() : "01";
 		String pack = "02".equals(form.getPackType()) ? "02" : "01";
+		// 분석 단계에서 이미 올린 영상은 세션의 주소로 붙임 (화면은 영상을 두 번 보내지 않음)
+		String savedUrl = (String) session.getAttribute(QuoteAnalysisController.VIDEO_URL);
+		String savedName = (String) session.getAttribute(QuoteAnalysisController.VIDEO_NAME);
+		Integer sec = (Integer) session.getAttribute(QuoteAnalysisController.ANALYSIS_SEC);
 		moves.request(memberId(session), new MoveService.RequestForm(house, pack, date, time, form.getFromAddress().trim(),
 				blank(form.getFromAddressDetail()), zip(form.getFromZipcode()), form.getToAddress().trim(),
-				blank(form.getToAddressDetail()), zip(form.getToZipcode()), items), video);
+				blank(form.getToAddressDetail()), zip(form.getToZipcode()), items), video, savedUrl, savedName, sec);
+		session.removeAttribute(QuoteAnalysisController.VIDEO_URL);
+		session.removeAttribute(QuoteAnalysisController.VIDEO_NAME);
+		session.removeAttribute(QuoteAnalysisController.ANALYSIS_SEC);
 		CustomerSession.of(session).setMoveTab("estimate");
 		return "redirect:/quote/success";
 	}

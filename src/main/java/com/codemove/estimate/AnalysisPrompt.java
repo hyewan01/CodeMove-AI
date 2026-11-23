@@ -1,0 +1,88 @@
+package com.codemove.estimate;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.codemove.move.ItemCatalog;
+
+/**
+ * 영상 분석 프롬프트와 응답 JSON 스키마.
+ * 지시문은 resources/estimate/prompt-{버전}.txt, 품목표는 ItemCatalog 에서 만들어 {{CATALOG}} 자리에 넣습니다.
+ * 프롬프트를 바꾸면 VERSION 을 올려 분석 기록에서 버전별 결과를 비교할 수 있게 합니다.
+ */
+public final class AnalysisPrompt {
+
+	public static final String VERSION = "v1";
+
+	private static volatile String template;
+
+	private AnalysisPrompt() {
+	}
+
+	public static String text() {
+		return template().replace("{{CATALOG}}", catalogTable());
+	}
+
+	/** 품목명 | 분류 | 01 | 02 | 03 (크기명: 판정기준) */
+	static String catalogTable() {
+		StringBuilder sb = new StringBuilder("품목명 | 분류 | 01 | 02 | 03\n");
+		for (ItemCatalog.Item i : ItemCatalog.items()) {
+			sb.append(i.name()).append(" | ").append(ItemCatalog.CATEGORIES.getOrDefault(i.category(), ""));
+			for (ItemCatalog.Size z : i.sizes()) {
+				sb.append(" | ").append(z.name()).append(": ").append(z.rule().replace("[업체 확인]", "").trim());
+			}
+			sb.append('\n');
+		}
+		return sb.toString();
+	}
+
+	/** Gemini responseSchema (OpenAPI 부분집합) */
+	public static Map<String, Object> schema() {
+		Map<String, Object> item = obj(
+				Map.of("item_name", str("품목표의 품목명 그대로, 없으면 기타"),
+						"size_code", Map.of("type", "STRING", "enum", List.of("01", "02", "03")),
+						"quantity", Map.of("type", "INTEGER"),
+						"detected_name", str("영상에서 본 물건 이름"),
+						"room", str("물건이 있는 공간"),
+						"evidence", str("판단 근거 한 줄"),
+						"needs_review", Map.of("type", "BOOLEAN")),
+				List.of("item_name", "size_code", "quantity", "detected_name", "room", "needs_review"));
+		return obj(Map.of("video_ok", Map.of("type", "BOOLEAN"),
+				"reject_reason", Map.of("type", "STRING", "nullable", true),
+				"rooms", Map.of("type", "ARRAY", "items", Map.of("type", "STRING")),
+				"items", Map.of("type", "ARRAY", "items", item),
+				"memo", str("방문 견적자에게 남길 메모")),
+				List.of("video_ok", "rooms", "items"));
+	}
+
+	private static Map<String, Object> obj(Map<String, Object> props, List<String> required) {
+		Map<String, Object> m = new LinkedHashMap<>();
+		m.put("type", "OBJECT");
+		m.put("properties", props);
+		m.put("required", required);
+		return m;
+	}
+
+	private static Map<String, Object> str(String description) {
+		return Map.of("type", "STRING", "description", description);
+	}
+
+	private static String template() {
+		if (template == null) {
+			try (InputStream in = AnalysisPrompt.class.getResourceAsStream("/estimate/prompt-" + VERSION + ".txt")) {
+				if (in == null) {
+					throw new IllegalStateException("estimate/prompt-" + VERSION + ".txt 가 없습니다");
+				}
+				template = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+			} catch (IOException e) {
+				throw new UncheckedIOException(e);
+			}
+		}
+		return template;
+	}
+}

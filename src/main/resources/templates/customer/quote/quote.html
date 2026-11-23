@@ -86,7 +86,16 @@
 			<div class="analysis-card" data-analysis-loading>
 				<div class="scan-box"><img alt="" th:src="@{/assets/91e58.svg}"><i></i></div>
 				<strong>영상 속 가구와 짐을 찾고 있어요</strong>
-				<span>잠시만 기다려주세요</span>
+				<span data-analysis-progress>잠시만 기다려주세요</span>
+			</div>
+			<div class="analysis-card analysis-error" data-analysis-error hidden>
+				<i aria-hidden="true">!</i>
+				<strong>영상을 분석하지 못했어요</strong>
+				<span data-analysis-error-message>잠시 후 다시 시도해 주세요</span>
+				<div class="analysis-error-actions">
+					<button type="button" class="action" data-analysis-retry>다시 분석하기</button>
+					<button type="button" class="action" data-analysis-manual>짐 직접 입력하기</button>
+				</div>
 			</div>
 			<div class="analysis-result" data-analysis-result hidden>
 				<div class="ai-summary">
@@ -104,6 +113,7 @@
 						<span>눌러서 크기와 수량을 맞춰주세요</span>
 					</div>
 				</div>
+				<p class="ai-memo" data-ai-memo hidden></p>
 				<div class="found-head">
 					<strong>찾은 품목</strong>
 					<span>눌러서 수정</span>
@@ -381,6 +391,7 @@
 <script th:inline="javascript">
 	window.QUOTE_DATA = {
 		assets: /*[[@{/assets/}]]*/ '/assets/',
+		analyzeUrl: /*[[@{/quote/analyze}]]*/ '/quote/analyze',
 		items: /*[[${recognizedItems}]]*/ [],
 		/* 표준 품목표 (docs/estimate/data/item-master.csv): 품목 · 카테고리 · 크기별 기준 부피 */
 		catalog: /*[[${catalog}]]*/ [],
