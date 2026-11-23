@@ -21,9 +21,10 @@ import com.codemove.common.LunarDays;
  *                 예) 55 CBM → 5톤 + 1톤 + 1톤 = 7톤 (대표님 우리 집 예시)
  * ④ 기본 요금   = 톤 × 포장 방식 (표에 없는 톤은 앞뒤 톤 사이 비율)   fee-base.csv  (최소~최대)
  * ⑤ 거리 추가   = 50km마다 톤별 금액                            fee-distance.csv
- * ⑥ 사다리차    = 출발·도착 층수별 (승강기 쓰면 0)                 fee-ladder.csv
+ * ⑥ 나르는 방법 = 사다리차 층수별 · 계단 3개 층마다 인력 15~20만 · 엘리베이터는 안내만   fee-ladder.csv, estimate-rules.csv
  * ⑦ 옵션        = 에어컨 대당 25만 · 안마의자 10만 · 벽걸이 TV 인치별 · 피아노 · 모션침대  fee-option.csv, fee-tv.csv
- * ⑧ 날짜 할증   = ④ × 해당 할증률 중 가장 큰 값                   fee-surcharge.csv [업체 확인]
+ * ⑧ 날짜 할증   = ④ × 해당 할증률 중 가장 큰 값 (손 없는 날 주말 30%)   fee-surcharge.csv
+ * 보관이사      = 포장이사 × 1.5~2배 + 보관료(5톤 하루 7천~1만 원, 톤 비례 × 일수)   estimate-rules.csv
  * 예상 견적     = ④+⑤+⑥+⑦+⑧ (최소~최대, 만 원 단위)   계약금 = 10%
  * </pre>
  *
@@ -42,12 +43,49 @@ public final class EstimateCalculator {
 		}
 	}
 
-	/** 출발·도착 조건. 모르면 null (거리 → 50km 미만, 층수 → 사다리차 없음) */
-	public record Conditions(String packType, Double distanceKm, LocalDate moveDate, Integer fromLadderFloor,
-			Integer toLadderFloor) {
+	/** 짐 나르는 방법 (대표님: 사다리차로 할지 엘리베이터로 할지 고객과 정함) */
+	public enum Carry {
+		ELEVATOR("엘리베이터"), LADDER("사다리차"), STAIRS("계단");
+
+		public final String label;
+
+		Carry(String label) {
+			this.label = label;
+		}
+
+		/** "E" · "L" · "S" 또는 이름 → 값, 모르면 null */
+		public static Carry of(String code) {
+			if (code == null || code.isBlank()) {
+				return null;
+			}
+			return switch (code.trim().toUpperCase()) {
+				case "E", "ELEVATOR" -> ELEVATOR;
+				case "L", "LADDER" -> LADDER;
+				case "S", "STAIRS" -> STAIRS;
+				default -> null;
+			};
+		}
+	}
+
+	/** 출발지·도착지 한 곳: 층수 + 나르는 방법 (모르면 null) */
+	public record Site(Integer floor, Carry carry) {
+
+		public static final Site UNKNOWN = new Site(null, null);
+	}
+
+	/**
+	 * 출발·도착 조건. 모르면 null (거리 → 50km 미만으로 보고 안내, 층수·방법 → 추가 없음).
+	 * @param storageDays 보관이사의 보관 일수 (모르면 null → 하루 보관료만 안내)
+	 */
+	public record Conditions(String packType, Double distanceKm, LocalDate moveDate, Site from, Site to,
+			Integer storageDays) {
 
 		public static Conditions basic(String packType) {
-			return new Conditions(packType, null, null, null, null);
+			return new Conditions(packType, null, null, Site.UNKNOWN, Site.UNKNOWN, null);
+		}
+
+		public Conditions withDistance(Double km) {
+			return new Conditions(packType, km, moveDate, from, to, storageDays);
 		}
 	}
 
@@ -93,8 +131,19 @@ public final class EstimateCalculator {
 	private static volatile Tables tables;
 
 	record Tables(List<Truck> trucks, List<Base> bases, List<Distance> distances, List<Ladder> ladders,
-			List<TvFee> tvs, Map<String, long[]> options, Map<String, Integer> surcharges, double loadFactor,
-			int depositPct, long extraMin, long extraMax) {
+			List<TvFee> tvs, Map<String, long[]> options, Map<String, Integer> surcharges, Map<String, String> rules) {
+
+		double rule(String key) {
+			String v = rules.get(key);
+			if (v == null) {
+				throw new IllegalStateException("estimate-rules.csv 에 " + key + " 가 없습니다");
+			}
+			return Double.parseDouble(v.trim());
+		}
+
+		double loadFactor() {
+			return rule("적재계수");
+		}
 	}
 
 	static Tables tables() {
@@ -121,8 +170,7 @@ public final class EstimateCalculator {
 		Csv.rows("fee-surcharge.csv").forEach(c -> sur.put(c.get(0), (int) l(c.get(3))));
 		Map<String, String> rules = new TreeMap<>();
 		Csv.rows("estimate-rules.csv").forEach(c -> rules.put(c.get(0), c.get(1)));
-		return new Tables(trucks, bases, dist, ladders, tvs, options, sur, d(rules.get("적재계수")),
-				(int) l(rules.get("계약금비율")), l(rules.get("별도비용최소")), l(rules.get("별도비용최대")));
+		return new Tables(trucks, bases, dist, ladders, tvs, options, sur, rules);
 	}
 
 	private EstimateCalculator() {
@@ -147,21 +195,35 @@ public final class EstimateCalculator {
 
 	static Estimate estimate(double itemCbm, List<Line> lines, Conditions cond, Tables t) {
 		String pack = cond.packType() == null ? FULL : cond.packType();
-		String feePack = STORAGE.equals(pack) ? FULL : pack; // 보관이사: 포장이사 요금 + 보관료(별도 협의)
+		String feePack = STORAGE.equals(pack) ? FULL : pack;
 		double load = round(itemCbm * t.loadFactor(), 1);
 		List<Double> trucks = pickTrucks(load, t.trucks());
 		double ton = trucks.stream().mapToDouble(x -> x).sum();
 		List<Fee> fees = new ArrayList<>();
 		List<String> notes = new ArrayList<>();
 
-		// ④ 기본 요금
+		// ④ 기본 요금 (보관이사: 창고에 넣고 다시 빼는 두 번 작업이라 포장이사 × 1.5~2배, 아정당)
 		List<Base> rows = t.bases().stream().filter(b -> b.pack().equals(feePack)).toList();
 		long baseMin = won(interp(ton, rows, b -> b.ton(), b -> (double) b.min()));
 		long baseMax = Math.max(baseMin, won(interp(ton, rows, b -> b.ton(), b -> (double) b.max())));
 		int workers = (int) Math.round(interp(ton, rows, b -> b.ton(), b -> (double) b.workers()));
-		fees.add(new Fee(packName(pack) + " " + tonLabel(ton), baseMin, baseMax, workers + "명 작업"));
 		if (STORAGE.equals(pack)) {
-			notes.add("보관이사는 포장이사 요금에 보관료(보관 기간에 따라)가 더해져요. 보관료는 상담 때 정해요.");
+			baseMin = won(baseMin * t.rule("보관배수최소"));
+			baseMax = won(baseMax * t.rule("보관배수최대"));
+		}
+		fees.add(new Fee(packName(pack) + " " + tonLabel(ton), baseMin, baseMax,
+				workers + "명 작업" + (STORAGE.equals(pack) ? " · 입고와 출고 두 번" : "")));
+		if (STORAGE.equals(pack)) {
+			// 보관료: 5톤 기준 하루 7천~1만 원을 톤에 비례
+			double dayMin = t.rule("보관료일최소") * ton / 5, dayMax = t.rule("보관료일최대") * ton / 5;
+			Integer days = cond.storageDays();
+			if (days != null && days > 0) {
+				fees.add(new Fee("보관료 " + days + "일", won(dayMin * days), won(dayMax * days), "하루 "
+						+ Math.round(dayMin / 100) * 100 + "~" + Math.round(dayMax / 100) * 100 + "원"));
+			} else {
+				notes.add("보관료는 하루 " + Math.round(dayMin / 100) * 100 + "~" + Math.round(dayMax / 100) * 100
+						+ "원이 보관 기간만큼 더해져요.");
+			}
 		}
 
 		// ⑤ 거리
@@ -169,14 +231,22 @@ public final class EstimateCalculator {
 			double km = cond.distanceKm();
 			long add = won(interpByTon(ton, t.distances(), dist -> distanceAmount(dist, km)));
 			fees.add(new Fee("거리 추가 (" + Math.round(km) + "km)", add, add, "50km마다 추가"));
-		} else if (cond.distanceKm() == null) {
-			notes.add("50km 이상 먼 거리면 50km마다 거리 요금이 더해져요.");
+		} else if (cond.distanceKm() != null) {
+			notes.add("이동 거리 약 " + Math.round(cond.distanceKm()) + "km라 거리 요금은 없어요.");
+		} else {
+			notes.add("이동 거리를 확인하지 못했어요. 50km 이상이면 50km마다 거리 요금이 더해져요.");
 		}
 
-		// ⑥ 사다리차
-		long ladder = ladder(cond.fromLadderFloor(), t, notes) + ladder(cond.toLadderFloor(), t, notes);
-		if (ladder > 0) {
-			fees.add(new Fee("사다리차", ladder, ladder, null));
+		// ⑥ 나르는 방법: 사다리차 층수별 · 계단은 인력 추가 · 엘리베이터 이용료는 관리사무소에 고객이 냄(안내만)
+		site("출발지", cond.from(), t, fees, notes);
+		site("도착지", cond.to(), t, fees, notes);
+		Site from = cond.from() == null ? Site.UNKNOWN : cond.from(), to = cond.to() == null ? Site.UNKNOWN : cond.to();
+		if (from.carry() == Carry.ELEVATOR || to.carry() == Carry.ELEVATOR) {
+			notes.add("엘리베이터 이용료(보통 " + Math.round(t.rule("엘리베이터이용료최소") / 10_000) + "만~"
+					+ Math.round(t.rule("엘리베이터이용료최대") / 10_000) + "만 원)는 관리사무소에 따로 내요. 미리 예약해 주세요.");
+		}
+		if (from.carry() == null || to.carry() == null) {
+			notes.add("층수와 나르는 방법(엘리베이터·사다리차·계단)에 따라 사다리차 요금이나 인력이 더해질 수 있어요.");
 		}
 
 		// ⑦ 옵션 (기술이 필요한 작업만 별도: 에어컨 · 안마의자 · 벽걸이 TV · 피아노 · 모션 침대)
@@ -187,15 +257,16 @@ public final class EstimateCalculator {
 			int pct = surchargePct(cond.moveDate(), t);
 			if (pct > 0) {
 				fees.add(new Fee("날짜 할증 " + pct + "%", won(baseMin * pct / 100.0), won(baseMax * pct / 100.0),
-						"[업체 확인] 손 없는 날·주말 등"));
+						"아정당: 평일 < 주말·월말 < 손 없는 날 < 손 없는 날 주말"));
 			}
 		}
 
 		long min = fees.stream().mapToLong(f -> f.min()).sum(), max = fees.stream().mapToLong(f -> f.max()).sum();
 		notes.add("현장 여건(사다리차를 댈 수 없어 짐을 멀리 날라야 하는 경우 등)에 따라 "
-				+ (t.extraMin() / 10_000) + "만~" + (t.extraMax() / 10_000) + "만 원의 별도 비용이 발생할 수 있습니다.");
+				+ Math.round(t.rule("별도비용최소") / 10_000) + "만~" + Math.round(t.rule("별도비용최대") / 10_000)
+				+ "만 원의 별도 비용이 발생할 수 있습니다.");
 		notes.add("고가 가구·미술품·도자기 등 파손 위험이 큰 물품은 방문 상담에서 따로 견적해요.");
-		long deposit = won((min + max) / 2.0 * t.depositPct() / 100.0);
+		long deposit = won((min + max) / 2.0 * t.rule("계약금비율") / 100.0);
 		return new Estimate(round(itemCbm, 2), load, t.loadFactor(), trucks, ton, workers, pack, fees, min, max,
 				deposit, notes);
 	}
@@ -264,6 +335,24 @@ public final class EstimateCalculator {
 		return fy.apply(p.get(p.size() - 1));
 	}
 
+	/** 출발지·도착지 한 곳의 사다리차 · 계단 인력 */
+	private static void site(String where, Site s, Tables t, List<Fee> fees, List<String> notes) {
+		if (s == null || s.floor() == null || s.floor() <= 1 || s.carry() == null) {
+			return;
+		}
+		if (s.carry() == Carry.LADDER) {
+			long amount = ladder(s.floor(), t, notes);
+			if (amount > 0) {
+				fees.add(new Fee(where + " 사다리차 " + s.floor() + "층", amount, amount, null));
+			}
+		} else if (s.carry() == Carry.STAIRS) {
+			// 계단: 층 3개마다 인력 1명 (아정당: 1명 15~20만 원, 층수에 따라 늘어남)
+			int people = (int) Math.ceil((s.floor() - 1) / t.rule("계단층당인력"));
+			fees.add(new Fee(where + " 계단 " + s.floor() + "층", won(people * t.rule("계단인력최소")),
+					won(people * t.rule("계단인력최대")), "인력 " + people + "명 추가"));
+		}
+	}
+
 	private static long ladder(Integer floor, Tables t, List<String> notes) {
 		if (floor == null || floor <= 1) {
 			return 0;
@@ -330,13 +419,18 @@ public final class EstimateCalculator {
 		return v == null ? 0 : v[0];
 	}
 
-	/** 손 없는 날 · 주말 · 월말 중 가장 큰 할증 (공휴일 달력은 아직 없음) */
+	/** 손 없는 날 · 주말 · 월말 중 가장 큰 할증, 손 없는 날이면서 주말이면 05 (공휴일 달력은 아직 없음) */
 	static int surchargePct(LocalDate date, Tables t) {
 		int pct = 0;
-		if (!LunarDays.noSonDays(date, date).isEmpty()) {
+		boolean noSon = LunarDays.isNoSonDay(date);
+		boolean weekend = date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY;
+		if (noSon && weekend) {
+			pct = Math.max(pct, t.surcharges().getOrDefault("05", 0));
+		}
+		if (noSon) {
 			pct = Math.max(pct, t.surcharges().getOrDefault("01", 0));
 		}
-		if (date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY) {
+		if (weekend) {
 			pct = Math.max(pct, t.surcharges().getOrDefault("02", 0));
 		}
 		if (date.getDayOfMonth() > date.lengthOfMonth() - 3) {

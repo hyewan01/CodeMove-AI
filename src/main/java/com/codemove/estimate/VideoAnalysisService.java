@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -48,12 +49,24 @@ public class VideoAnalysisService {
 	private final double priceIn, priceOut;
 	private final String priceDate;
 	private final Path logRoot;
+	/** V4 적용 후 DB 기록 (없으면 파일) */
+	private final AnalysisLogMapper logs;
+	private final V4Schema schema;
 
+	/** 파일 기록만 쓰는 생성자 (실제 API 테스트용) */
+	public VideoAnalysisService(GeminiVideoAnalyzer ai, FileStore files, JsonMapper json, double priceIn,
+			double priceOut, String priceDate, String logDir) {
+		this(ai, files, json, priceIn, priceOut, priceDate, logDir, null, null);
+	}
+
+	@Autowired
 	public VideoAnalysisService(GeminiVideoAnalyzer ai, FileStore files, JsonMapper json,
 			@Value("${codemove.ai.gemini.price-in-per-1m:1.50}") double priceIn,
 			@Value("${codemove.ai.gemini.price-out-per-1m:7.50}") double priceOut,
 			@Value("${codemove.ai.gemini.price-date:2026-11-23}") String priceDate,
-			@Value("${codemove.ai.log-dir:ai-logs}") String logDir) {
+			@Value("${codemove.ai.log-dir:ai-logs}") String logDir, AnalysisLogMapper logs, V4Schema schema) {
+		this.logs = logs;
+		this.schema = schema;
 		this.ai = ai;
 		this.files = files;
 		this.logRoot = Path.of(logDir).toAbsolutePath().normalize();
@@ -131,11 +144,11 @@ public class VideoAnalysisService {
 					: VideoAnalysis.ERR_NOT_HOME;
 			String msg = VideoAnalysis.ERR_DARK.equals(code) ? "영상이 어둡거나 흔들려서 짐을 알아보기 어려워요"
 					: "집 안 가구·가전이 보이게 다시 찍어 주세요";
-			return new Result(id, false, code, msg + (reason.isBlank() ? "" : " (" + reason + ")"), ai.model(),
+			return new Result(id, false, code, msg + (reason.isBlank() ? "" : " (" + reason + ")"), res.model(),
 					AnalysisPrompt.VERSION, List.of(), raw.rooms(), raw.memo(), res.usage(), cost, res.uploadMs(),
 					res.apiMs(), total, retries, res.text());
 		}
-		return new Result(id, true, null, null, ai.model(), AnalysisPrompt.VERSION, ItemMatcher.map(raw.items()),
+		return new Result(id, true, null, null, res.model(), AnalysisPrompt.VERSION, ItemMatcher.map(raw.items()),
 				raw.rooms(), raw.memo(), res.usage(), cost, res.uploadMs(), res.apiMs(), total, retries, res.text());
 	}
 
@@ -174,22 +187,46 @@ public class VideoAnalysisService {
 			double totalCbm, long reviewCount, long unmappedCount, String rawJson) {
 	}
 
-	/** 최근 기록부터 */
+	private boolean db() {
+		return logs != null && schema != null && schema.ready();
+	}
+
+	/** 최근 기록부터 (DB 기록 + V4 적용 전 파일 기록) */
 	public List<Logged> history(int limit) {
-		Path dir = logRoot;
-		if (!Files.isDirectory(dir)) {
-			return List.of();
+		List<Logged> all = new ArrayList<>();
+		if (db()) {
+			logs.list(limit).forEach(row -> {
+				Logged l = fromRow(row);
+				if (l != null) {
+					all.add(l);
+				}
+			});
 		}
-		try (var s = Files.walk(dir, 2)) {
-			return s.filter(p -> p.toString().endsWith(".json"))
-					.sorted((a, b) -> Long.compare(b.toFile().lastModified(), a.toFile().lastModified())).limit(limit)
-					.map(p -> read(p)).filter(l -> l != null).toList();
-		} catch (IOException e) {
-			return List.of();
+		Path dir = logRoot;
+		if (Files.isDirectory(dir)) {
+			try (var s = Files.walk(dir, 2)) {
+				s.filter(p -> p.toString().endsWith(".json"))
+						.sorted((a, b) -> Long.compare(b.toFile().lastModified(), a.toFile().lastModified()))
+						.limit(limit).map(p -> read(p)).filter(l -> l != null).forEach(l -> all.add(l));
+			} catch (IOException e) {
+				// 파일 기록은 보조라 무시
+			}
+		}
+		all.sort((a, b) -> b.at().compareTo(a.at()));
+		return all.size() > limit ? all.subList(0, limit) : all;
+	}
+
+	/** 고객이 이사 요청을 마치면 분석 기록을 요청 · 영상과 연결 (DB 기록일 때만) */
+	public void linkRequest(String analysisId, long requestId, Long videoId) {
+		if (analysisId != null && analysisId.matches("\\d+") && db()) {
+			logs.linkRequest(Long.parseLong(analysisId), requestId, videoId);
 		}
 	}
 
 	public Logged find(String analysisId) {
+		if (analysisId != null && analysisId.matches("\\d{1,18}")) {
+			return db() ? fromRow(logs.find(Long.parseLong(analysisId))) : null;
+		}
 		if (analysisId == null || !analysisId.matches("[0-9a-f]{8}")) {
 			return null;
 		}
@@ -205,9 +242,32 @@ public class VideoAnalysisService {
 		}
 	}
 
+	/** DB 행 → 기록 (RESULT_JSON 에 파일 기록과 같은 내용, RAW_JSON 은 따로) */
+	private Logged fromRow(AnalysisRow row) {
+		if (row == null || row.getResultJson() == null) {
+			return null;
+		}
+		try {
+			Logged l = parse(json.readTree(row.getResultJson()));
+			return new Logged(String.valueOf(row.getAnalysisId()), row.getCreatedAt().toString(), l.video(),
+					l.videoMb(), l.model(), l.promptVersion(), l.success(), l.errorCode(), l.message(), l.usage(),
+					l.costUsd(), l.uploadMs(), l.apiMs(), l.totalMs(), l.retries(), l.items(), l.totalCbm(),
+					l.reviewCount(), l.unmappedCount(), row.getRawJson());
+		} catch (RuntimeException e) {
+			return null;
+		}
+	}
+
 	private Logged read(Path p) {
 		try {
-			JsonNode n = json.readTree(Files.readAllBytes(p)); // 바이트로 읽어야 BOM 있는 파일도 읽힘
+			return parse(json.readTree(Files.readAllBytes(p))); // 바이트로 읽어야 BOM 있는 파일도 읽힘
+		} catch (IOException | RuntimeException e) {
+			return null;
+		}
+	}
+
+	private Logged parse(JsonNode n) {
+		{
 			List<VideoAnalysis.MappedItem> items = new ArrayList<>();
 			for (JsonNode i : n.path("items")) {
 				items.add(new VideoAnalysis.MappedItem(i.path("name").asString(""), i.path("sizeCode").asString("02"),
@@ -229,8 +289,6 @@ public class VideoAnalysisService {
 					ms.path("total").asLong(0), n.path("retries").asInt(0), items, n.path("totalCbm").asDouble(0),
 					n.path("reviewCount").asLong(0), n.path("unmappedCount").asLong(0),
 					n.path("rawJson").asString(null));
-		} catch (IOException | RuntimeException e) {
-			return null;
 		}
 	}
 
@@ -242,6 +300,43 @@ public class VideoAnalysisService {
 	private Result fail(String id, String code, String message, long t0, int retries) {
 		return new Result(id, false, code, message, ai.model(), AnalysisPrompt.VERSION, List.of(), List.of(), null,
 				Usage.NONE, 0, 0, 0, System.currentTimeMillis() - t0, retries, null);
+	}
+
+	/** TBL_AI_ANALYSIS 에 저장하고 분석 ID 를 DB 번호로 바꿈 */
+	private Result saveRow(Result r, Map<String, Object> rec) {
+		AnalysisRow row = new AnalysisRow();
+		row.setTestYn("Y"); // 고객이 이사 요청을 마치면 linkRequest 가 N 으로
+		row.setModelName(r.model());
+		row.setPromptVersion(r.promptVersion());
+		row.setFileMb((Double) rec.get("videoMb"));
+		row.setProcessOption("thinking=" + ai.thinkingLevel());
+		row.setInputTokens(r.usage().inputTokens());
+		row.setOutputTokens(r.usage().outputTokens());
+		row.setTotalTokens(r.usage().totalTokens());
+		row.setUsageJson(json.writeValueAsString(r.usage()));
+		row.setPriceIn(priceIn);
+		row.setPriceOut(priceOut);
+		row.setPriceDate(LocalDate.parse(priceDate));
+		row.setCurrency("USD");
+		row.setEstCost(r.costUsd());
+		row.setUploadMs(r.uploadMs());
+		row.setApiMs(r.apiMs());
+		row.setTotalMs(r.totalMs());
+		row.setRetryCount(r.retries());
+		row.setIsSuccess(r.success() ? "Y" : "N");
+		row.setErrorCode(r.errorCode());
+		String msg = r.message();
+		row.setErrorMessage(msg != null && msg.length() > 1000 ? msg.substring(0, 1000) : msg);
+		row.setItemCount(r.items().size());
+		row.setMappedCount((int) r.items().stream().filter(i -> !VideoAnalysis.UNMAPPED.equals(i.mappingType())).count());
+		row.setReviewCount((int) r.reviewCount());
+		row.setRawJson(r.rawJson());
+		row.setResultJson(json.writeValueAsString(rec));
+		logs.insert(row);
+		String id = String.valueOf(row.getAnalysisId());
+		return new Result(id, r.success(), r.errorCode(), r.message(), r.model(), r.promptVersion(), r.items(),
+				r.rooms(), r.memo(), r.usage(), r.costUsd(), r.uploadMs(), r.apiMs(), r.totalMs(), r.retries(),
+				r.rawJson());
 	}
 
 	/** 분석 기록 (가이드 10장 항목) */
@@ -268,11 +363,15 @@ public class VideoAnalysisService {
 					r.items().stream().filter(i -> VideoAnalysis.UNMAPPED.equals(i.mappingType())).count());
 			rec.put("totalCbm", Math.round(r.totalCbm() * 1000) / 1000.0);
 			rec.put("items", r.items());
-			rec.put("rawJson", r.rawJson());
-			Path dir = logRoot.resolve(LocalDate.now().toString().replace("-", ""));
-			Files.createDirectories(dir);
-			Files.writeString(dir.resolve(r.analysisId() + ".json"),
-					json.writerWithDefaultPrettyPrinter().writeValueAsString(rec));
+			if (db()) {
+				r = saveRow(r, rec);
+			} else {
+				rec.put("rawJson", r.rawJson());
+				Path dir = logRoot.resolve(LocalDate.now().toString().replace("-", ""));
+				Files.createDirectories(dir);
+				Files.writeString(dir.resolve(r.analysisId() + ".json"),
+						json.writerWithDefaultPrettyPrinter().writeValueAsString(rec));
+			}
 		} catch (IOException | RuntimeException e) {
 			log.warn("분석 기록 저장 실패 {}: {}", r.analysisId(), e.getMessage());
 		}

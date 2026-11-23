@@ -29,7 +29,10 @@ class VideoAnalysisLiveTest {
 		JsonMapper json = JsonMapper.builder().build();
 		String model = System.getenv().getOrDefault("GEMINI_MODEL", "gemini-4-hydrogen");
 		String thinking = System.getenv().getOrDefault("GEMINI_THINKING", "low");
-		GeminiVideoAnalyzer ai = new GeminiVideoAnalyzer(System.getenv("GEMINI_API_KEY"), model, 300, thinking, json);
+		String fallback = System.getenv().getOrDefault("GEMINI_FALLBACK",
+				"gemini-3.5-flash,gemini-flash-latest,gemini-3.8-flash");
+		GeminiVideoAnalyzer ai = new GeminiVideoAnalyzer(System.getenv("GEMINI_API_KEY"), model, 300, thinking,
+				fallback, json);
 		Path out = Path.of("build", "ai-live");
 		Files.createDirectories(out);
 		VideoAnalysisService service = new VideoAnalysisService(ai, new FileStore(out.toString()), json, 1.50, 7.50,

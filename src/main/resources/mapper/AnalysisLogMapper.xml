@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.codemove.estimate.AnalysisLogMapper">
+
+	<insert id="insert" parameterType="com.codemove.estimate.AnalysisRow">
+		<selectKey keyProperty="analysisId" resultType="long" order="BEFORE">
+			SELECT SEQ_AI_ANALYSIS.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO TBL_AI_ANALYSIS (ANALYSIS_ID, REQUEST_ID, VIDEO_ID, TEST_YN, MODEL_NAME, PROMPT_VERSION, FILE_MB,
+		       PROCESS_OPTION, INPUT_TOKENS, OUTPUT_TOKENS, TOTAL_TOKENS, USAGE_JSON, PRICE_IN, PRICE_OUT, PRICE_DATE,
+		       CURRENCY, EST_COST, UPLOAD_MS, API_MS, MAPPING_MS, TOTAL_MS, RETRY_COUNT, IS_SUCCESS, ERROR_CODE,
+		       ERROR_MESSAGE, ITEM_COUNT, MAPPED_COUNT, REVIEW_COUNT, RAW_JSON, RESULT_JSON, CREATED_AT)
+		VALUES (#{analysisId}, #{requestId,jdbcType=NUMERIC}, #{videoId,jdbcType=NUMERIC}, #{testYn}, #{modelName},
+		       #{promptVersion}, #{fileMb,jdbcType=NUMERIC}, #{processOption,jdbcType=VARCHAR},
+		       #{inputTokens,jdbcType=NUMERIC}, #{outputTokens,jdbcType=NUMERIC}, #{totalTokens,jdbcType=NUMERIC},
+		       #{usageJson,jdbcType=VARCHAR}, #{priceIn,jdbcType=NUMERIC}, #{priceOut,jdbcType=NUMERIC},
+		       #{priceDate,jdbcType=DATE}, #{currency,jdbcType=CHAR}, #{estCost,jdbcType=NUMERIC},
+		       #{uploadMs,jdbcType=NUMERIC}, #{apiMs,jdbcType=NUMERIC}, #{mappingMs,jdbcType=NUMERIC},
+		       #{totalMs,jdbcType=NUMERIC}, #{retryCount}, #{isSuccess}, #{errorCode,jdbcType=CHAR},
+		       #{errorMessage,jdbcType=VARCHAR}, #{itemCount,jdbcType=NUMERIC}, #{mappedCount,jdbcType=NUMERIC},
+		       #{reviewCount,jdbcType=NUMERIC}, #{rawJson,jdbcType=CLOB}, #{resultJson,jdbcType=CLOB}, SYSDATE)
+	</insert>
+
+	<select id="list" resultType="com.codemove.estimate.AnalysisRow">
+		SELECT * FROM (SELECT * FROM TBL_AI_ANALYSIS ORDER BY CREATED_AT DESC, ANALYSIS_ID DESC)
+		WHERE ROWNUM &lt;= #{limit}
+	</select>
+
+	<select id="find" resultType="com.codemove.estimate.AnalysisRow">
+		SELECT * FROM TBL_AI_ANALYSIS WHERE ANALYSIS_ID = #{analysisId}
+	</select>
+
+	<update id="linkRequest">
+		UPDATE TBL_AI_ANALYSIS SET REQUEST_ID = #{requestId}, VIDEO_ID = #{videoId,jdbcType=NUMERIC}, TEST_YN = 'N'
+		WHERE ANALYSIS_ID = #{analysisId} AND REQUEST_ID IS NULL
+	</update>
+</mapper>

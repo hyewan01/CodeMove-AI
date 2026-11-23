@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.codemove.common.FileStore;
 import com.codemove.common.Fmt;
+import com.codemove.estimate.DistanceService;
 import com.codemove.estimate.EstimateCalculator;
 import com.codemove.estimate.VideoAnalysis;
 import com.codemove.estimate.VideoAnalysisService;
@@ -30,18 +31,22 @@ public class QuoteAnalysisController {
 
 	/** 세션: 분석에 쓴 영상 주소 · 원본 이름 · 분석 시간(초) */
 	public static final String VIDEO_URL = "quote.videoUrl", VIDEO_NAME = "quote.videoName",
-			ANALYSIS_SEC = "quote.analysisSec";
+			ANALYSIS_SEC = "quote.analysisSec", ANALYSIS_ID = "quote.analysisId";
 
 	private final VideoAnalysisService analysis;
 	private final FileStore files;
+	private final DistanceService distance;
 
-	public QuoteAnalysisController(VideoAnalysisService analysis, FileStore files) {
+	public QuoteAnalysisController(VideoAnalysisService analysis, FileStore files, DistanceService distance) {
 		this.analysis = analysis;
 		this.files = files;
+		this.distance = distance;
 	}
 
 	/** 예상 견적 요청 (quote.js 6단계) */
-	public record EstimateRequest(String packType, String moveDate, List<EstimateItem> items) {
+	public record EstimateRequest(String packType, String moveDate, List<EstimateItem> items, String fromAddress,
+			String toAddress, Integer fromFloor, String fromCarry, Integer toFloor, String toCarry,
+			Integer storageDays) {
 	}
 
 	public record EstimateItem(String name, String sizeCode, int count) {
@@ -55,9 +60,14 @@ public class QuoteAnalysisController {
 						.map(i -> EstimateCalculator.Line.of(i.name(), i.sizeCode(), Math.min(i.count(), 999))).toList();
 		String pack = req.packType() != null && req.packType().matches("0[1-4]") ? req.packType()
 				: EstimateCalculator.FULL;
+		Double km = distance.km(req.fromAddress(), req.toAddress());
 		EstimateCalculator.Estimate e = EstimateCalculator.estimate(lines,
-				new EstimateCalculator.Conditions(pack, null, Fmt.parseDate(req.moveDate()), null, null));
+				new EstimateCalculator.Conditions(pack, km, Fmt.parseDate(req.moveDate()),
+						CustomerPageController.site(req.fromFloor(), req.fromCarry()),
+						CustomerPageController.site(req.toFloor(), req.toCarry()),
+						CustomerPageController.storageDays(pack, req.storageDays())));
 		Map<String, Object> out = new LinkedHashMap<>();
+		out.put("distanceKm", km);
 		out.put("min", e.totalMin());
 		out.put("max", e.totalMax());
 		out.put("amount", MoveService.midpoint(e));
@@ -98,6 +108,7 @@ public class QuoteAnalysisController {
 
 		VideoAnalysis.Result r = analysis.analyze(analysis.pathOf(url));
 		session.setAttribute(ANALYSIS_SEC, (int) Math.max(1, Math.round(r.totalMs() / 1000.0)));
+		session.setAttribute(ANALYSIS_ID, r.analysisId());
 		out.put("ok", r.success());
 		out.put("code", r.errorCode());
 		out.put("message", r.message());

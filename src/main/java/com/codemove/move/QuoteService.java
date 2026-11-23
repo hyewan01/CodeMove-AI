@@ -299,6 +299,14 @@ public class QuoteService {
 	@Transactional
 	public Quote createForRequest(MoveRequest r, String customerName, String customerPhone, List<RequestItem> items,
 			EstimateCalculator.Estimate est) {
+		return createForRequest(r, customerName, customerPhone, items, est,
+				EstimateCalculator.Conditions.basic(r.getPackType()));
+	}
+
+	/** @param cond 층수 · 나르는 방법 (견적서 운반방법 · 사다리 칸) */
+	@Transactional
+	public Quote createForRequest(MoveRequest r, String customerName, String customerPhone, List<RequestItem> items,
+			EstimateCalculator.Estimate est, EstimateCalculator.Conditions cond) {
 		Quote q = new Quote();
 		q.setRequestId(r.getRequestId());
 		q.setMemberId(r.getMemberId());
@@ -323,28 +331,43 @@ public class QuoteService {
 				+ est.truckLabel() + ". 범위 " + Fmt.money(est.totalMin()) + "~" + Fmt.money(est.totalMax())
 				+ "원. 현장 여건에 따라 별도 비용이 발생할 수 있습니다.");
 		d.setWorkMethod(workMethod(r.getPackType()));
-		d.setLadder("");
-		d.setElevator("");
-		d.setStairs("");
-		d.setDepartureLadder("0");
-		d.setDestinationLadder("0");
-		d.setLadderSubtotal("0");
-		d.setExtraCost("0");
+		// 운반방법: 양식은 칸마다 전(출발)·후(도착) 하나만 고르므로 출발지를 먼저 표시
+		EstimateCalculator.Site from = cond.from() == null ? EstimateCalculator.Site.UNKNOWN : cond.from();
+		EstimateCalculator.Site to = cond.to() == null ? EstimateCalculator.Site.UNKNOWN : cond.to();
+		d.setLadder(side(from.carry() == EstimateCalculator.Carry.LADDER, to.carry() == EstimateCalculator.Carry.LADDER));
+		d.setElevator(side(from.carry() == EstimateCalculator.Carry.ELEVATOR,
+				to.carry() == EstimateCalculator.Carry.ELEVATOR));
+		d.setStairs(side(from.carry() == EstimateCalculator.Carry.STAIRS, to.carry() == EstimateCalculator.Carry.STAIRS));
+		d.setDepartureFloor(from.floor() == null ? "" : String.valueOf(from.floor()));
+		d.setDestinationFloor(to.floor() == null ? "" : String.valueOf(to.floor()));
+		long fromLadder = feeMid(est, "출발지 사다리차"), toLadder = feeMid(est, "도착지 사다리차");
+		d.setDepartureLadder(Fmt.money(fromLadder));
+		d.setDestinationLadder(Fmt.money(toLadder));
+		d.setLadderSubtotal(Fmt.money(fromLadder + toLadder));
+		d.setExtraCost(Fmt.money(fromLadder + toLadder));
 		long moving = 0, options = 0;
 		List<String> costs = new ArrayList<>(Collections.nCopies(8, ""));
 		List<String> selections = new ArrayList<>(Collections.nCopies(8, ""));
 		for (EstimateCalculator.Fee f : est.fees()) {
 			long mid = Math.round((f.min() + f.max()) / 2.0 / 10_000) * 10_000;
 			int idx = optionIndex(f.label());
+			if (f.label().contains("사다리차")) {
+				continue; // 사다리 칸(별도비용)에 들어감
+			}
+			if (f.label().contains(" 계단 ")) {
+				idx = 5; // 수작업 · 계단
+			}
 			if (idx < 0) {
 				moving += mid;
 			} else {
 				options += mid;
-				costs.set(idx, Fmt.money(mid));
-				selections.set(idx, EstimateDoc.OPTION_ROWS[idx][idx == 0 ? 1 : 2]);
+				long prev = Fmt.parseMoney(costs.get(idx)) == null ? 0 : Fmt.parseMoney(costs.get(idx));
+				costs.set(idx, Fmt.money(prev + mid));
+				// 피아노는 일반, 수작업은 계단, 나머지는 설치·조립 쪽
+				selections.set(idx, EstimateDoc.OPTION_ROWS[idx][idx == 0 || idx == 5 ? 1 : 2]);
 			}
 		}
-		long amount = moving + options;
+		long amount = moving + options + fromLadder + toLadder;
 		d.setMovingCost(Fmt.money(moving));
 		d.setOptionCosts(costs);
 		d.setOptionSelections(selections);
@@ -379,6 +402,16 @@ public class QuoteService {
 	}
 
 	/* ---------- 도우미 ---------- */
+
+	private static String side(boolean from, boolean to) {
+		return from ? "전" : to ? "후" : "";
+	}
+
+	/** 이름이 prefix 로 시작하는 요금들의 가운데 값 합 (만 원 단위) */
+	private static long feeMid(EstimateCalculator.Estimate est, String prefix) {
+		return est.fees().stream().filter(f -> f.label().startsWith(prefix))
+				.mapToLong(f -> Math.round((f.min() + f.max()) / 2.0 / 10_000) * 10_000).sum();
+	}
 
 	/** 계산기 요금 이름 → 견적서 옵션 칸 (QUOTE_OPTION - 1), 옵션이 아니면 -1 */
 	private static int optionIndex(String label) {

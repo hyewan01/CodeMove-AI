@@ -38,6 +38,8 @@ codemove:
       # gemini-2.5-flash 는 신규 사용자에게 막힘(2026-11-23 확인). 3.8-flash 는 무료 등급 503 혼잡이 잦음
       model: gemini-4-hydrogen
       thinking-level: low
+      # 주 모델이 혼잡(503)·한도(429)일 때 차례로 시도. 비용은 주 모델 단가로 계산되므로 기록의 모델명을 확인
+      fallback-models: gemini-3.5-flash,gemini-flash-latest,gemini-3.8-flash
       timeout-sec: 180
       # 100만 토큰당 달러. Google 출시 블로그(Gemini 4 Hydrogen) 기준. Cloud 요금표는 출력 단가가 달라 확인 필요
       price-in-per-1m: 1.50

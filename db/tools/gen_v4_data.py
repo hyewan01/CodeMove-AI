@@ -18,7 +18,7 @@ CODES = {
     ("ANALYSIS_ERROR", "영상 분석 실패"): [
         ("01", "파일 형식 오류"), ("02", "용량·길이 초과"), ("03", "영상 품질 불량(어둡거나 흔들림)"),
         ("04", "집 안 영상 아님(품목 없음)"), ("05", "AI 시간 초과"), ("06", "AI 사용량 한도"),
-        ("07", "AI 응답 형식 오류"), ("08", "AI 호출 실패")],
+        ("07", "AI 응답 형식 오류"), ("08", "AI 호출 실패"), ("09", "AI 키 없음"), ("10", "AI 서버 혼잡")],
 }
 
 
@@ -112,9 +112,9 @@ def main():
 
     out += ["", "-- ---------- TBL_FEE_BASE ----------"]
     for r in rows("fee-base.csv"):
-        out.append("INSERT INTO TBL_FEE_BASE (FEE_ID, TRUCK_ID, PACK_TYPE, BASE_AMOUNT, WORKERS, BASIS_NOTE) VALUES "
-                   f"(SEQ_FEE_BASE.NEXTVAL, {truck(r['톤'])}, {s(r['포장방식코드'])}, {r['기본요금']}, "
-                   f"{n(r['작업인원'])}, {s(r['근거'])});")
+        out.append("INSERT INTO TBL_FEE_BASE (FEE_ID, TON, PACK_TYPE, BASE_AMOUNT, MAX_AMOUNT, WORKERS, BASIS_NOTE) "
+                   f"VALUES (SEQ_FEE_BASE.NEXTVAL, {r['톤']}, {s(r['포장방식코드'])}, {r['기본요금']}, "
+                   f"{r['기본요금상한']}, {n(r['작업인원'])}, {s(r['근거'])});")
 
     out += ["", "-- ---------- TBL_FEE_OPTION ----------"]
     for r in rows("fee-option.csv"):
@@ -124,8 +124,8 @@ def main():
 
     out += ["", "-- ---------- TBL_FEE_DISTANCE ----------"]
     for r in rows("fee-distance.csv"):
-        out.append("INSERT INTO TBL_FEE_DISTANCE (FEE_ID, TRUCK_ID, FROM_KM, TO_KM, ADD_AMOUNT, PER_KM, BASIS_NOTE) "
-                   f"VALUES (SEQ_FEE_DISTANCE.NEXTVAL, {truck(r['톤'])}, {r['시작km']}, {n(r['끝km'])}, "
+        out.append("INSERT INTO TBL_FEE_DISTANCE (FEE_ID, TON, FROM_KM, TO_KM, ADD_AMOUNT, PER_KM, BASIS_NOTE) "
+                   f"VALUES (SEQ_FEE_DISTANCE.NEXTVAL, {r['톤']}, {r['시작km']}, {n(r['끝km'])}, "
                    f"{r['추가금액']}, {r['초과km당단가']}, {s(r['근거'])});")
 
     out += ["", "-- ---------- TBL_FEE_SURCHARGE ----------"]
@@ -138,6 +138,16 @@ def main():
         out.append("INSERT INTO TBL_FEE_LADDER (FEE_ID, FROM_FLOOR, TO_FLOOR, AMOUNT, WORK_HOURS, BASIS_NOTE) VALUES "
                    f"(SEQ_FEE_LADDER.NEXTVAL, {r['시작층']}, {n(r['끝층'])}, {n(r['금액'])}, {s(r['작업시간'])}, "
                    f"{s(r['근거'])});")
+
+    out += ["", "-- ---------- TBL_FEE_TV ----------"]
+    for r in rows("fee-tv.csv"):
+        out.append("INSERT INTO TBL_FEE_TV (FEE_ID, MAX_INCH, MIN_AMOUNT, MAX_AMOUNT, BASIS_NOTE) VALUES "
+                   f"(SEQ_FEE_TV.NEXTVAL, {r['최대인치']}, {r['최소금액']}, {r['최대금액']}, {s(r['근거'])});")
+
+    out += ["", "-- ---------- TBL_ESTIMATE_RULE ----------"]
+    for r in rows("estimate-rules.csv"):
+        out.append("INSERT INTO TBL_ESTIMATE_RULE (RULE_KEY, RULE_VALUE, BASIS_NOTE) VALUES "
+                   f"({s(r['항목'])}, {r['값']}, {s(r['근거'])});")
 
     out += ["", "COMMIT;", ""]
     OUT.write_text("\n".join(out), encoding="utf-8")

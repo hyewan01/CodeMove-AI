@@ -224,7 +224,8 @@
 		const box = $('[data-item-inputs]');
 		box.innerHTML = '';
 		state.items.forEach((it, i) => {
-			[['name', it.name], ['size', sizeOf(it).grade], ['count', it.count], ['cbm', itemCbm(it).toFixed(2)]].forEach(([k, v]) => {
+			[['name', it.name], ['size', sizeOf(it).grade], ['count', it.count], ['cbm', itemCbm(it).toFixed(2)],
+				['detectedName', it.detectedName || ''], ['mapping', it.mapping || ''], ['needsReview', !!it.needsReview]].forEach(([k, v]) => {
 				const input = document.createElement('input');
 				input.type = 'hidden';
 				input.name = `items[${i}].${k}`;
@@ -360,7 +361,8 @@
 		renderItems();
 	});
 	$('[data-edit-save]').addEventListener('click', () => {
-		const saved = { ...draft, needsReview: false };
+		// 고객이 확인·수정하거나 새로 넣은 품목은 매핑방식 05(사용자 수정)
+		const saved = { ...draft, needsReview: false, mapping: '05' };
 		state.items = adding ? [...state.items, saved] : state.items.map((it) => (it.id === saved.id ? saved : it));
 		closeModal('item-edit');
 		renderItems();
@@ -381,8 +383,30 @@
 			if (mark && mark.hasAttribute('data-keep')) mark.textContent = on ? '✓' : '';
 			else if (mark) mark.hidden = !on;
 		});
+		// 보관이사(03)를 고르면 보관 기간 선택을 보여 줌
+		if (group === 'packType') $('[data-storage-days]').hidden = btn.dataset.value !== '03';
 		refreshNext();
 	}));
+
+	/* 층수 · 짐 나르는 방법 (엘리베이터 E / 사다리차 L / 계단 S) */
+	const sites = { from: { floor: null, carry: null }, to: { floor: null, carry: null } };
+	$$('[data-address]').forEach((wrap) => {
+		const key = wrap.dataset.address;
+		$('[data-addr-floor]', wrap).addEventListener('input', (e) => {
+			const n = parseInt(e.target.value, 10);
+			sites[key].floor = n >= 1 && n <= 80 ? n : null;
+		});
+		$$('[data-carry]', wrap).forEach((b) => b.addEventListener('click', () => {
+			const on = sites[key].carry !== b.dataset.carry; // 다시 누르면 해제
+			sites[key].carry = on ? b.dataset.carry : null;
+			$('[data-addr-carry-value]', wrap).value = sites[key].carry || '';
+			$$('[data-carry]', wrap).forEach((x) => {
+				const sel = x === b && on;
+				x.classList.toggle('active', sel);
+				x.setAttribute('aria-checked', String(sel));
+			});
+		}));
+	});
 
 	/* ---------- 4. 주소 검색 (카카오 우편번호 서비스, 불러오지 못하면 목업 주소로 대체) ---------- */
 	const addrSheet = $$('[data-addr-sheet]');
@@ -568,6 +592,13 @@
 			packType: state.options.packType,
 			moveDate: state.dateSkipped ? null : state.date,
 			items: state.items.map((it) => ({ name: it.name, sizeCode: sizeOf(it).code, count: it.count })),
+			fromAddress: state.address.from,
+			toAddress: state.address.to,
+			fromFloor: sites.from.floor,
+			fromCarry: sites.from.carry,
+			toFloor: sites.to.floor,
+			toCarry: sites.to.carry,
+			storageDays: state.options.packType === '03' ? Number($('[name=storageDays]').value) : null,
 		};
 		fetch(DATA.estimateUrl || 'quote/estimate', {
 			method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -581,7 +612,8 @@
 				$('[data-est-note]').textContent = state.dateSkipped
 					? '이사 날짜에 따라 비용이 달라질 수 있어요.'
 					: '선택한 일정과 영상 분석 결과를 반영했어요.';
-				$('[data-est-volume]').textContent = `짐 양 ${est.ton} (${est.trucks}) · 작업 ${est.workers}명`;
+				$('[data-est-volume]').textContent = `짐 양 ${est.ton} (${est.trucks}) · 작업 ${est.workers}명`
+					+ (est.distanceKm != null ? ` · 거리 약 ${Math.round(est.distanceKm)}km` : '');
 				$('[data-est-fees]').innerHTML = est.fees.map((f) => `<li><span>${esc(f.label)}</span><b>${
 					f.min === f.max ? fmtWon(f.min) : `${f.min.toLocaleString('ko-KR')}~${fmtWon(f.max)}`}</b></li>`).join('');
 				$('[data-est-notes]').innerHTML = est.notes.map((n) => `<li>${esc(n)}</li>`).join('');
@@ -596,8 +628,13 @@
 	function renderSummary() {
 		renderEstimate();
 		$('[data-sum="date"]').textContent = state.dateSkipped ? '일정 미정' : dateLabel() || '—';
-		$('[data-sum="from"]').textContent = state.address.from || '—';
-		$('[data-sum="to"]').textContent = state.address.to || '—';
+		const CARRY = { E: '엘리베이터', L: '사다리차', S: '계단' };
+		const siteText = (k) => [sites[k].floor ? `${sites[k].floor}층` : '', CARRY[sites[k].carry] || '']
+			.filter(Boolean).join(' · ');
+		$('[data-sum="from"]').textContent = state.address.from
+			? state.address.from + (siteText('from') ? ` (${siteText('from')})` : '') : '—';
+		$('[data-sum="to"]').textContent = state.address.to
+			? state.address.to + (siteText('to') ? ` (${siteText('to')})` : '') : '—';
 		$('[data-sum="options"]').textContent = state.options.houseType && state.options.packType
 			? `${state.optionLabels.houseType} · ${state.optionLabels.packType}` : '—';
 	}

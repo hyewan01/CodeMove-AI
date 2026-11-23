@@ -16,6 +16,9 @@ public interface MoveMapper {
 
 	void insertRequestItem(RequestItem item);
 
+	/** V4 적용 후 (SPEC_ID · DETECTED_NAME · MAPPING_TYPE 포함) */
+	void insertRequestItemV4(RequestItem item);
+
 	void insertVideo(ReVideo video);
 
 	MoveRequest findRequest(long requestId);

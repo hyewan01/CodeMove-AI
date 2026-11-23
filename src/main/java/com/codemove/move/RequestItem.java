@@ -15,4 +15,7 @@ public class RequestItem {
 	private Integer confidence;
 	private String needsReview;
 	private String source;
+	/** V4: AI 원본 인식명 · 매핑방식(MAPPING_TYPE 01~05) — 규격ID(SPEC_ID)는 저장할 때 품목명·크기로 찾음 */
+	private String detectedName;
+	private String mappingType;
 }

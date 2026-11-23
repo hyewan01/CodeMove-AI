@@ -23,9 +23,23 @@
 		       #{confidence,jdbcType=NUMERIC}, #{needsReview}, #{source})
 	</insert>
 
+	<!-- V4 적용 후: 표준 규격(SPEC_ID) · AI 원본 인식명 · 매핑방식도 저장 -->
+	<insert id="insertRequestItemV4" parameterType="com.codemove.move.RequestItem">
+		INSERT INTO TBL_REQUEST_ITEM (RE_ITEM_ID, REQUEST_ID, CATEGORY, ITEM_NAME, ITEM_SIZE, QUANTITY, VOLUME, CONFIDENCE,
+		       NEEDS_REVIEW, SOURCE, SPEC_ID, DETECTED_NAME, MAPPING_TYPE)
+		VALUES (SEQ_REQUEST_ITEM.NEXTVAL, #{requestId}, #{category,jdbcType=CHAR}, #{itemName}, #{itemSize}, #{quantity}, #{volume},
+		       #{confidence,jdbcType=NUMERIC}, #{needsReview}, #{source},
+		       (SELECT s.SPEC_ID FROM TBL_ITEM_SPEC s JOIN TBL_ITEM i ON i.ITEM_ID = s.ITEM_ID
+		         WHERE i.ITEM_NAME = #{itemName} AND s.ITEM_SIZE = #{itemSize}),
+		       #{detectedName,jdbcType=VARCHAR}, #{mappingType,jdbcType=CHAR})
+	</insert>
+
 	<insert id="insertVideo" parameterType="com.codemove.move.ReVideo">
+		<selectKey keyProperty="videoId" resultType="long" order="BEFORE">
+			SELECT SEQ_RE_VIDEO.NEXTVAL FROM DUAL
+		</selectKey>
 		INSERT INTO TBL_RE_VIDEO (VIDEO_ID, REQUEST_ID, FILE_NAME, FILE_PATH, UPLOADED_AT)
-		VALUES (SEQ_RE_VIDEO.NEXTVAL, #{requestId}, #{fileName}, #{filePath}, SYSDATE)
+		VALUES (#{videoId}, #{requestId}, #{fileName}, #{filePath}, SYSDATE)
 	</insert>
 
 	<select id="findRequest" resultType="com.codemove.move.MoveRequest">

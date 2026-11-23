@@ -176,6 +176,17 @@
 					</div>
 				</div>
 			</div>
+			<!-- 보관이사: 보관 기간 (보관료 = 하루 금액 × 일수) -->
+			<label class="storage-days" data-storage-days hidden>
+				<span>보관 기간</span>
+				<select name="storageDays" aria-label="보관 기간">
+					<option value="7">1주</option>
+					<option value="14">2주</option>
+					<option value="30" selected>1개월</option>
+					<option value="60">2개월</option>
+					<option value="90">3개월</option>
+				</select>
+			</label>
 			<input type="hidden" name="houseType" data-option-input="houseType">
 			<input type="hidden" name="packType" data-option-input="packType">
 		</section>
@@ -201,6 +212,21 @@
 						<input class="addr-detail-input" type="text" aria-label="상세주소" placeholder="상세주소 입력 (동, 호수 등)"
 							   th:name="${key} + 'AddressDetail'" data-addr-detail>
 						<div class="addr-detail-hint" data-addr-hint>예) 101동 202호, 2층</div>
+						<!-- 층수 · 짐 나르는 방법 (사다리차 요금 · 계단 인력 계산) -->
+						<div class="addr-carry" data-addr-carry>
+							<label class="addr-floor">
+								<span>층수</span>
+								<input type="number" inputmode="numeric" min="1" max="80" placeholder="예) 8"
+									   th:name="${key} + 'Floor'" th:aria-label="${label} + ' 층수'" data-addr-floor>
+								<span>층</span>
+							</label>
+							<div class="carry-options" role="radiogroup" th:aria-label="${label} + ' 짐 나르는 방법'">
+								<button type="button" class="action carry-option" th:each="c : ${ {'E:엘리베이터', 'L:사다리차', 'S:계단'} }"
+										role="radio" aria-checked="false" th:data-carry="${#strings.substringBefore(c, ':')}"
+										th:text="${#strings.substringAfter(c, ':')}">엘리베이터</button>
+							</div>
+							<input type="hidden" th:name="${key} + 'Carry'" data-addr-carry-value>
+						</div>
 					</div>
 					<input type="hidden" th:name="${key} + 'Address'" data-addr-value>
 					<input type="hidden" th:name="${key} + 'Zipcode'" data-addr-zip>

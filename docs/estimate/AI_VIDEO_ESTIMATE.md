@@ -10,7 +10,16 @@
 - 모델: `gemini-2.5-flash`는 신규 사용자에게 막혀 **`gemini-4-hydrogen`**(생각 수준 low)으로 변경.
 - 분석 기록은 DB(V4) 적용 전까지 `ai-logs/` 폴더(JSON, Git 제외).
 
-- 상태: 코드는 CSV를 직접 읽어 동작합니다. TEAM03 DB에는 아직 V4를 적용하지 않았습니다. V4 DDL에는 11-23에 추가한 요금 상한(`기본요금상한`), [fee-tv.csv](data/fee-tv.csv), [estimate-rules.csv](data/estimate-rules.csv)(적재계수·계약금 비율)이 아직 없으므로 DB로 옮길 때 컬럼·테이블을 더해야 합니다. DDL은 [V4__item_spec_and_fee.ddl.sql](../../db/migration/V4__item_spec_and_fee.ddl.sql), 초기 데이터는 [V4__item_spec_and_fee.data.sql](../../db/migration/V4__item_spec_and_fee.data.sql)에 있습니다.
+**2026-11-24 변경 요약**
+- 통화에서 안 나온 값을 아정당 기준으로 채움 (5톤·7.5톤·10톤 포장, 반포장 = 포장 − 20만, 보관이사 × 1.5~2 + 보관료, 날짜 할증, 사다리차, 계단 인력). 근거: [통화 정리 6장](CALL_2026-11-23_견적방법.md#6-통화에서-안-나온-값--아정당-기준으로-채움-2026-11-24).
+- 고객 화면 주소 단계에 **층수 + 나르는 방법(엘리베이터·사다리차·계단)**, 보관이사는 **보관 기간**. 견적서 초안의 운반방법·사다리 층수·사다리 금액·수작업(계단) 칸에 들어감.
+- **이동 거리**: 카카오 로컬(주소 → 좌표) + 카카오모빌리티 길찾기([DistanceService](../../src/main/java/com/codemove/estimate/DistanceService.java)). 카카오 앱에서 '카카오맵' 사용을 켜야 동작하고, 꺼져 있으면 50km 미만으로 계산하고 안내 문구를 붙임.
+- Gemini 주 모델이 혼잡(503)·한도(429)면 **예비 모델**(`codemove.ai.gemini.fallback-models`)로 자동 전환. 기록에 실제 쓴 모델이 남음.
+- **V4 DB 연결 코드**: V4가 적용되면([V4Schema](../../src/main/java/com/codemove/estimate/V4Schema.java)가 1분마다 확인) 분석 기록은 `TBL_AI_ANALYSIS`, 품목은 `SPEC_ID`·`DETECTED_NAME`·`MAPPING_TYPE`(고객이 고치거나 추가하면 05)까지 저장하고, 이사 요청이 끝나면 분석 기록을 요청·영상과 연결. 적용 전에는 지금처럼 파일 기록.
+- V4 DDL 수정: 요금표를 차(TRUCK_ID)가 아니라 **짐 톤(TON)** 기준으로(7.5·10톤 행), 기본요금 상한 `MAX_AMOUNT`, `TBL_FEE_TV`·`TBL_ESTIMATE_RULE` 추가.
+- 버그 수정: 날짜 할증의 손 없는 날 판정이 항상 거짓이던 문제(끝 날짜 미포함 범위에 같은 날을 넣음).
+
+- 상태: 요금·규격 계산은 CSV를 직접 읽습니다(CSV가 원본, `py -3 db/tools/gen_v4_data.py`로 DB 데이터 SQL 생성). V4 DDL은 11-24에 CSV와 맞췄고, **TEAM03 적용은 팀 승인 대기**입니다. 적용 순서: DDL → data. DDL은 [V4__item_spec_and_fee.ddl.sql](../../db/migration/V4__item_spec_and_fee.ddl.sql), 초기 데이터는 [V4__item_spec_and_fee.data.sql](../../db/migration/V4__item_spec_and_fee.data.sql)에 있습니다.
 - 값의 원본은 [data/](data/) 폴더의 CSV입니다. 값을 바꿀 때는 CSV만 고치고 `py -3 db/tools/gen_v4_data.py`로 data SQL을 다시 만듭니다.
 - `[업체 확인]`이 붙은 값은 인터넷 시세나 가정으로 채운 값입니다. 대표님께 확인받기 전에는 실제 견적에 쓰지 않습니다. 확인할 질문은 [7장](#7-업체대표님-확인-질문)에 모았습니다.
 
@@ -254,7 +263,9 @@ erDiagram
                 예) 55 CBM → 5톤 + 1톤 + 1톤 = 7톤 (대표님 우리 집)
 ④ 기본 요금   = 톤 × 포장 방식, 최소~최대 (표에 없는 톤은 앞뒤 비율)  fee-base.csv
 ⑤ 거리 추가   = 50km마다 톤별 금액                                  fee-distance.csv
-⑥ 사다리차    = 출발지 + 도착지 층수 금액                            fee-ladder.csv
+⑥ 나르는 방법 = 사다리차 층수 금액 · 계단 3개 층마다 인력 15~20만      fee-ladder.csv, estimate-rules.csv
+                (엘리베이터 이용료 5~10만은 관리사무소에 고객이 내므로 안내만)
+보관이사      = 포장 × 1.5~2배 + 보관료(5톤 하루 7천~1만, 톤 비례 × 일수)   estimate-rules.csv
 ⑦ 옵션        = 에어컨 25만/대 · 안마의자 10만/대 · 벽걸이 TV 인치별 · 피아노   fee-option.csv, fee-tv.csv
 ⑧ 날짜 할증   = ④ × 해당 할증률 중 가장 큰 값                        fee-surcharge.csv [업체 확인]
 예상 견적     = ④ + ⑤ + ⑥ + ⑦ + ⑧ (최소~최대, 만 원 단위), 계약금 10%
@@ -351,7 +362,7 @@ AI가 실패해도 고객은 **품목을 직접 추가해서 견적을 계속** 
 | 2. 테스트 화면·업로드 | **완료**: `/admin/ai-test` (관리자 메뉴 "AI 영상 분석 테스트") | 영상 길이 검사(지금은 형식·용량만) |
 | 3. AI API 연동 | **완료**: [GeminiVideoAnalyzer](../../src/main/java/com/codemove/estimate/GeminiVideoAnalyzer.java), JSON 스키마 강제, 재시도(시간 초과·JSON 1회, 5xx 혼잡 2회), 업로드 영상 삭제 | 비동기 처리(지금은 요청이 끝날 때까지 기다림), 유료 등급 |
 | 4. DB 자동 매핑 | **완료**: [ItemMatcher](../../src/main/java/com/codemove/estimate/ItemMatcher.java) (정확 일치 → 별칭 → 미매핑) | V4 적용 후 CSV → DB 조회 |
-| 5. 부피 산정·견적 | **완료**: [EstimateCalculator](../../src/main/java/com/codemove/estimate/EstimateCalculator.java) + 테스트 9개 | 무게(자료 없음), 거리·층수 입력 |
-| 6. 토큰·비용·시간 기록 | **완료**: `ai-logs/날짜/분석ID.json` | V4 적용 후 `TBL_AI_ANALYSIS` |
+| 5. 부피 산정·견적 | **완료**: [EstimateCalculator](../../src/main/java/com/codemove/estimate/EstimateCalculator.java) + 테스트 11개, 층수·나르는 방법·보관 기간·거리 | 무게(자료 없음), 카카오맵 사용 켜기 |
+| 6. 토큰·비용·시간 기록 | **완료**: V4 적용 시 `TBL_AI_ANALYSIS`(코드 준비됨), 전에는 `ai-logs/날짜/분석ID.json` | TEAM03에 V4 적용 |
 | 7. 반복 테스트·비교 | 시작: 정답 목록 [house-01](testset/house-01.csv) 1개, 관리자 화면에서 정밀도·재현율·CBM 오차 | 영상 5~10개 더, 모델·프롬프트별 비교 |
-| 8. 기존 견적 통합 | **완료**: 고객 2·6단계, 이사 요청 저장, 관리자 견적서 초안 | 고객이 고친 품목의 `MAPPING_TYPE` 05 저장(V4) |
+| 8. 기존 견적 통합 | **완료**: 고객 2·4·6단계, 이사 요청 저장(V4면 매핑방식 05 포함), 관리자 견적서 초안 | - |

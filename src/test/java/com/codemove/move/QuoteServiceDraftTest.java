@@ -62,6 +62,23 @@ class QuoteServiceDraftTest {
 		assertEquals(MoveService.midpoint(est), q.getTotalAmount(), "견적서 합계 = 고객 화면 가운데 금액");
 		assertEquals(q.getTotalAmount() / 10, q.getDepositAmount(), "계약금 10%");
 		assertTrue(q.getNote().contains("5톤 1대 + 1톤 2대"));
+
+		// 출발 8층 사다리차 · 도착 4층 계단 → 사다리 칸 17만 · 수작업(계단) 칸 15~20만의 가운데
+		options.clear();
+		EstimateCalculator.Conditions cond = new EstimateCalculator.Conditions("04", null, null,
+				new EstimateCalculator.Site(8, EstimateCalculator.Carry.LADDER),
+				new EstimateCalculator.Site(4, EstimateCalculator.Carry.STAIRS), null);
+		EstimateCalculator.Estimate est2 = MoveService.estimate(items, cond);
+		service.createForRequest(r, "홍길동", "010-1234-5678", items, est2, cond);
+		Quote q2 = saved[0];
+		assertEquals("Y", q2.getFromLadderUse());
+		assertEquals(8, q2.getFromLadderFloor());
+		assertEquals(170_000L, q2.getFromLadderCost());
+		assertEquals("Y", q2.getToStairsUse());
+		QuoteOption stairs = options.stream().filter(o -> "06".equals(o.getOptionCode())).findFirst().orElseThrow();
+		assertEquals(180_000L, stairs.getOptionCost(), "4층 → 인력 1명 15~20만 → 가운데 17.5만 → 만 원 단위 18만");
+		assertEquals("Y", stairs.getChoice1Yn());
+		assertEquals(MoveService.midpoint(est2), q2.getTotalAmount());
 	}
 
 	private static RequestItem item(String name, String size, int qty) {

@@ -9,7 +9,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.codemove.common.FileStore;
 import com.codemove.common.Fmt;
+import com.codemove.estimate.DistanceService;
 import com.codemove.estimate.EstimateCalculator;
+import com.codemove.estimate.V4Schema;
+import com.codemove.estimate.VideoAnalysisService;
 import com.codemove.member.Member;
 import com.codemove.member.MemberMapper;
 import com.codemove.notification.NotificationService;
@@ -50,19 +53,31 @@ public class MoveService {
 	/** 견적 요청 화면 입력값 (SCR-U-003~009) */
 	public record RequestForm(String houseType, String packType, LocalDate moveDate, String moveTime,
 			String fromAddress, String fromDetail, String fromZipcode, String toAddress, String toDetail,
-			String toZipcode, List<RequestItem> items) {
+			String toZipcode, List<RequestItem> items, EstimateCalculator.Site from, EstimateCalculator.Site to,
+			Integer storageDays) {
+
+		public RequestForm(String houseType, String packType, LocalDate moveDate, String moveTime, String fromAddress,
+				String fromDetail, String fromZipcode, String toAddress, String toDetail, String toZipcode,
+				List<RequestItem> items) {
+			this(houseType, packType, moveDate, moveTime, fromAddress, fromDetail, fromZipcode, toAddress, toDetail,
+					toZipcode, items, EstimateCalculator.Site.UNKNOWN, EstimateCalculator.Site.UNKNOWN, null);
+		}
 	}
 
 	/**
 	 * 예상 견적 (EstimateCalculator: 대표님 견적 방식 + 아정당 평균가). 고객 화면(/quote/estimate)과 같은 계산.
-	 * 거리·층수는 아직 받지 않으므로 50km 미만 · 사다리차 없음으로 계산하고 안내 문구로 알립니다.
+	 * 거리는 DistanceService(카카오)로 구하고, 못 구하면 50km 미만으로 보고 안내 문구를 붙입니다.
 	 */
 	public static EstimateCalculator.Estimate estimate(List<RequestItem> items, String packType, LocalDate moveDate) {
+		return estimate(items, new EstimateCalculator.Conditions(packType, null, moveDate,
+				EstimateCalculator.Site.UNKNOWN, EstimateCalculator.Site.UNKNOWN, null));
+	}
+
+	public static EstimateCalculator.Estimate estimate(List<RequestItem> items, EstimateCalculator.Conditions cond) {
 		List<EstimateCalculator.Line> lines = items.stream()
 				.map(i -> EstimateCalculator.Line.of(i.getItemName(), i.getItemSize(), nz(i.getQuantity())))
 				.toList();
-		return EstimateCalculator.estimate(lines,
-				new EstimateCalculator.Conditions(packType, null, moveDate, null, null));
+		return EstimateCalculator.estimate(lines, cond);
 	}
 
 	/** 범위의 가운데 (만 원 단위) */
@@ -80,9 +95,16 @@ public class MoveService {
 	private final NotificationService notifications;
 	private final FileStore files;
 	private final BookingService booking;
+	private final DistanceService distance;
+	private final V4Schema schema;
+	private final VideoAnalysisService analysis;
 
 	public MoveService(MoveMapper moves, QuoteService quotes, MemberMapper members, NotificationService notifications,
-			FileStore files, BookingService booking) {
+			FileStore files, BookingService booking, DistanceService distance, V4Schema schema,
+			VideoAnalysisService analysis) {
+		this.distance = distance;
+		this.schema = schema;
+		this.analysis = analysis;
 		this.moves = moves;
 		this.quotes = quotes;
 		this.members = members;
@@ -123,16 +145,17 @@ public class MoveService {
 
 	@Transactional
 	public MoveRequest request(long memberId, RequestForm f, MultipartFile video) {
-		return request(memberId, f, video, null, null, null);
+		return request(memberId, f, video, null, null, null, null);
 	}
 
 	/**
 	 * @param savedVideoUrl 분석 단계(/quote/analyze)에서 이미 저장한 영상 주소 (video 가 비었을 때 사용)
 	 * @param analysisSec   실제 AI 분석에 걸린 시간(초), 모르면 null
+	 * @param analysisId    분석 기록 ID (요청 · 영상과 연결), 없으면 null
 	 */
 	@Transactional
 	public MoveRequest request(long memberId, RequestForm f, MultipartFile video, String savedVideoUrl,
-			String savedVideoName, Integer analysisSec) {
+			String savedVideoName, Integer analysisSec, String analysisId) {
 		MoveRequest r = new MoveRequest();
 		r.setMemberId(memberId);
 		r.setHouseType(f.houseType());
@@ -150,17 +173,25 @@ public class MoveService {
 		r.setToZipcode(f.toZipcode());
 		double cbm = f.items().stream().mapToDouble(i -> i.getVolume() == null ? 0 : i.getVolume()).sum();
 		r.setAiCbm(Math.round(cbm * 100) / 100.0);
-		EstimateCalculator.Estimate est = estimate(f.items(), f.packType(), f.moveDate());
+		EstimateCalculator.Conditions cond = new EstimateCalculator.Conditions(f.packType(),
+				distance.km(f.fromAddress(), f.toAddress()), f.moveDate(), f.from(), f.to(), f.storageDays());
+		EstimateCalculator.Estimate est = estimate(f.items(), cond);
 		r.setAiEstAmount(midpoint(est));
 		r.setAiEstMin(est.totalMin());
 		r.setAiEstMax(est.totalMax());
 		r.setAiAnalysisSec(analysisSec != null && analysisSec > 0 ? analysisSec : 38);
 		r.setAiConfidence(94);
 		moves.insertRequest(r);
+		boolean v4 = schema.ready();
 		for (RequestItem item : f.items()) {
 			item.setRequestId(r.getRequestId());
-			moves.insertRequestItem(item);
+			if (v4) {
+				moves.insertRequestItemV4(item);
+			} else {
+				moves.insertRequestItem(item);
+			}
 		}
+		Long videoId = null;
 		if (video != null && !video.isEmpty()) {
 			ReVideo v = new ReVideo();
 			v.setRequestId(r.getRequestId());
@@ -168,16 +199,20 @@ public class MoveService {
 			v.setFileName(name.length() > 200 ? name.substring(name.length() - 200) : name);
 			v.setFilePath(files.save("videos", video));
 			moves.insertVideo(v);
+			videoId = v.getVideoId();
 		} else if (savedVideoUrl != null) {
 			ReVideo v = new ReVideo();
 			v.setRequestId(r.getRequestId());
 			v.setFileName(savedVideoName == null ? "video" : savedVideoName);
 			v.setFilePath(savedVideoUrl);
 			moves.insertVideo(v);
+			videoId = v.getVideoId();
 		}
+		// 분석 기록(TBL_AI_ANALYSIS)을 이 요청 · 영상과 연결
+		analysis.linkRequest(analysisId, r.getRequestId(), videoId);
 		Member m = members.findMember(memberId);
 		// 견적 관리: 고객 입력으로 AI가 만든 견적서 (견적 검토)
-		quotes.createForRequest(r, m.getMemberName(), m.getPhone(), f.items(), est);
+		quotes.createForRequest(r, m.getMemberName(), m.getPhone(), f.items(), est, cond);
 		notifications.toAdmin("01", "견적서 등록", m.getMemberName() + " 고객님의 신규 견적 요청이 접수되었습니다.", "/admin/estimates",
 				false);
 		// 예약 관리 · 예약 일정: 고객이 고른 이사 날짜로 예약 완료 (날짜 미정이면 견적 확정 때 만듦)

@@ -44,7 +44,7 @@ public class GeminiVideoAnalyzer {
 	}
 
 	/** 호출 결과: 모델이 돌려준 JSON 글자 + 사용량 + 단계별 시간 */
-	public record Response(String text, Usage usage, long uploadMs, long apiMs) {
+	public record Response(String text, Usage usage, long uploadMs, long apiMs, String model) {
 	}
 
 	private static final String BASE = "https://generativelanguage.googleapis.com";
@@ -57,13 +57,23 @@ public class GeminiVideoAnalyzer {
 			.followRedirects(HttpClient.Redirect.NORMAL).build();
 
 	private final String thinkingLevel;
+	/** 주 모델이 혼잡(5xx)하거나 한도(429)일 때 차례로 쓰는 모델 */
+	private final List<String> fallbackModels;
 
+	public GeminiVideoAnalyzer(String apiKey, String model, int timeoutSec, String thinkingLevel, JsonMapper json) {
+		this(apiKey, model, timeoutSec, thinkingLevel, "", json);
+	}
+
+	@org.springframework.beans.factory.annotation.Autowired
 	public GeminiVideoAnalyzer(@Value("${codemove.ai.gemini.api-key:${GEMINI_API_KEY:}}") String apiKey,
 			@Value("${codemove.ai.gemini.model:gemini-4-hydrogen}") String model,
 			@Value("${codemove.ai.gemini.timeout-sec:180}") int timeoutSec,
-			@Value("${codemove.ai.gemini.thinking-level:low}") String thinkingLevel, JsonMapper json) {
+			@Value("${codemove.ai.gemini.thinking-level:low}") String thinkingLevel,
+			@Value("${codemove.ai.gemini.fallback-models:}") String fallbackModels, JsonMapper json) {
 		this.apiKey = apiKey == null ? "" : apiKey.trim();
 		this.model = model;
+		this.fallbackModels = java.util.Arrays.stream((fallbackModels == null ? "" : fallbackModels).split(","))
+				.map(s -> s.strip()).filter(s -> !s.isEmpty() && !s.equals(model)).toList();
 		this.thinkingLevel = thinkingLevel == null ? "" : thinkingLevel.trim();
 		this.timeout = Duration.ofSeconds(timeoutSec);
 		this.json = json;
@@ -77,6 +87,10 @@ public class GeminiVideoAnalyzer {
 		return model;
 	}
 
+	public String thinkingLevel() {
+		return thinkingLevel;
+	}
+
 	public Response analyze(Path video, String mimeType, String prompt, Map<String, Object> schema) {
 		if (!configured()) {
 			throw new AnalyzerException(VideoAnalysis.ERR_NO_KEY, "GEMINI_API_KEY 가 설정되지 않았습니다");
@@ -88,7 +102,29 @@ public class GeminiVideoAnalyzer {
 			file = waitActive(file);
 			long uploadMs = System.currentTimeMillis() - t0;
 			long t1 = System.currentTimeMillis();
-			JsonNode res = generate(file.path("uri").asString(), mimeType, prompt, schema);
+			// 주 모델 → 혼잡·한도면 예비 모델 차례로 (영상은 한 번만 올림)
+			JsonNode res = null;
+			String used = null;
+			AnalyzerException last = null;
+			List<String> models = new java.util.ArrayList<>();
+			models.add(model);
+			models.addAll(fallbackModels);
+			for (String m : models) {
+				try {
+					res = generate(m, file.path("uri").asString(), mimeType, prompt, schema);
+					used = m;
+					break;
+				} catch (AnalyzerException e) {
+					boolean busy = VideoAnalysis.ERR_BUSY.equals(e.code()) || VideoAnalysis.ERR_QUOTA.equals(e.code());
+					if (!busy) {
+						throw e;
+					}
+					last = e;
+				}
+			}
+			if (res == null) {
+				throw last;
+			}
 			long apiMs = System.currentTimeMillis() - t1;
 			StringBuilder text = new StringBuilder();
 			for (JsonNode part : res.path("candidates").path(0).path("content").path("parts")) {
@@ -103,7 +139,7 @@ public class GeminiVideoAnalyzer {
 			JsonNode u = res.path("usageMetadata");
 			Usage usage = new Usage(u.path("promptTokenCount").asLong(0), u.path("candidatesTokenCount").asLong(0),
 					u.path("thoughtsTokenCount").asLong(0), u.path("totalTokenCount").asLong(0));
-			return new Response(text.toString(), usage, uploadMs, apiMs);
+			return new Response(text.toString(), usage, uploadMs, apiMs, used);
 		} finally {
 			delete(name);
 		}
@@ -174,7 +210,7 @@ public class GeminiVideoAnalyzer {
 
 	/* ---------- generateContent ---------- */
 
-	private JsonNode generate(String fileUri, String mimeType, String prompt, Map<String, Object> schema) {
+	private JsonNode generate(String model, String fileUri, String mimeType, String prompt, Map<String, Object> schema) {
 		Map<String, Object> body = Map.of(
 				"contents", List.of(Map.of("role", "user", "parts", List.of(
 						Map.of("file_data", Map.of("mime_type", mimeType, "file_uri", fileUri)),

@@ -61,6 +61,10 @@ public class CustomerPageController {
 		private String size;
 		private int count;
 		private double cbm;
+		/** AI 원본 인식명 · 매핑방식(01~05, 고객이 고치거나 추가하면 05) · 확인 필요 */
+		private String detectedName;
+		private String mapping;
+		private boolean needsReview;
 	}
 
 	@Data
@@ -76,7 +80,29 @@ public class CustomerPageController {
 		private String toAddress;
 		private String toAddressDetail;
 		private String toZipcode;
+		/** 층수 · 나르는 방법 E 엘리베이터 / L 사다리차 / S 계단 */
+		private Integer fromFloor;
+		private String fromCarry;
+		private Integer toFloor;
+		private String toCarry;
+		/** 보관이사 보관 일수 */
+		private Integer storageDays;
 		private List<QuoteItemForm> items = new ArrayList<>();
+	}
+
+	/** 층수(1~80)와 나르는 방법 → 견적 조건 */
+	static com.codemove.estimate.EstimateCalculator.Site site(Integer floor, String carry) {
+		Integer f = floor == null || floor < 1 || floor > 80 ? null : floor;
+		return new com.codemove.estimate.EstimateCalculator.Site(f,
+				com.codemove.estimate.EstimateCalculator.Carry.of(carry));
+	}
+
+	private static String cut(String s, int max) {
+		return s.length() > max ? s.substring(0, max) : s;
+	}
+
+	static Integer storageDays(String packType, Integer days) {
+		return "03".equals(packType) && days != null && days > 0 && days <= 365 ? days : null;
 	}
 
 	private final MemberService members;
@@ -360,8 +386,12 @@ public class CustomerPageController {
 			double cbm = known != null ? known.size(i.getItemSize()).cbm() * i.getQuantity() : f.getCbm();
 			i.setVolume(Math.min(999.99, Math.max(0, Math.round(cbm * 100) / 100.0)));
 			i.setConfidence(90);
-			i.setNeedsReview("N");
-			i.setSource("01");
+			i.setNeedsReview(f.isNeedsReview() ? "Y" : "N");
+			// ITEM_SOURCE 01 AI 인식 / 02 사용자 추가 (AI 원본 이름이 없으면 고객이 넣은 품목)
+			boolean fromAi = f.getDetectedName() != null && !f.getDetectedName().isBlank();
+			i.setSource(fromAi ? "01" : "02");
+			i.setDetectedName(fromAi ? cut(f.getDetectedName().strip(), 100) : null);
+			i.setMappingType(f.getMapping() != null && f.getMapping().matches("0[1-5]") ? f.getMapping() : "05");
 			items.add(i);
 		}
 		LocalDate date = form.isDateUndecided() ? null : Fmt.parseDate(form.getMoveDate());
@@ -377,12 +407,16 @@ public class CustomerPageController {
 		String savedUrl = (String) session.getAttribute(QuoteAnalysisController.VIDEO_URL);
 		String savedName = (String) session.getAttribute(QuoteAnalysisController.VIDEO_NAME);
 		Integer sec = (Integer) session.getAttribute(QuoteAnalysisController.ANALYSIS_SEC);
+		String analysisId = (String) session.getAttribute(QuoteAnalysisController.ANALYSIS_ID);
 		moves.request(memberId(session), new MoveService.RequestForm(house, pack, date, time, form.getFromAddress().trim(),
 				blank(form.getFromAddressDetail()), zip(form.getFromZipcode()), form.getToAddress().trim(),
-				blank(form.getToAddressDetail()), zip(form.getToZipcode()), items), video, savedUrl, savedName, sec);
+				blank(form.getToAddressDetail()), zip(form.getToZipcode()), items,
+				site(form.getFromFloor(), form.getFromCarry()), site(form.getToFloor(), form.getToCarry()),
+				storageDays(pack, form.getStorageDays())), video, savedUrl, savedName, sec, analysisId);
 		session.removeAttribute(QuoteAnalysisController.VIDEO_URL);
 		session.removeAttribute(QuoteAnalysisController.VIDEO_NAME);
 		session.removeAttribute(QuoteAnalysisController.ANALYSIS_SEC);
+		session.removeAttribute(QuoteAnalysisController.ANALYSIS_ID);
 		CustomerSession.of(session).setMoveTab("estimate");
 		return "redirect:/quote/success";
 	}
