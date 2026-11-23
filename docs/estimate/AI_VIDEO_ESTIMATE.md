@@ -19,7 +19,7 @@
 - V4 DDL 수정: 요금표를 차(TRUCK_ID)가 아니라 **짐 톤(TON)** 기준으로(7.5·10톤 행), 기본요금 상한 `MAX_AMOUNT`, `TBL_FEE_TV`·`TBL_ESTIMATE_RULE` 추가.
 - 버그 수정: 날짜 할증의 손 없는 날 판정이 항상 거짓이던 문제(끝 날짜 미포함 범위에 같은 날을 넣음).
 
-- 상태: 요금·규격 계산은 CSV를 직접 읽습니다(CSV가 원본, `py -3 db/tools/gen_v4_data.py`로 DB 데이터 SQL 생성). V4 DDL은 11-24에 CSV와 맞췄고, **TEAM03 적용은 팀 승인 대기**입니다. 적용 순서: DDL → data. DDL은 [V4__item_spec_and_fee.ddl.sql](../../db/migration/V4__item_spec_and_fee.ddl.sql), 초기 데이터는 [V4__item_spec_and_fee.data.sql](../../db/migration/V4__item_spec_and_fee.data.sql)에 있습니다.
+- 상태: 요금·규격 계산은 CSV를 직접 읽습니다(CSV가 원본, `py -3 db/tools/gen_v4_data.py`로 DB 데이터 SQL 생성). V4 DDL은 11-24에 CSV와 맞췄고, **2026-11-24 TEAM03에 적용**했습니다(DDL 169문 → data 357문, 추가만). 요금을 바꿀 때는 CSV를 고치고 data SQL을 다시 만든 뒤, 해당 테이블 행을 지우고 다시 넣습니다. DDL은 [V4__item_spec_and_fee.ddl.sql](../../db/migration/V4__item_spec_and_fee.ddl.sql), 초기 데이터는 [V4__item_spec_and_fee.data.sql](../../db/migration/V4__item_spec_and_fee.data.sql)에 있습니다.
 - 값의 원본은 [data/](data/) 폴더의 CSV입니다. 값을 바꿀 때는 CSV만 고치고 `py -3 db/tools/gen_v4_data.py`로 data SQL을 다시 만듭니다.
 - `[업체 확인]`이 붙은 값은 인터넷 시세나 가정으로 채운 값입니다. 대표님께 확인받기 전에는 실제 견적에 쓰지 않습니다. 확인할 질문은 [7장](#7-업체대표님-확인-질문)에 모았습니다.
 
@@ -363,6 +363,6 @@ AI가 실패해도 고객은 **품목을 직접 추가해서 견적을 계속** 
 | 3. AI API 연동 | **완료**: [GeminiVideoAnalyzer](../../src/main/java/com/codemove/estimate/GeminiVideoAnalyzer.java), JSON 스키마 강제, 재시도(시간 초과·JSON 1회, 5xx 혼잡 2회), 업로드 영상 삭제 | 비동기 처리(지금은 요청이 끝날 때까지 기다림), 유료 등급 |
 | 4. DB 자동 매핑 | **완료**: [ItemMatcher](../../src/main/java/com/codemove/estimate/ItemMatcher.java) (정확 일치 → 별칭 → 미매핑) | V4 적용 후 CSV → DB 조회 |
 | 5. 부피 산정·견적 | **완료**: [EstimateCalculator](../../src/main/java/com/codemove/estimate/EstimateCalculator.java) + 테스트 11개, 층수·나르는 방법·보관 기간·거리 | 무게(자료 없음), 카카오맵 사용 켜기 |
-| 6. 토큰·비용·시간 기록 | **완료**: V4 적용 시 `TBL_AI_ANALYSIS`(코드 준비됨), 전에는 `ai-logs/날짜/분석ID.json` | TEAM03에 V4 적용 |
+| 6. 토큰·비용·시간 기록 | **완료**: `TBL_AI_ANALYSIS` (11-24 이전 기록은 `ai-logs/` 파일, 관리자 화면에 함께 표시) | - |
 | 7. 반복 테스트·비교 | 시작: 정답 목록 [house-01](testset/house-01.csv) 1개, 관리자 화면에서 정밀도·재현율·CBM 오차 | 영상 5~10개 더, 모델·프롬프트별 비교 |
 | 8. 기존 견적 통합 | **완료**: 고객 2·4·6단계, 이사 요청 저장(V4면 매핑방식 05 포함), 관리자 견적서 초안 | - |
