@@ -15,7 +15,7 @@ import tools.jackson.databind.json.JsonMapper;
 class VideoAnalysisParseTest {
 
 	private final VideoAnalysisService service = new VideoAnalysisService(null, null, JsonMapper.builder().build(), 0.30,
-			2.50, "2026-11-23");
+			2.50, "2026-11-23", "build/ai-logs-test");
 
 	@Test
 	void parsesSchemaResponse() {

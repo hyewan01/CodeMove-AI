@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html th:replace="~{admin/fragments/layout :: layout('AI 분석 결과', '', false, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- AI 영상 분석 결과 상세 -->
+<th:block th:fragment="content">
+<div class="space-y-5 px-4 pb-28 pt-6">
+	<div class="px-1">
+		<a class="text-[14px] font-semibold text-[#346538]" th:href="@{/admin/ai-test}">← 분석 기록</a>
+		<h2 class="mt-2 text-[24px] font-extrabold tracking-[-0.04em] text-[#303832]" th:text="${log.video}">video.mp4</h2>
+		<p class="mt-1 text-[13px] text-[#7d857f]" th:text="${log.analysisId} + ' · ' + ${#strings.substring(log.at, 0, 19).replace('T', ' ')}">id</p>
+	</div>
+
+	<p class="rounded-[20px] bg-[#fff4e8] p-4 text-[14px] font-semibold text-[#9a4f14]" th:unless="${log.success}"
+	   th:text="'실패 ' + ${log.errorCode} + ': ' + ${log.message}">실패</p>
+
+	<!-- 사용량·비용·시간 (가이드 10장) -->
+	<section class="grid grid-cols-2 gap-3">
+		<div class="rounded-[20px] bg-white p-4 shadow-[0_5px_18px_rgba(36,58,39,.06)]">
+			<p class="text-[13px] text-[#7d857f]">총 부피</p>
+			<strong class="text-[26px] font-extrabold text-[#346538]" th:text="${#numbers.formatDecimal(log.totalCbm, 1, 2)}">0</strong><span class="text-[14px] font-bold text-[#346538]"> CBM</span>
+			<p class="text-[12px] text-[#969d98]" th:text="${#lists.size(log.items)} + '줄 · 확인 필요 ' + ${log.reviewCount} + ' · 미매핑 ' + ${log.unmappedCount}">-</p>
+		</div>
+		<div class="rounded-[20px] bg-white p-4 shadow-[0_5px_18px_rgba(36,58,39,.06)]">
+			<p class="text-[13px] text-[#7d857f]">추정 비용</p>
+			<strong class="text-[26px] font-extrabold text-[#303832]" th:text="'$' + ${#numbers.formatDecimal(log.costUsd, 1, 4)}">$0</strong>
+			<p class="text-[12px] text-[#969d98]" th:text="${log.model} + ' · 프롬프트 ' + ${log.promptVersion}">-</p>
+		</div>
+		<div class="rounded-[20px] bg-white p-4 shadow-[0_5px_18px_rgba(36,58,39,.06)]">
+			<p class="text-[13px] text-[#7d857f]">토큰</p>
+			<p class="mt-1 text-[13px] leading-6 text-[#535b55]">
+				입력 <b th:text="${#numbers.formatInteger(log.usage.inputTokens, 1, 'COMMA')}">0</b><br>
+				출력 <b th:text="${#numbers.formatInteger(log.usage.outputTokens, 1, 'COMMA')}">0</b>
+				· 생각 <b th:text="${#numbers.formatInteger(log.usage.thoughtTokens, 1, 'COMMA')}">0</b><br>
+				합계 <b th:text="${#numbers.formatInteger(log.usage.totalTokens, 1, 'COMMA')}">0</b>
+			</p>
+		</div>
+		<div class="rounded-[20px] bg-white p-4 shadow-[0_5px_18px_rgba(36,58,39,.06)]">
+			<p class="text-[13px] text-[#7d857f]">처리 시간</p>
+			<p class="mt-1 text-[13px] leading-6 text-[#535b55]">
+				업로드·처리 <b th:text="${#numbers.formatDecimal(log.uploadMs / 1000.0, 1, 1)} + '초'">0</b><br>
+				AI 응답 <b th:text="${#numbers.formatDecimal(log.apiMs / 1000.0, 1, 1)} + '초'">0</b><br>
+				전체 <b th:text="${#numbers.formatDecimal(log.totalMs / 1000.0, 1, 1)} + '초'">0</b> · 재시도 <b th:text="${log.retries}">0</b>
+			</p>
+		</div>
+	</section>
+
+	<!-- 정답 비교 (가이드 9장) -->
+	<section class="space-y-3 rounded-[20px] bg-white p-5 shadow-[0_5px_18px_rgba(36,58,39,.06)]" th:if="${log.success}">
+		<form class="flex items-center justify-between gap-3" method="get" th:action="@{/admin/ai-test/{id}(id=${log.analysisId})}">
+			<p class="text-[17px] font-extrabold text-[#303832]">정답 비교</p>
+			<select class="h-9 rounded-lg border border-[#dfe4df] bg-white px-3 text-[14px] font-semibold text-[#535b55]" name="truth" data-auto-submit>
+				<option value="">선택</option>
+				<option th:each="s : ${sets}" th:value="${s}" th:text="${s}" th:selected="${s == truth}">house-01</option>
+			</select>
+		</form>
+		<th:block th:if="${score}">
+			<div class="grid grid-cols-3 gap-2 text-center">
+				<div class="rounded-xl bg-[#f5f7f5] p-2"><p class="text-[12px] text-[#7d857f]">정밀도</p><b class="text-[17px]" th:text="${#numbers.formatDecimal(score.precision * 100, 1, 0)} + '%'">0%</b></div>
+				<div class="rounded-xl bg-[#f5f7f5] p-2"><p class="text-[12px] text-[#7d857f]">재현율</p><b class="text-[17px]" th:text="${#numbers.formatDecimal(score.recall * 100, 1, 0)} + '%'">0%</b></div>
+				<div class="rounded-xl bg-[#f5f7f5] p-2"><p class="text-[12px] text-[#7d857f]">F1</p><b class="text-[17px]" th:text="${#numbers.formatDecimal(score.f1 * 100, 1, 0)} + '%'">0%</b></div>
+			</div>
+			<p class="text-[13px] text-[#535b55]"
+			   th:text="'CBM 정답 ' + ${#numbers.formatDecimal(score.expectedCbm, 1, 1)} + ' / AI ' + ${#numbers.formatDecimal(score.detectedCbm, 1, 1)} + ' (오차 ' + ${#numbers.formatDecimal(score.cbmErrorPct(), 1, 0)} + '%) · 표에 없는 물건 정답 ' + ${score.expectedOther} + '개 / AI ' + ${score.detectedOther} + '개'">-</p>
+			<table class="w-full text-[13px]">
+				<thead><tr class="text-left text-[#7d857f]"><th class="py-1">품목</th><th class="text-right">정답</th><th class="text-right">AI</th><th class="text-right">정답 CBM</th><th class="text-right">AI CBM</th></tr></thead>
+				<tbody>
+				<tr class="border-t border-[#edf0ed]" th:each="r : ${score.rows}" th:classappend="${r.expected != r.detected} ? 'text-[#c2410c]' : 'text-[#303832]'">
+					<td class="py-1.5" th:text="${r.name}">품목</td>
+					<td class="text-right" th:text="${r.expected}">0</td>
+					<td class="text-right" th:text="${r.detected}">0</td>
+					<td class="text-right" th:text="${#numbers.formatDecimal(r.expectedCbm, 1, 2)}">0</td>
+					<td class="text-right" th:text="${#numbers.formatDecimal(r.detectedCbm, 1, 2)}">0</td>
+				</tr>
+				</tbody>
+			</table>
+		</th:block>
+	</section>
+
+	<!-- 인식 품목 · 매핑 (가이드 7장 4~5) -->
+	<section class="space-y-2 rounded-[20px] bg-white p-5 shadow-[0_5px_18px_rgba(36,58,39,.06)]" th:if="${log.success}">
+		<p class="text-[17px] font-extrabold text-[#303832]">인식 품목</p>
+		<div class="border-t border-[#edf0ed] py-2" th:each="i : ${log.items}">
+			<div class="flex items-center justify-between gap-2">
+				<strong class="text-[15px] text-[#303832]" th:text="${i.name} + ' · ' + ${i.sizeCode} + ' × ' + ${i.count}">품목</strong>
+				<span class="text-[14px] font-bold text-[#346538]" th:text="${#numbers.formatDecimal(i.unitCbm * i.count, 1, 2)}">0</span>
+			</div>
+			<p class="text-[12px] text-[#7d857f]">
+				<span th:text="${i.room}">방</span> · <span th:text="${i.detectedName}">본 이름</span>
+				· <span th:text="${i.mappingType == '01'} ? '정확 일치' : (${i.mappingType == '02'} ? '별칭' : (${i.mappingType == '03'} ? 'AI 후보' : '미매핑'))">매핑</span>
+				<b class="text-[#c2410c]" th:if="${i.needsReview}"> · 확인 필요</b>
+			</p>
+			<p class="text-[12px] text-[#969d98]" th:if="${!#strings.isEmpty(i.evidence)}" th:text="${i.evidence}">근거</p>
+		</div>
+	</section>
+
+	<details class="rounded-[20px] bg-white p-5 shadow-[0_5px_18px_rgba(36,58,39,.06)]" th:if="${log.rawJson}">
+		<summary class="cursor-pointer text-[15px] font-bold text-[#303832]">AI 원본 응답</summary>
+		<pre class="mt-3 max-h-[420px] overflow-auto whitespace-pre-wrap break-all text-[12px] text-[#535b55]" th:text="${log.rawJson}">{}</pre>
+	</details>
+</div>
+<script>
+	document.querySelectorAll('[data-auto-submit]').forEach((s) => s.addEventListener('change', () => s.form.submit()));
+</script>
+</th:block>
+</body>
+</html>

@@ -18,7 +18,7 @@ import tools.jackson.databind.json.JsonMapper;
  * $env:GEMINI_API_KEY="..."; $env:CODEMOVE_TEST_VIDEO="C:\...\집 영상.mp4"
  * .\gradlew.bat test --tests "*VideoAnalysisLiveTest" -i
  * </pre>
- * 결과 기록은 build/ai-live/ai-analysis/날짜/분석ID.json 에 남습니다.
+ * 결과 기록은 build/ai-live/ai-logs/날짜/분석ID.json 에 남습니다.
  */
 @EnabledIfEnvironmentVariable(named = "GEMINI_API_KEY", matches = ".+")
 @EnabledIfEnvironmentVariable(named = "CODEMOVE_TEST_VIDEO", matches = ".+")
@@ -32,7 +32,7 @@ class VideoAnalysisLiveTest {
 		Path out = Path.of("build", "ai-live");
 		Files.createDirectories(out);
 		VideoAnalysisService service = new VideoAnalysisService(ai, new FileStore(out.toString()), json, 0.30, 2.50,
-				"2026-11-23");
+				"2026-11-23", out.resolve("ai-logs").toString());
 
 		VideoAnalysis.Result r = service.analyze(Path.of(System.getenv("CODEMOVE_TEST_VIDEO")));
 

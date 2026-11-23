@@ -45,6 +45,11 @@ processResources {
 		include 'item-master.csv', 'item-alias.csv', 'truck-capacity.csv', 'fee-*.csv'
 		into 'estimate'
 	}
+	// 영상 분석 정답 목록 (관리자 AI 테스트 화면의 채점용)
+	from('docs/estimate/testset') {
+		include '*.csv'
+		into 'estimate/testset'
+	}
 }
 
 tasks.named('test') {

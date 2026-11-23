@@ -29,7 +29,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * 영상 분석 순서 (가이드 3장): 형식 검사 → AI 호출(실패 시 1회 재시도) → JSON 검사 → 표준 품목 매핑 → 기록.
- * 기록은 V4(TBL_AI_ANALYSIS) 적용 전까지 uploads/ai-analysis/날짜/분석ID.json 파일로 남깁니다.
+ * 기록은 V4(TBL_AI_ANALYSIS) 적용 전까지 ai-logs/날짜/분석ID.json 파일로 남깁니다
+ * (codemove.ai.log-dir, Git 제외. 공개 주소인 /uploads 밖에 둠).
  * 실패한 요청도 비용 계산에 들어가므로 모두 기록합니다.
  */
 @Service
@@ -46,13 +47,16 @@ public class VideoAnalysisService {
 	private final JsonMapper json;
 	private final double priceIn, priceOut;
 	private final String priceDate;
+	private final Path logRoot;
 
 	public VideoAnalysisService(GeminiVideoAnalyzer ai, FileStore files, JsonMapper json,
 			@Value("${codemove.ai.gemini.price-in-per-1m:0.30}") double priceIn,
 			@Value("${codemove.ai.gemini.price-out-per-1m:2.50}") double priceOut,
-			@Value("${codemove.ai.gemini.price-date:2026-11-23}") String priceDate) {
+			@Value("${codemove.ai.gemini.price-date:2026-11-23}") String priceDate,
+			@Value("${codemove.ai.log-dir:ai-logs}") String logDir) {
 		this.ai = ai;
 		this.files = files;
+		this.logRoot = Path.of(logDir).toAbsolutePath().normalize();
 		this.json = json;
 		this.priceIn = priceIn;
 		this.priceOut = priceOut;
@@ -141,6 +145,73 @@ public class VideoAnalysisService {
 				n.path("memo").asString(""));
 	}
 
+	/* ---------- 분석 기록 조회 (관리자 AI 테스트 화면) ---------- */
+
+	/** 기록 파일 한 개 */
+	public record Logged(String analysisId, String at, String video, Double videoMb, String model,
+			String promptVersion, boolean success, String errorCode, String message, Usage usage, double costUsd,
+			long uploadMs, long apiMs, long totalMs, int retries, List<VideoAnalysis.MappedItem> items,
+			double totalCbm, long reviewCount, long unmappedCount, String rawJson) {
+	}
+
+	/** 최근 기록부터 */
+	public List<Logged> history(int limit) {
+		Path dir = logRoot;
+		if (!Files.isDirectory(dir)) {
+			return List.of();
+		}
+		try (var s = Files.walk(dir, 2)) {
+			return s.filter(p -> p.toString().endsWith(".json"))
+					.sorted((a, b) -> Long.compare(b.toFile().lastModified(), a.toFile().lastModified())).limit(limit)
+					.map(this::read).filter(java.util.Objects::nonNull).toList();
+		} catch (IOException e) {
+			return List.of();
+		}
+	}
+
+	public Logged find(String analysisId) {
+		if (analysisId == null || !analysisId.matches("[0-9a-f]{8}")) {
+			return null;
+		}
+		Path dir = logRoot;
+		if (!Files.isDirectory(dir)) {
+			return null;
+		}
+		try (var s = Files.walk(dir, 2)) {
+			return s.filter(p -> p.getFileName().toString().equals(analysisId + ".json")).findFirst().map(this::read)
+					.orElse(null);
+		} catch (IOException e) {
+			return null;
+		}
+	}
+
+	private Logged read(Path p) {
+		try {
+			JsonNode n = json.readTree(Files.readAllBytes(p)); // 바이트로 읽어야 BOM 있는 파일도 읽힘
+			List<VideoAnalysis.MappedItem> items = new ArrayList<>();
+			for (JsonNode i : n.path("items")) {
+				items.add(new VideoAnalysis.MappedItem(i.path("name").asString(""), i.path("sizeCode").asString("02"),
+						i.path("count").asInt(1), i.path("unitCbm").asDouble(0), i.path("detectedName").asString(""),
+						i.path("room").asString(""), i.path("evidence").asString(""),
+						i.path("mappingType").asString(""), i.path("needsReview").asBoolean(false)));
+			}
+			JsonNode u = n.path("usage"), ms = n.path("ms");
+			return new Logged(n.path("analysisId").asString(""), n.path("at").asString(""),
+					n.path("video").asString(""), n.path("videoMb").isNumber() ? n.path("videoMb").asDouble() : null,
+					n.path("model").asString(""), n.path("promptVersion").asString(""),
+					n.path("success").asBoolean(false), n.path("errorCode").asString(null),
+					n.path("message").asString(null),
+					new Usage(u.path("inputTokens").asLong(0), u.path("outputTokens").asLong(0),
+							u.path("thoughtTokens").asLong(0), u.path("totalTokens").asLong(0)),
+					n.path("costUsd").asDouble(0), ms.path("upload").asLong(0), ms.path("api").asLong(0),
+					ms.path("total").asLong(0), n.path("retries").asInt(0), items, n.path("totalCbm").asDouble(0),
+					n.path("reviewCount").asLong(0), n.path("unmappedCount").asLong(0),
+					n.path("rawJson").asString(null));
+		} catch (IOException | RuntimeException e) {
+			return null;
+		}
+	}
+
 	double cost(Usage u) {
 		// 생각(thinking) 토큰은 출력 단가로 과금
 		return (u.inputTokens() * priceIn + (u.outputTokens() + u.thoughtTokens()) * priceOut) / 1_000_000.0;
@@ -176,7 +247,7 @@ public class VideoAnalysisService {
 			rec.put("totalCbm", Math.round(r.totalCbm() * 1000) / 1000.0);
 			rec.put("items", r.items());
 			rec.put("rawJson", r.rawJson());
-			Path dir = files.root().resolve("ai-analysis").resolve(LocalDate.now().toString().replace("-", ""));
+			Path dir = logRoot.resolve(LocalDate.now().toString().replace("-", ""));
 			Files.createDirectories(dir);
 			Files.writeString(dir.resolve(r.analysisId() + ".json"),
 					json.writerWithDefaultPrettyPrinter().writeValueAsString(rec));
