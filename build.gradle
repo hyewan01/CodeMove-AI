@@ -42,7 +42,7 @@ dependencies {
 // 품목 규격표(팀원 조사 CSV)를 그대로 클래스패스에 넣음 → ItemCatalog 가 읽음 (V4 DB 적용 전까지)
 processResources {
 	from('docs/estimate/data') {
-		include 'item-master.csv', 'item-alias.csv', 'truck-capacity.csv', 'fee-*.csv'
+		include 'item-master.csv', 'item-alias.csv', 'truck-capacity.csv', 'fee-*.csv', 'estimate-rules.csv'
 		into 'estimate'
 	}
 	// 영상 분석 정답 목록 (관리자 AI 테스트 화면의 채점용)

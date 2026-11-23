@@ -143,8 +143,11 @@ public class CustomerViews {
 	}
 
 	public List<MoveOption> packTypes() {
-		return List.of(new MoveOption("01", "일반포장", "easy-pack-standard.svg", "직접 포장"),
-				new MoveOption("02", "반포장", "easy-pack-partial.svg", "큰 짐은 업체가 포장"));
+		// 대표님 견적서의 작업 내용 4가지 (PACK_TYPE): 일반 · 반포장 · 포장 · 보관
+		return List.of(new MoveOption("04", "포장이사", "easy-pack-full.svg", "포장부터 정리까지 업체가"),
+				new MoveOption("02", "반포장", "easy-pack-partial.svg", "큰 짐은 업체가 포장"),
+				new MoveOption("01", "일반이사", "easy-pack-standard.svg", "직접 포장, 운반만"),
+				new MoveOption("03", "보관이사", "easy-pack-storage.svg", "새 집 입주 전까지 보관"));
 	}
 
 	/* ---------- 홈 ---------- */
@@ -258,7 +261,8 @@ public class CustomerViews {
 		}
 		if (options.isEmpty()) options.add("선택한 옵션 작업 없음");
 		String work = d.getWorkMethod();
-		String workLine = "포장 " + box("포장".equals(work)) + "　/　일반 " + box("일반".equals(work)) + "　/　보관 " + box("보관".equals(work));
+		String workLine = "포장 " + box("포장".equals(work)) + "　/　반포장 " + box("반포장".equals(work)) + "　/　일반 "
+				+ box("일반".equals(work)) + "　/　보관 " + box("보관".equals(work));
 		String transport = "사다리차 " + side(q.getFromLadderUse(), q.getToLadderUse()) + "　·　승강기 "
 				+ side(q.getFromElevatorUse(), q.getToElevatorUse()) + "　·　계단작업 " + side(q.getFromStairsUse(), q.getToStairsUse());
 		long fromLadder = nz(q.getFromLadderCost()), toLadder = nz(q.getToLadderCost());

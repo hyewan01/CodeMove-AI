@@ -1,8 +1,16 @@
-# AI 영상 견적 설계 (2026-11-20 제안)
+# AI 영상 견적 설계 (2026-11-20 제안, 11-23 구현·대표님 기준 반영)
 
-고객이 찍은 집 영상으로 **품목 → 부피(CBM) → 차량(톤) → 견적 금액**을 내는 방법입니다. [codemove_video_test_guide.md](../../codemove_video_test_guide.md)의 1~5단계에 해당합니다.
+고객이 찍은 집 영상으로 **품목 → 부피(CBM) → 차량(톤) → 견적 금액**을 내는 방법입니다. [codemove_video_test_guide.md](../../codemove_video_test_guide.md)의 1~6단계에 해당합니다.
 
-- 상태: **제안**. TEAM03 DB에는 아직 적용하지 않았습니다. DDL은 [V4__item_spec_and_fee.ddl.sql](../../db/migration/V4__item_spec_and_fee.ddl.sql), 초기 데이터는 [V4__item_spec_and_fee.data.sql](../../db/migration/V4__item_spec_and_fee.data.sql)에 있습니다.
+**2026-11-23 변경 요약** (대표님 통화: [CALL_2026-11-23_견적방법.md](CALL_2026-11-23_견적방법.md))
+- 구현: Gemini 영상 분석([estimate 패키지](../../src/main/java/com/codemove/estimate/)), 고객 견적 2단계 실제 분석, 6단계 서버 계산, 관리자 테스트 화면 `/admin/ai-test`(분석 기록·토큰·비용·정답 비교·예상 견적).
+- 차량: 1톤 = **10 CBM**, 5톤 = **35 CBM**(대표님). 물품 부피 × **적재계수 2.0** = 적재 부피. 차량 조합은 5톤을 꽉 채우고 나머지를 1톤 2대 또는 1대로 ([4장](#4-견적-계산식)).
+- 요금: 반포장·포장 1톤·2.5톤, 5톤 포장, 거리(50km마다), 에어컨·안마의자·벽걸이 TV(인치별)를 대표님 값으로 교체. 계약금 10%.
+- 포장 방식: 고객 화면과 견적서 작업 내용을 **일반·반포장·포장·보관 4가지**로.
+- 모델: `gemini-2.5-flash`는 신규 사용자에게 막혀 **`gemini-4-hydrogen`**(생각 수준 low)으로 변경.
+- 분석 기록은 DB(V4) 적용 전까지 `ai-logs/` 폴더(JSON, Git 제외).
+
+- 상태: 코드는 CSV를 직접 읽어 동작합니다. TEAM03 DB에는 아직 V4를 적용하지 않았습니다. V4 DDL에는 11-23에 추가한 요금 상한(`기본요금상한`), [fee-tv.csv](data/fee-tv.csv), [estimate-rules.csv](data/estimate-rules.csv)(적재계수·계약금 비율)이 아직 없으므로 DB로 옮길 때 컬럼·테이블을 더해야 합니다. DDL은 [V4__item_spec_and_fee.ddl.sql](../../db/migration/V4__item_spec_and_fee.ddl.sql), 초기 데이터는 [V4__item_spec_and_fee.data.sql](../../db/migration/V4__item_spec_and_fee.data.sql)에 있습니다.
 - 값의 원본은 [data/](data/) 폴더의 CSV입니다. 값을 바꿀 때는 CSV만 고치고 `py -3 db/tools/gen_v4_data.py`로 data SQL을 다시 만듭니다.
 - `[업체 확인]`이 붙은 값은 인터넷 시세나 가정으로 채운 값입니다. 대표님께 확인받기 전에는 실제 견적에 쓰지 않습니다. 확인할 질문은 [7장](#7-업체대표님-확인-질문)에 모았습니다.
 
@@ -236,61 +244,50 @@ erDiagram
 
 ## 4. 견적 계산식
 
+구현: [EstimateCalculator.java](../../src/main/java/com/codemove/estimate/EstimateCalculator.java), 테스트: [EstimateCalculatorTest.java](../../src/test/java/com/codemove/estimate/EstimateCalculatorTest.java).
+
 ```text
-① 총 CBM      = Σ (품목 규격 CBM × 수량)                         TBL_ITEM_SPEC
-② 차량        = MAX_CBM ≥ 총 CBM 인 가장 작은 톤                   TBL_TRUCK
-                (5톤 MAX_CBM 초과면 5톤 + 남은 CBM으로 다시 ②)
-③ 기본 요금   = 차량 톤 × 포장 방식                              TBL_FEE_BASE
-④ 거리 추가   = 이동 거리 구간 금액 (+ 200km 초과분 × km당 단가)    TBL_FEE_DISTANCE
-⑤ 사다리차    = 출발지 층수 금액 + 도착지 층수 금액 (승강기 쓰면 0)   TBL_FEE_LADDER
-⑥ 특수품목    = Σ 옵션 선택별 금액 × 단위 수량                    TBL_FEE_OPTION
-⑦ 날짜 할증   = ③ × 해당 할증률 중 가장 큰 값                     TBL_FEE_SURCHARGE
-예상 견적     = ③ + ④ + ⑤ + ⑥ + ⑦  (만 원 단위 반올림)
+① 물품 부피   = Σ (품목 규격 CBM × 수량)                          item-master.csv
+② 적재 부피   = ① × 적재계수 2.0                                   estimate-rules.csv
+③ 짐 톤수     = 5톤(35 CBM)을 꽉 채우고, 남은 짐은 "1톤 2대"와        truck-capacity.csv
+                "들어가는 가장 작은 차 1대" 중 톤 합이 작은 쪽          (1톤 10 · 2.5톤 20 · 3.5톤 25 · 5톤 35)
+                예) 55 CBM → 5톤 + 1톤 + 1톤 = 7톤 (대표님 우리 집)
+④ 기본 요금   = 톤 × 포장 방식, 최소~최대 (표에 없는 톤은 앞뒤 비율)  fee-base.csv
+⑤ 거리 추가   = 50km마다 톤별 금액                                  fee-distance.csv
+⑥ 사다리차    = 출발지 + 도착지 층수 금액                            fee-ladder.csv
+⑦ 옵션        = 에어컨 25만/대 · 안마의자 10만/대 · 벽걸이 TV 인치별 · 피아노   fee-option.csv, fee-tv.csv
+⑧ 날짜 할증   = ④ × 해당 할증률 중 가장 큰 값                        fee-surcharge.csv [업체 확인]
+예상 견적     = ④ + ⑤ + ⑥ + ⑦ + ⑧ (최소~최대, 만 원 단위), 계약금 10%
 ```
 
-- `TBL_TRUCK.LOAD_CBM`·`MAX_CBM`은 트럭 적재함 부피에 적재율(빈 공간)을 이미 반영한 값입니다. 그래서 ①에는 품목 부피를 그대로 더합니다.
-- 할증을 기본 요금에만 적용할지, 여러 할증을 더할지(예: 손 없는 날 + 주말) 가장 큰 것 하나만 적용할지는 [7장](#7-업체대표님-확인-질문)에서 확인합니다. 위 식은 "기본 요금에만, 가장 큰 것 하나"로 가정했습니다.
-- 이동 거리는 카카오 길찾기 API(자동차 경로 거리)로 구합니다. API를 못 쓰면 우편번호 좌표의 직선거리 × 1.3으로 대신하고 확인 필요로 표시합니다.
-- 예상 범위(최소~최대): `needs_review` 품목을 한 단계 작은 크기로 계산한 값 ~ 한 단계 큰 크기로 계산한 값. 확인 필요 품목이 없으면 ±5%.
+- **적재계수 2.0 근거** (근거 2가지가 거의 같음): ① 바구니(55×40×35cm = 0.077 CBM)가 1톤(10 CBM)에 50~70개 → 개당 적재 0.14~0.2 CBM으로 약 2배. ② 우리 집 정답 목록의 물품 부피 약 26 CBM이 대표님 견적 55 CBM의 약 절반. 포장재, 쌓을 때 빈 공간, 서랍·수납장에서 꺼낸 짐이 여기에 들어갑니다. 표본이 1집이므로 영상이 늘면 다시 맞춥니다.
+- "톤"은 차가 아니라 **짐 양**이라 요금은 톤 합으로 냅니다(대표님).
+- 고객 화면은 아직 거리·층수를 받지 않아 50km 미만·사다리차 없음으로 계산하고, 안내 문구로 알립니다.
+- 날짜 할증은 통화에서 다루지 않아 기존 가정("기본 요금에만, 가장 큰 것 하나")을 유지합니다 [업체 확인].
+- 이동 거리는 카카오 길찾기 API(자동차 경로 거리)로 구할 예정입니다. 지금은 받지 않습니다.
+- 금액은 표의 최소~최대를 그대로 범위로 보여 줍니다(대표님: "얼마에서 얼마"). 고객 화면의 한 금액과 견적서 금액은 가운데 값입니다.
 
-### 계산 예시
+### 계산 예시: 대표님 우리 집
 
-서울 → 성남 25km, 포장이사, 토요일, 출발지 8층(사다리차), 도착지 승강기. 품목은 지금 견적 화면 시연값([AiDemo.java](../../src/main/java/com/codemove/customer/web/AiDemo.java))과 비슷하게 잡았습니다.
-
-| 품목 | 크기 | 수량 | CBM |
-| --- | --- | --- | --- |
-| 냉장고 | 03 양문형·4도어 | 1 | 1.492 |
-| 침대 | 02 슈퍼싱글~퀸 | 1 | 1.447 |
-| 소파 | 02 3인 | 1 | 1.804 |
-| 이사박스 | 02 중 | 12 | 0.924 |
-| 세탁기 | 02 일반 | 1 | 0.537 |
-| 식탁·테이블 | 02 4인 | 1 | 0.720 |
-| 의자 | 01 식탁·보조 의자 | 4 | 0.764 |
-| 에어컨 | 02 스탠드 | 1 | 0.405 |
-| **합계** | | | **8.093** |
-
-| 단계 | 계산 | 금액 |
+| 단계 | 계산 | 결과 |
 | --- | --- | --- |
-| ② 차량 | 8.093 CBM > 1톤 최대 6.0 → 2.5톤 | - |
-| ③ 기본 요금 | 2.5톤 · 포장 | 1,000,000 |
-| ④ 거리 | 25km → 0~50km 구간 | 0 |
-| ⑤ 사다리차 | 출발 8층(6~10층) + 도착 승강기 | 170,000 |
-| ⑥ 특수품목 | 에어컨 탈착 50,000 + 설치 130,000 | 180,000 |
-| ⑦ 할증 | 토요일(주말 10%) × 기본 요금 | 100,000 |
-| **예상 견적** | | **1,450,000** |
+| ①② 부피 | 물품 약 27.5 CBM × 2.0 | 적재 55 CBM |
+| ③ 짐 톤수 | 5톤(35) + 남은 20 → 1톤 2대(2톤) < 2.5톤 | **5톤 + 1톤 + 1톤 = 7톤** (대표님 견적과 같음) |
+| ④ 포장 7톤 | 2.5톤 100~110만 · 5톤 140~160만의 기울기로 늘림 | 172만 ~ 200만 원 [업체 확인] |
+| 계약금 | 가운데 186만 원 × 10% | 18.6만 원 |
 
-참고로 지금 코드의 계산식([MoveService.java:56](../../src/main/java/com/codemove/move/MoveService.java#L56): 10만 원 + CBM × 2.4만 원)으로는 같은 짐이 약 29만 원이 나옵니다. 요금 표가 확정되면 이 계산식을 위 방식으로 바꿔야 합니다.
+이 예시는 [EstimateCalculatorTest](../../src/test/java/com/codemove/estimate/EstimateCalculatorTest.java)의 `dadsHouseExample55CbmIsFiveTonPlusTwoOneTon`·`sevenTonExtrapolatesFromTheTable`로 고정해 두었습니다.
 
 ## 5. 기존 코드와 연결되는 곳
 
-| 지금 | 바꿀 내용 |
+| 전 | 지금 (2026-11-23) |
 | --- | --- |
-| [AiDemo.java](../../src/main/java/com/codemove/customer/web/AiDemo.java) 품목 6개·고정 CBM | **적용함(2026-11-20)**: [ItemCatalog.java](../../src/main/java/com/codemove/move/ItemCatalog.java)가 item-master.csv(31개 품목 × 3크기)를 읽어 고객 품목 수정 화면에 씀. V4 적용 후 DB 조회로 교체 |
-| 고객 화면의 크기 계수(quote.js `SIZE_FACTOR` 소 0.75·중 1.0·대 1.25배) | **적용함**: 크기별 규격 CBM을 그대로 사용. 서버도 저장할 때 표 값으로 다시 계산 |
-| [MoveService.estimate()](../../src/main/java/com/codemove/move/MoveService.java#L62) | 4장 계산식을 하는 `EstimateCalculator`로 교체 (AI 코드와 분리해서 단위 테스트) |
-| [QuoteService.java:316](../../src/main/java/com/codemove/move/QuoteService.java#L316) `1톤 ≈ 5CBM` 고정값 | `TBL_TRUCK`으로 톤 선택 |
-| `TBL_QUOTE_OPTION.OPTION_COST`, `FROM/TO_LADDER_COST` | 관리자가 견적 검토 화면을 열 때 요금 표 값으로 미리 채움 (관리자가 수정 가능) |
-| `TBL_MOVE_REQUEST.AI_ANALYSIS_SEC` | `TBL_AI_ANALYSIS.TOTAL_MS`에서 채움 |
+| [AiDemo.java](../../src/main/java/com/codemove/customer/web/AiDemo.java) 고정 인식 결과 | `/quote/analyze`([QuoteAnalysisController](../../src/main/java/com/codemove/customer/web/QuoteAnalysisController.java))가 실제 분석. API 키가 없을 때만 시연 품목 |
+| quote.js 3초 가짜 분석 | 영상 업로드 → 진행 문구 → 결과·AI 메모, 실패 시 다시 분석 / 직접 입력 |
+| MoveService 10만 원 + CBM × 2.4만 원 | `EstimateCalculator` (고객 6단계 `/quote/estimate`, 이사 요청 저장, 관리자 견적서 초안이 모두 같은 계산) |
+| QuoteService `1톤 ≈ 5CBM` | 견적서 초안에 톤수·이사비용·옵션(에어컨·안마의자·벽걸이 TV·피아노)·계산 근거 메모를 채움 |
+| `TBL_MOVE_REQUEST.AI_ANALYSIS_SEC` 38초 고정 | 실제 분석 시간 |
+| 포장 방식 일반·반포장 2가지 | 고객 화면·견적서 모두 일반·반포장·포장·보관 4가지 |
 
 ## 6. 예외 처리
 
@@ -311,6 +308,8 @@ AI가 실패해도 고객은 **품목을 직접 추가해서 견적을 계속** 
 ## 7. 업체(대표님) 확인 질문
 
 요금 표의 값과 계산 규칙은 이 답을 받아 확정합니다.
+
+> **2026-11-23 통화로 답을 받은 것**: 1(1톤·2.5톤 반포장·포장, 5톤 포장), 2(톤을 먼저 정함, 짐 양 기준), 3(5톤 + 1톤 2대처럼 조합), 5(1톤 10·5톤 35 CBM), 6(바구니 50~70개 = 1톤), 7(50km마다), 10(안마의자·에어컨·벽걸이 TV·모션 침대). 자세한 값은 [통화 정리](CALL_2026-11-23_견적방법.md). **남은 것**: 4(보관료), 8·9(사다리차·계단), 11~13(날짜 할증), 2.5톤·3.5톤 CBM, 6톤 이상 요금.
 
 **기본 요금**
 1. 1톤·2.5톤·5톤 × 일반·반포장·포장 기본 요금은 얼마인가요? ([fee-base.csv](data/fee-base.csv)의 가정값을 보여 드리고 고쳐 받기)
@@ -346,11 +345,13 @@ AI가 실패해도 고객은 **품목을 직접 추가해서 견적을 계속** 
 
 ## 9. 다음 단계 (가이드 8단계 기준)
 
-| 가이드 단계 | 이 문서에서 한 것 | 남은 일 |
+| 가이드 단계 | 상태 (2026-11-23) | 남은 일 |
 | --- | --- | --- |
-| 1. 기존 프로젝트 분석 | 재사용할 테이블·코드, 연결 지점 정리 (3·5장) | 팀 확인 |
-| 2. 테스트 화면·업로드 | - | `/admin/ai-test` 화면, 업로드 검사 |
-| 3. AI API 연동 | 프롬프트·응답 형식 (2장) | Gemini 호출, 재시도, `TBL_AI_ANALYSIS` 저장 |
-| 4. DB 자동 매핑 | 테이블·매핑 순서 (2.3·3장) | V4 적용, `ItemMappingService` |
-| 5. 부피·무게 산정 | 계산식·예시 (4장) | `EstimateCalculator` + 단위 테스트 |
-| 6~8. 비용 기록·반복 테스트·통합 | 기록 테이블 (`TBL_AI_ANALYSIS`) | 테스트 영상 5~10개와 정답 목록 |
+| 1. 기존 프로젝트 분석 | 완료 (3·5장) | 팀 확인 |
+| 2. 테스트 화면·업로드 | **완료**: `/admin/ai-test` (관리자 메뉴 "AI 영상 분석 테스트") | 영상 길이 검사(지금은 형식·용량만) |
+| 3. AI API 연동 | **완료**: [GeminiVideoAnalyzer](../../src/main/java/com/codemove/estimate/GeminiVideoAnalyzer.java), JSON 스키마 강제, 재시도(시간 초과·JSON 1회, 5xx 혼잡 2회), 업로드 영상 삭제 | 비동기 처리(지금은 요청이 끝날 때까지 기다림), 유료 등급 |
+| 4. DB 자동 매핑 | **완료**: [ItemMatcher](../../src/main/java/com/codemove/estimate/ItemMatcher.java) (정확 일치 → 별칭 → 미매핑) | V4 적용 후 CSV → DB 조회 |
+| 5. 부피 산정·견적 | **완료**: [EstimateCalculator](../../src/main/java/com/codemove/estimate/EstimateCalculator.java) + 테스트 9개 | 무게(자료 없음), 거리·층수 입력 |
+| 6. 토큰·비용·시간 기록 | **완료**: `ai-logs/날짜/분석ID.json` | V4 적용 후 `TBL_AI_ANALYSIS` |
+| 7. 반복 테스트·비교 | 시작: 정답 목록 [house-01](testset/house-01.csv) 1개, 관리자 화면에서 정밀도·재현율·CBM 오차 | 영상 5~10개 더, 모델·프롬프트별 비교 |
+| 8. 기존 견적 통합 | **완료**: 고객 2·6단계, 이사 요청 저장, 관리자 견적서 초안 | 고객이 고친 품목의 `MAPPING_TYPE` 05 저장(V4) |

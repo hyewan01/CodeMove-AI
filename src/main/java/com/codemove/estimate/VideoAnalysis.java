@@ -16,11 +16,16 @@ public final class VideoAnalysis {
 
 	/** ANALYSIS_ERROR 공통코드 (AI_VIDEO_ESTIMATE.md 6장) */
 	public static final String ERR_FORMAT = "01", ERR_SIZE = "02", ERR_DARK = "03", ERR_NOT_HOME = "04",
-			ERR_TIMEOUT = "05", ERR_QUOTA = "06", ERR_JSON = "07", ERR_API = "08", ERR_NO_KEY = "09";
+			ERR_TIMEOUT = "05", ERR_QUOTA = "06", ERR_JSON = "07", ERR_API = "08", ERR_NO_KEY = "09", ERR_BUSY = "10";
 
 	/** AI 가 답한 품목 한 줄 (응답 JSON 그대로) */
 	public record RawItem(String itemName, String sizeCode, int quantity, String detectedName, String room,
-			String evidence, boolean needsReview) {
+			String evidence, boolean needsReview, Integer inch, boolean wallMounted) {
+
+		public RawItem(String itemName, String sizeCode, int quantity, String detectedName, String room,
+				String evidence, boolean needsReview) {
+			this(itemName, sizeCode, quantity, detectedName, room, evidence, needsReview, null, false);
+		}
 	}
 
 	/** AI 응답 전체 */
@@ -30,10 +35,16 @@ public final class VideoAnalysis {
 
 	/** 표준 품목에 맞춘 품목 (화면 · TBL_REQUEST_ITEM 으로 감) */
 	public record MappedItem(String name, String sizeCode, int count, double unitCbm, String detectedName,
-			String room, String evidence, String mappingType, boolean needsReview) {
+			String room, String evidence, String mappingType, boolean needsReview, Integer inch,
+			boolean wallMounted) {
 
 		public double cbm() {
 			return unitCbm * count;
+		}
+
+		/** 견적 계산용 한 줄 */
+		public EstimateCalculator.Line line() {
+			return new EstimateCalculator.Line(name, sizeCode, count, inch, wallMounted);
 		}
 	}
 
@@ -53,11 +64,11 @@ public final class VideoAnalysis {
 			double costUsd, long uploadMs, long apiMs, long totalMs, int retries, String rawJson) {
 
 		public double totalCbm() {
-			return items == null ? 0 : items.stream().mapToDouble(MappedItem::cbm).sum();
+			return items == null ? 0 : items.stream().mapToDouble(i -> i.cbm()).sum();
 		}
 
 		public long reviewCount() {
-			return items == null ? 0 : items.stream().filter(MappedItem::needsReview).count();
+			return items == null ? 0 : items.stream().filter(i -> i.needsReview()).count();
 		}
 	}
 }

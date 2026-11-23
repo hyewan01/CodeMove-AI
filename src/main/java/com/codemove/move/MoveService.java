@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.codemove.common.FileStore;
 import com.codemove.common.Fmt;
+import com.codemove.estimate.EstimateCalculator;
 import com.codemove.member.Member;
 import com.codemove.member.MemberMapper;
 import com.codemove.notification.NotificationService;
@@ -52,17 +53,25 @@ public class MoveService {
 			String toZipcode, List<RequestItem> items) {
 	}
 
-	/** 예상 견적 계산식 (quote.js estimate() 와 같음): 기본요금 + 부피 × 단가, 반포장 할증, 만원 단위 */
-	public static final long BASE = 100_000, PER_CBM = 24_000, MINUS = 10_000, PLUS = 70_000;
-	public static final double PARTIAL_RATE = 1.15;
-
-	public record Estimate(long amount, long min, long max) {
+	/**
+	 * 예상 견적 (EstimateCalculator: 대표님 견적 방식 + 아정당 평균가). 고객 화면(/quote/estimate)과 같은 계산.
+	 * 거리·층수는 아직 받지 않으므로 50km 미만 · 사다리차 없음으로 계산하고 안내 문구로 알립니다.
+	 */
+	public static EstimateCalculator.Estimate estimate(List<RequestItem> items, String packType, LocalDate moveDate) {
+		List<EstimateCalculator.Line> lines = items.stream()
+				.map(i -> EstimateCalculator.Line.of(i.getItemName(), i.getItemSize(), nz(i.getQuantity())))
+				.toList();
+		return EstimateCalculator.estimate(lines,
+				new EstimateCalculator.Conditions(packType, null, moveDate, null, null));
 	}
 
-	public static Estimate estimate(double cbm, String packType) {
-		double raw = BASE + cbm * PER_CBM;
-		long amount = Math.round(("02".equals(packType) ? raw * PARTIAL_RATE : raw) / 10_000) * 10_000;
-		return new Estimate(amount, amount - MINUS, amount + PLUS);
+	/** 범위의 가운데 (만 원 단위) */
+	public static long midpoint(EstimateCalculator.Estimate e) {
+		return Math.round((e.totalMin() + e.totalMax()) / 2.0 / 10_000) * 10_000;
+	}
+
+	private static int nz(Integer v) {
+		return v == null ? 0 : v;
 	}
 
 	private final MoveMapper moves;
@@ -141,10 +150,10 @@ public class MoveService {
 		r.setToZipcode(f.toZipcode());
 		double cbm = f.items().stream().mapToDouble(i -> i.getVolume() == null ? 0 : i.getVolume()).sum();
 		r.setAiCbm(Math.round(cbm * 100) / 100.0);
-		Estimate est = estimate(cbm, f.packType());
-		r.setAiEstAmount(est.amount());
-		r.setAiEstMin(est.min());
-		r.setAiEstMax(est.max());
+		EstimateCalculator.Estimate est = estimate(f.items(), f.packType(), f.moveDate());
+		r.setAiEstAmount(midpoint(est));
+		r.setAiEstMin(est.totalMin());
+		r.setAiEstMax(est.totalMax());
 		r.setAiAnalysisSec(analysisSec != null && analysisSec > 0 ? analysisSec : 38);
 		r.setAiConfidence(94);
 		moves.insertRequest(r);
@@ -168,7 +177,7 @@ public class MoveService {
 		}
 		Member m = members.findMember(memberId);
 		// 견적 관리: 고객 입력으로 AI가 만든 견적서 (견적 검토)
-		quotes.createForRequest(r, m.getMemberName(), m.getPhone(), f.items());
+		quotes.createForRequest(r, m.getMemberName(), m.getPhone(), f.items(), est);
 		notifications.toAdmin("01", "견적서 등록", m.getMemberName() + " 고객님의 신규 견적 요청이 접수되었습니다.", "/admin/estimates",
 				false);
 		// 예약 관리 · 예약 일정: 고객이 고른 이사 날짜로 예약 완료 (날짜 미정이면 견적 확정 때 만듦)

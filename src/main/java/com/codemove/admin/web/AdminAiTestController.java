@@ -12,6 +12,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.codemove.common.FileStore;
 import com.codemove.estimate.AnalysisPrompt;
+import com.codemove.estimate.EstimateCalculator;
 import com.codemove.estimate.GeminiVideoAnalyzer;
 import com.codemove.estimate.GroundTruth;
 import com.codemove.estimate.VideoAnalysis;
@@ -70,6 +71,11 @@ public class AdminAiTestController {
 		if (GroundTruth.SETS.contains(truth)) {
 			model.addAttribute("score", GroundTruth.score(truth, log.items()));
 		}
+		// 인식 품목 그대로 낸 예상 견적 (포장 · 반포장 · 일반, 50km 미만 · 사다리차 없음)
+		var lines = log.items().stream().map(i -> i.line()).toList();
+		model.addAttribute("estimates", java.util.stream.Stream.of(EstimateCalculator.FULL, EstimateCalculator.HALF,
+				EstimateCalculator.GENERAL).map(p -> EstimateCalculator.estimate(lines,
+						EstimateCalculator.Conditions.basic(p))).toList());
 		return "admin/ai-test-detail";
 	}
 }

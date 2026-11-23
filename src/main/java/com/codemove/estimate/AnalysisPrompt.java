@@ -17,7 +17,8 @@ import com.codemove.move.ItemCatalog;
  */
 public final class AnalysisPrompt {
 
-	public static final String VERSION = "v1";
+	/** v1: 품목표 + 세는 규칙. v2: 대표님 견적 방식(바구니 환산 · 서랍 속 짐 · 렌탈 · 고가품 · 벽걸이 TV 인치) */
+	public static final String VERSION = "v2";
 
 	private static volatile String template;
 
@@ -43,14 +44,17 @@ public final class AnalysisPrompt {
 
 	/** Gemini responseSchema (OpenAPI 부분집합) */
 	public static Map<String, Object> schema() {
-		Map<String, Object> item = obj(
-				Map.of("item_name", str("품목표의 품목명 그대로, 없으면 기타"),
-						"size_code", Map.of("type", "STRING", "enum", List.of("01", "02", "03")),
-						"quantity", Map.of("type", "INTEGER"),
-						"detected_name", str("영상에서 본 물건 이름"),
-						"room", str("물건이 있는 공간"),
-						"evidence", str("판단 근거 한 줄"),
-						"needs_review", Map.of("type", "BOOLEAN")),
+		Map<String, Object> props = new LinkedHashMap<>();
+		props.put("item_name", str("품목표의 품목명 그대로, 없으면 기타"));
+		props.put("size_code", Map.of("type", "STRING", "enum", List.of("01", "02", "03")));
+		props.put("quantity", Map.of("type", "INTEGER"));
+		props.put("detected_name", str("영상에서 본 물건 이름"));
+		props.put("room", str("물건이 있는 공간"));
+		props.put("evidence", str("판단 근거 한 줄"));
+		props.put("needs_review", Map.of("type", "BOOLEAN"));
+		props.put("inch", Map.of("type", "INTEGER", "nullable", true, "description", "TV 일 때 추정 인치"));
+		props.put("wall_mounted", Map.of("type", "BOOLEAN", "description", "벽에 걸린 TV 면 true"));
+		Map<String, Object> item = obj(props,
 				List.of("item_name", "size_code", "quantity", "detected_name", "room", "needs_review"));
 		return obj(Map.of("video_ok", Map.of("type", "BOOLEAN"),
 				"reject_reason", Map.of("type", "STRING", "nullable", true),

@@ -27,11 +27,12 @@ class VideoAnalysisLiveTest {
 	@Test
 	void analyzeRealVideo() throws Exception {
 		JsonMapper json = JsonMapper.builder().build();
-		String model = System.getenv().getOrDefault("GEMINI_MODEL", "gemini-2.5-flash");
-		GeminiVideoAnalyzer ai = new GeminiVideoAnalyzer(System.getenv("GEMINI_API_KEY"), model, 300, json);
+		String model = System.getenv().getOrDefault("GEMINI_MODEL", "gemini-4-hydrogen");
+		String thinking = System.getenv().getOrDefault("GEMINI_THINKING", "low");
+		GeminiVideoAnalyzer ai = new GeminiVideoAnalyzer(System.getenv("GEMINI_API_KEY"), model, 300, thinking, json);
 		Path out = Path.of("build", "ai-live");
 		Files.createDirectories(out);
-		VideoAnalysisService service = new VideoAnalysisService(ai, new FileStore(out.toString()), json, 0.30, 2.50,
+		VideoAnalysisService service = new VideoAnalysisService(ai, new FileStore(out.toString()), json, 1.50, 7.50,
 				"2026-11-23", out.resolve("ai-logs").toString());
 
 		VideoAnalysis.Result r = service.analyze(Path.of(System.getenv("CODEMOVE_TEST_VIDEO")));
@@ -45,5 +46,21 @@ class VideoAnalysisLiveTest {
 		}
 		System.out.printf("총 %.2f CBM, 메모: %s%n", r.totalCbm(), r.memo());
 		assertTrue(r.success(), r.message());
+
+		String truth = System.getenv("CODEMOVE_TEST_TRUTH");
+		if (truth != null && GroundTruth.SETS.contains(truth)) {
+			GroundTruth.Score s = GroundTruth.score(truth, r.items());
+			System.out.printf("정답(%s) 정밀도 %.0f%% 재현율 %.0f%% F1 %.0f%% · CBM 정답 %.1f / AI %.1f (%+.0f%%)%n", truth,
+					s.precision() * 100, s.recall() * 100, s.f1() * 100, s.expectedCbm(), s.detectedCbm(),
+					s.cbmErrorPct());
+			s.rows().forEach(row -> System.out.printf("    %-8s 정답 %2d  AI %2d%n", row.name(), row.expected(),
+					row.detected()));
+		}
+		EstimateCalculator.Estimate e = EstimateCalculator.estimate(
+				r.items().stream().map(i -> i.line()).toList(),
+				EstimateCalculator.Conditions.basic(EstimateCalculator.FULL));
+		System.out.printf("견적(포장) 물품 %.1f → 적재 %.1f CBM → %s (%s) → %,d ~ %,d원%n", e.itemCbm(), e.loadCbm(),
+				e.tonText(), e.truckLabel(), e.totalMin(), e.totalMax());
+		e.fees().forEach(f -> System.out.printf("    %s %,d ~ %,d%n", f.label(), f.min(), f.max()));
 	}
 }

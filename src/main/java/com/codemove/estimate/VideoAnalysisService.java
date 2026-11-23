@@ -50,8 +50,8 @@ public class VideoAnalysisService {
 	private final Path logRoot;
 
 	public VideoAnalysisService(GeminiVideoAnalyzer ai, FileStore files, JsonMapper json,
-			@Value("${codemove.ai.gemini.price-in-per-1m:0.30}") double priceIn,
-			@Value("${codemove.ai.gemini.price-out-per-1m:2.50}") double priceOut,
+			@Value("${codemove.ai.gemini.price-in-per-1m:1.50}") double priceIn,
+			@Value("${codemove.ai.gemini.price-out-per-1m:7.50}") double priceOut,
 			@Value("${codemove.ai.gemini.price-date:2026-11-23}") String priceDate,
 			@Value("${codemove.ai.log-dir:ai-logs}") String logDir) {
 		this.ai = ai;
@@ -87,14 +87,31 @@ public class VideoAnalysisService {
 				GeminiVideoAnalyzer.Response res = ai.analyze(video, mime, prompt, AnalysisPrompt.schema());
 				return save(interpret(id, res, t0, retries), video);
 			} catch (AnalyzerException e) {
-				boolean retryable = VideoAnalysis.ERR_TIMEOUT.equals(e.code()) || VideoAnalysis.ERR_JSON.equals(e.code());
-				if (retryable && retries == 0) {
+				boolean busy = VideoAnalysis.ERR_BUSY.equals(e.code());
+				boolean retryable = busy || VideoAnalysis.ERR_TIMEOUT.equals(e.code())
+						|| VideoAnalysis.ERR_JSON.equals(e.code());
+				// 시간 초과·JSON 오류는 1번, 서버 혼잡(5xx)은 잠깐 쉬었다가 2번까지
+				if (retryable && retries < (busy ? MAX_BUSY_RETRIES : 1)) {
 					retries++;
-					log.warn("영상 분석 재시도 {}: {}", id, e.getMessage());
+					log.warn("영상 분석 재시도 {} ({}회): {}", id, retries, e.getMessage());
+					if (busy) {
+						sleep(BUSY_WAIT_MS * retries);
+					}
 					continue;
 				}
 				return save(fail(id, e.code(), e.getMessage(), t0, retries), video);
 			}
+		}
+	}
+
+	static final int MAX_BUSY_RETRIES = 2;
+	static final long BUSY_WAIT_MS = 5_000;
+
+	private static void sleep(long ms) {
+		try {
+			Thread.sleep(ms);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
 		}
 	}
 
@@ -135,9 +152,12 @@ public class VideoAnalysisService {
 		for (JsonNode i : n.path("items")) {
 			JsonNode q = i.path("quantity");
 			boolean badQty = !q.isNumber();
+			JsonNode inch = i.path("inch");
 			items.add(new RawItem(i.path("item_name").asString(""), i.path("size_code").asString(""),
 					badQty ? 1 : q.asInt(1), i.path("detected_name").asString(""), i.path("room").asString(""),
-					i.path("evidence").asString(""), i.path("needs_review").asBoolean(false) || badQty));
+					i.path("evidence").asString(""), i.path("needs_review").asBoolean(false) || badQty,
+					inch.isNumber() && inch.asInt() >= 20 && inch.asInt() <= 120 ? inch.asInt() : null,
+					i.path("wall_mounted").asBoolean(false)));
 		}
 		JsonNode reason = n.path("reject_reason");
 		return new RawResult(n.path("video_ok").asBoolean(!items.isEmpty()),
@@ -163,7 +183,7 @@ public class VideoAnalysisService {
 		try (var s = Files.walk(dir, 2)) {
 			return s.filter(p -> p.toString().endsWith(".json"))
 					.sorted((a, b) -> Long.compare(b.toFile().lastModified(), a.toFile().lastModified())).limit(limit)
-					.map(this::read).filter(java.util.Objects::nonNull).toList();
+					.map(p -> read(p)).filter(l -> l != null).toList();
 		} catch (IOException e) {
 			return List.of();
 		}
@@ -178,7 +198,7 @@ public class VideoAnalysisService {
 			return null;
 		}
 		try (var s = Files.walk(dir, 2)) {
-			return s.filter(p -> p.getFileName().toString().equals(analysisId + ".json")).findFirst().map(this::read)
+			return s.filter(p -> p.getFileName().toString().equals(analysisId + ".json")).findFirst().map(p -> read(p))
 					.orElse(null);
 		} catch (IOException e) {
 			return null;
@@ -193,7 +213,9 @@ public class VideoAnalysisService {
 				items.add(new VideoAnalysis.MappedItem(i.path("name").asString(""), i.path("sizeCode").asString("02"),
 						i.path("count").asInt(1), i.path("unitCbm").asDouble(0), i.path("detectedName").asString(""),
 						i.path("room").asString(""), i.path("evidence").asString(""),
-						i.path("mappingType").asString(""), i.path("needsReview").asBoolean(false)));
+						i.path("mappingType").asString(""), i.path("needsReview").asBoolean(false),
+						i.path("inch").isNumber() ? i.path("inch").asInt() : null,
+						i.path("wallMounted").asBoolean(false)));
 			}
 			JsonNode u = n.path("usage"), ms = n.path("ms");
 			return new Logged(n.path("analysisId").asString(""), n.path("at").asString(""),

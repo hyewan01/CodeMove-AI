@@ -44,6 +44,22 @@
 		</div>
 	</section>
 
+	<!-- 예상 견적 (EstimateCalculator: 적재계수 → 톤 → 요금) -->
+	<section class="space-y-3 rounded-[20px] bg-white p-5 shadow-[0_5px_18px_rgba(36,58,39,.06)]" th:if="${log.success}">
+		<p class="text-[17px] font-extrabold text-[#303832]">예상 견적</p>
+		<p class="text-[13px] text-[#535b55]" th:with="e=${estimates[0]}"
+		   th:text="'물품 ' + ${#numbers.formatDecimal(e.itemCbm, 1, 1)} + ' CBM × 적재계수 ' + ${e.loadFactor} + ' = 적재 ' + ${#numbers.formatDecimal(e.loadCbm, 1, 1)} + ' CBM → ' + ${e.tonText()} + ' (' + ${e.truckLabel()} + ')'">-</p>
+		<div class="border-t border-[#edf0ed] pt-2" th:each="e : ${estimates}">
+			<div class="flex items-center justify-between">
+				<strong class="text-[15px] text-[#303832]" th:text="${T(com.codemove.estimate.EstimateCalculator).packName(e.packType)}">포장이사</strong>
+				<b class="text-[15px] text-[#346538]" th:text="${#numbers.formatInteger(e.totalMin, 1, 'COMMA')} + ' ~ ' + ${#numbers.formatInteger(e.totalMax, 1, 'COMMA')} + '원'">0원</b>
+			</div>
+			<p class="text-[12px] text-[#7d857f]" th:each="f : ${e.fees}"
+			   th:text="${f.label} + ' ' + ${#numbers.formatInteger(f.min, 1, 'COMMA')} + (${f.min != f.max} ? '~' + ${#numbers.formatInteger(f.max, 1, 'COMMA')} : '') + '원'">요금</p>
+		</div>
+		<p class="text-[12px] text-[#969d98]">50km 미만 · 사다리차 없음 · 날짜 할증 없음 기준. 값은 docs/estimate/data CSV.</p>
+	</section>
+
 	<!-- 정답 비교 (가이드 9장) -->
 	<section class="space-y-3 rounded-[20px] bg-white p-5 shadow-[0_5px_18px_rgba(36,58,39,.06)]" th:if="${log.success}">
 		<form class="flex items-center justify-between gap-3" method="get" th:action="@{/admin/ai-test/{id}(id=${log.analysisId})}">
@@ -98,9 +114,6 @@
 		<pre class="mt-3 max-h-[420px] overflow-auto whitespace-pre-wrap break-all text-[12px] text-[#535b55]" th:text="${log.rawJson}">{}</pre>
 	</details>
 </div>
-<script>
-	document.querySelectorAll('[data-auto-submit]').forEach((s) => s.addEventListener('change', () => s.form.submit()));
-</script>
 </th:block>
 </body>
 </html>

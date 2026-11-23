@@ -6,13 +6,17 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.codemove.common.FileStore;
+import com.codemove.common.Fmt;
+import com.codemove.estimate.EstimateCalculator;
 import com.codemove.estimate.VideoAnalysis;
 import com.codemove.estimate.VideoAnalysisService;
+import com.codemove.move.MoveService;
 
 import jakarta.servlet.http.HttpSession;
 
@@ -34,6 +38,38 @@ public class QuoteAnalysisController {
 	public QuoteAnalysisController(VideoAnalysisService analysis, FileStore files) {
 		this.analysis = analysis;
 		this.files = files;
+	}
+
+	/** 예상 견적 요청 (quote.js 6단계) */
+	public record EstimateRequest(String packType, String moveDate, List<EstimateItem> items) {
+	}
+
+	public record EstimateItem(String name, String sizeCode, int count) {
+	}
+
+	/** 6단계 예상 견적: 서버의 EstimateCalculator 로 계산 (이사 요청 때 저장하는 금액과 같은 식) */
+	@PostMapping("/quote/estimate")
+	public Map<String, Object> estimate(@RequestBody EstimateRequest req) {
+		List<EstimateCalculator.Line> lines = req.items() == null ? List.of()
+				: req.items().stream().filter(i -> i != null && i.name() != null && i.count() > 0)
+						.map(i -> EstimateCalculator.Line.of(i.name(), i.sizeCode(), Math.min(i.count(), 999))).toList();
+		String pack = req.packType() != null && req.packType().matches("0[1-4]") ? req.packType()
+				: EstimateCalculator.FULL;
+		EstimateCalculator.Estimate e = EstimateCalculator.estimate(lines,
+				new EstimateCalculator.Conditions(pack, null, Fmt.parseDate(req.moveDate()), null, null));
+		Map<String, Object> out = new LinkedHashMap<>();
+		out.put("min", e.totalMin());
+		out.put("max", e.totalMax());
+		out.put("amount", MoveService.midpoint(e));
+		out.put("deposit", e.deposit());
+		out.put("ton", e.tonText());
+		out.put("trucks", e.truckLabel());
+		out.put("itemCbm", e.itemCbm());
+		out.put("loadCbm", e.loadCbm());
+		out.put("workers", e.workers());
+		out.put("fees", e.fees());
+		out.put("notes", e.notes());
+		return out;
 	}
 
 	@PostMapping("/quote/analyze")

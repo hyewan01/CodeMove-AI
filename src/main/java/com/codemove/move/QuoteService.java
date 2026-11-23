@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.codemove.common.Fmt;
+import com.codemove.estimate.EstimateCalculator;
 
 /**
  * 견적서 (관리자 견적 관리 · 수정 · 등록, 고객 견적 확인).
@@ -52,21 +53,23 @@ public class QuoteService {
 		};
 	}
 
-	/** 작업내용 포장·일반·보관 ↔ PACK_TYPE 04·01·03 */
+	/** 작업내용 포장·반포장·일반·보관 ↔ PACK_TYPE 04·02·01·03 (대표님 견적서 4가지) */
 	private static String workTypeCode(String method) {
 		return switch (method == null ? "" : method) {
 			case "포장" -> "04";
+			case "반포장" -> "02";
 			case "보관" -> "03";
 			case "일반" -> "01";
 			default -> null;
 		};
 	}
 
-	private static String workMethod(String code) {
+	static String workMethod(String code) {
 		return switch (code == null ? "" : code) {
 			case "04" -> "포장";
+			case "02" -> "반포장";
 			case "03" -> "보관";
-			case "01", "02" -> "일반";
+			case "01" -> "일반";
 			default -> "";
 		};
 	}
@@ -294,7 +297,8 @@ public class QuoteService {
 
 	/** 고객 견적 요청에 대한 첫 견적서 (관리자 검토용, 요청 내용으로 채움) */
 	@Transactional
-	public Quote createForRequest(MoveRequest r, String customerName, String customerPhone, List<RequestItem> items) {
+	public Quote createForRequest(MoveRequest r, String customerName, String customerPhone, List<RequestItem> items,
+			EstimateCalculator.Estimate est) {
 		Quote q = new Quote();
 		q.setRequestId(r.getRequestId());
 		q.setMemberId(r.getMemberId());
@@ -313,10 +317,12 @@ public class QuoteService {
 		d.setTransportDate(Fmt.yy(r.getMoveDate()));
 		d.setOrigin(join(r.getFromAddress(), r.getFromDetail()));
 		d.setDestination(join(r.getToAddress(), r.getToDetail()));
-		// 이사물량은 톤 단위: AI 부피(CBM)를 1톤 ≈ 5CBM 으로 0.5톤 단위 올림
-		d.setVolume(r.getAiCbm() == null ? "" : trimZero(Math.max(1, Math.ceil(r.getAiCbm() / 5 * 2) / 2)) + "톤");
-		d.setNote("");
-		d.setWorkMethod("02".equals(r.getPackType()) ? "일반" : "포장");
+		// 이사물량(톤) · 이사비용 · 옵션은 EstimateCalculator (대표님 방식: 적재 CBM → 5톤 + 1톤 조합 → 톤별 요금)
+		d.setVolume(est.tonText());
+		d.setNote("AI 예상: 물품 " + trimZero(est.itemCbm()) + " CBM → 적재 " + trimZero(est.loadCbm()) + " CBM → "
+				+ est.truckLabel() + ". 범위 " + Fmt.money(est.totalMin()) + "~" + Fmt.money(est.totalMax())
+				+ "원. 현장 여건에 따라 별도 비용이 발생할 수 있습니다.");
+		d.setWorkMethod(workMethod(r.getPackType()));
 		d.setLadder("");
 		d.setElevator("");
 		d.setStairs("");
@@ -324,11 +330,27 @@ public class QuoteService {
 		d.setDestinationLadder("0");
 		d.setLadderSubtotal("0");
 		d.setExtraCost("0");
-		Long amount = r.getAiEstAmount();
-		d.setMovingCost(Fmt.money(amount));
+		long moving = 0, options = 0;
+		List<String> costs = new ArrayList<>(Collections.nCopies(8, ""));
+		List<String> selections = new ArrayList<>(Collections.nCopies(8, ""));
+		for (EstimateCalculator.Fee f : est.fees()) {
+			long mid = Math.round((f.min() + f.max()) / 2.0 / 10_000) * 10_000;
+			int idx = optionIndex(f.label());
+			if (idx < 0) {
+				moving += mid;
+			} else {
+				options += mid;
+				costs.set(idx, Fmt.money(mid));
+				selections.set(idx, EstimateDoc.OPTION_ROWS[idx][idx == 0 ? 1 : 2]);
+			}
+		}
+		long amount = moving + options;
+		d.setMovingCost(Fmt.money(moving));
+		d.setOptionCosts(costs);
+		d.setOptionSelections(selections);
 		d.setTotal(Fmt.money(amount));
-		d.setDeposit(amount == null ? "" : Fmt.money(amount / 10));
-		d.setBalance(amount == null ? "" : Fmt.money(amount - amount / 10));
+		d.setDeposit(Fmt.money(amount / 10));
+		d.setBalance(Fmt.money(amount - amount / 10));
 		// AI 인식 품목을 가전 / 가구 / 생활용품 칸에 나눠 담음
 		d.setItemGroups(new ArrayList<>(List.of("전자기기", "가구", "생활용품", "기타")));
 		List<String> names = new ArrayList<>(Collections.nCopies(14 * 4, ""));
@@ -357,6 +379,15 @@ public class QuoteService {
 	}
 
 	/* ---------- 도우미 ---------- */
+
+	/** 계산기 요금 이름 → 견적서 옵션 칸 (QUOTE_OPTION - 1), 옵션이 아니면 -1 */
+	private static int optionIndex(String label) {
+		if (label.startsWith("피아노")) return 0;
+		if (label.startsWith("벽걸이 TV")) return 3;
+		if (label.startsWith("안마의자")) return 6;
+		if (label.startsWith("에어컨")) return 7;
+		return -1;
+	}
 
 	private static String side(String from, String to) {
 		return "Y".equals(from) ? "전" : "Y".equals(to) ? "후" : "";

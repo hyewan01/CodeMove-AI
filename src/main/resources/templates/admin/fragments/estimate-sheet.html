@@ -120,7 +120,7 @@
 				<b class="grid place-items-center text-[1.3cqw]">작업내용</b>
 				<div class="flex items-center justify-center gap-[2.2cqw] px-[1cqw] text-[1.2cqw]">
 					<input th:if="${editable}" type="hidden" name="workMethod" th:value="${doc.workMethod}" data-single-value>
-					<button th:each="m : ${ {'포장', '일반', '보관'} }" type="button" th:disabled="${!editable}" th:data-choice="${m}"
+					<button th:each="m : ${ {'포장', '반포장', '일반', '보관'} }" type="button" th:disabled="${!editable}" th:data-choice="${m}"
 							class="flex items-center gap-[.6cqw]" th:classappend="${doc.workMethod == m} ? 'font-black text-black' : 'text-[#69716b]'">
 						<span class="text-[1.5cqw]" th:text="${doc.workMethod == m} ? '■' : '□'">□</span><th:block th:text="${m}"></th:block>
 					</button>

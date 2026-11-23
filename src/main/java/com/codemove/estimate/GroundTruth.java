@@ -15,8 +15,11 @@ import com.codemove.move.ItemCatalog;
  */
 public final class GroundTruth {
 
-	/** 테스트셋 목록 (build.gradle 이 docs/estimate/testset 을 클래스패스 estimate/testset 으로 복사) */
-	public static final List<String> SETS = List.of("house-01");
+	/**
+	 * 테스트셋 목록 (build.gradle 이 docs/estimate/testset 을 클래스패스 estimate/testset 으로 복사).
+	 * house-01-noperson: 사람이 나온 장면(0:00.5~0:02, 0:55.5~1:00.5)을 잘라낸 사본용 (그 장면에만 보인 3개 제외)
+	 */
+	public static final List<String> SETS = List.of("house-01", "house-01-noperson");
 
 	/** 품목명별 비교 한 줄 */
 	public record Row(String name, int expected, int detected, double expectedCbm, double detectedCbm) {

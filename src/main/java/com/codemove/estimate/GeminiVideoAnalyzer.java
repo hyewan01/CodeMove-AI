@@ -56,11 +56,15 @@ public class GeminiVideoAnalyzer {
 	private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20))
 			.followRedirects(HttpClient.Redirect.NORMAL).build();
 
+	private final String thinkingLevel;
+
 	public GeminiVideoAnalyzer(@Value("${codemove.ai.gemini.api-key:${GEMINI_API_KEY:}}") String apiKey,
-			@Value("${codemove.ai.gemini.model:gemini-2.5-flash}") String model,
-			@Value("${codemove.ai.gemini.timeout-sec:180}") int timeoutSec, JsonMapper json) {
+			@Value("${codemove.ai.gemini.model:gemini-4-hydrogen}") String model,
+			@Value("${codemove.ai.gemini.timeout-sec:180}") int timeoutSec,
+			@Value("${codemove.ai.gemini.thinking-level:low}") String thinkingLevel, JsonMapper json) {
 		this.apiKey = apiKey == null ? "" : apiKey.trim();
 		this.model = model;
+		this.thinkingLevel = thinkingLevel == null ? "" : thinkingLevel.trim();
 		this.timeout = Duration.ofSeconds(timeoutSec);
 		this.json = json;
 	}
@@ -175,12 +179,23 @@ public class GeminiVideoAnalyzer {
 				"contents", List.of(Map.of("role", "user", "parts", List.of(
 						Map.of("file_data", Map.of("mime_type", mimeType, "file_uri", fileUri)),
 						Map.of("text", prompt)))),
-				"generationConfig", Map.of("temperature", 0, "responseMimeType", "application/json",
-						"responseSchema", schema));
+				"generationConfig", generationConfig(schema));
 		HttpRequest req = HttpRequest.newBuilder(URI.create(BASE + "/v1beta/models/" + model + ":generateContent"))
 				.timeout(timeout).header("x-goog-api-key", apiKey).header("Content-Type", "application/json")
 				.POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body))).build();
 		return json.readTree(send(req).body());
+	}
+
+	/** 온도 0 · JSON 스키마 강제 · 생각 수준(Gemini 3 이후 모델: minimal/low/medium/high, 비우면 모델 기본값) */
+	private Map<String, Object> generationConfig(Map<String, Object> schema) {
+		Map<String, Object> c = new java.util.LinkedHashMap<>();
+		c.put("temperature", 0);
+		c.put("responseMimeType", "application/json");
+		c.put("responseSchema", schema);
+		if (!thinkingLevel.isBlank()) {
+			c.put("thinkingConfig", Map.of("thinkingLevel", thinkingLevel));
+		}
+		return c;
 	}
 
 	private HttpResponse<String> send(HttpRequest req) {
@@ -189,6 +204,9 @@ public class GeminiVideoAnalyzer {
 			int code = res.statusCode();
 			if (code == 429) {
 				throw new AnalyzerException(VideoAnalysis.ERR_QUOTA, "AI 사용량 한도 초과 (429)");
+			}
+			if (code == 500 || code == 502 || code == 503 || code == 504) {
+				throw new AnalyzerException(VideoAnalysis.ERR_BUSY, "AI 서버 혼잡 (" + code + ")");
 			}
 			if (code >= 400) {
 				String msg = res.body() == null ? "" : res.body();

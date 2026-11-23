@@ -326,8 +326,6 @@ public class CustomerPageController {
 		model.addAttribute("categories", AiDemo.categories());
 		model.addAttribute("recognizedItems", AiDemo.recognizedItems());
 		model.addAttribute("addresses", AiDemo.addresses());
-		model.addAttribute("estimate", Map.of("base", MoveService.BASE, "perCbm", MoveService.PER_CBM,
-				"partialRate", MoveService.PARTIAL_RATE, "minus", MoveService.MINUS, "plus", MoveService.PLUS));
 		// 이사 날짜 달력에서 고를 수 없는 날 (yyyy-MM-dd → 휴무 · 불가 · 마감), 오늘부터 1년
 		LocalDate today = LocalDate.now();
 		Map<String, String> blocked = new java.util.LinkedHashMap<>();
@@ -374,7 +372,7 @@ public class CustomerPageController {
 		}
 		String time = MoveService.moveTime(form.getMoveTime());
 		String house = form.getHouseType() != null && form.getHouseType().matches("0[1-4]") ? form.getHouseType() : "01";
-		String pack = "02".equals(form.getPackType()) ? "02" : "01";
+		String pack = form.getPackType() != null && form.getPackType().matches("0[1-4]") ? form.getPackType() : "04";
 		// 분석 단계에서 이미 올린 영상은 세션의 주소로 붙임 (화면은 영상을 두 번 보내지 않음)
 		String savedUrl = (String) session.getAttribute(QuoteAnalysisController.VIDEO_URL);
 		String savedName = (String) session.getAttribute(QuoteAnalysisController.VIDEO_NAME);

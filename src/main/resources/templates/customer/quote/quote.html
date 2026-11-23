@@ -268,6 +268,12 @@
 				<strong data-est-amount></strong>
 				<small data-est-note>선택한 일정과 영상 분석 결과를 반영했어요.</small>
 			</div>
+			<!-- 견적 근거: 짐 양(톤) · 요금 항목 · 안내 (EstimateCalculator) -->
+			<div class="estimate-breakdown" data-est-breakdown hidden>
+				<p class="estimate-volume" data-est-volume></p>
+				<ul class="estimate-fees" data-est-fees></ul>
+				<ul class="estimate-notes" data-est-notes></ul>
+			</div>
 			<div class="summary-card">
 				<div class="summary-row">
 					<div class="summary-row-left">
@@ -392,6 +398,7 @@
 	window.QUOTE_DATA = {
 		assets: /*[[@{/assets/}]]*/ '/assets/',
 		analyzeUrl: /*[[@{/quote/analyze}]]*/ '/quote/analyze',
+		estimateUrl: /*[[@{/quote/estimate}]]*/ '/quote/estimate',
 		items: /*[[${recognizedItems}]]*/ [],
 		/* 표준 품목표 (docs/estimate/data/item-master.csv): 품목 · 카테고리 · 크기별 기준 부피 */
 		catalog: /*[[${catalog}]]*/ [],
@@ -399,7 +406,6 @@
 		/* 손 없는 날: yyyy-MM-dd → 음력 표시 */
 		noSon: /*[[${noSonDays}]]*/ {},
 		addresses: /*[[${addresses}]]*/ [],
-		estimate: /*[[${estimate}]]*/ {},
 		/* 고를 수 없는 이사 날짜: yyyy-MM-dd → 휴무 · 불가 · 마감 (관리자 일정 관리 · 하루 최대 예약 수) */
 		blocked: /*[[${blockedDates}]]*/ {}
 	};

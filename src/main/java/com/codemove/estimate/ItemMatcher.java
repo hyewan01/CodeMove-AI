@@ -81,13 +81,13 @@ public final class ItemMatcher {
 		// 3. 미매핑: 부피 0, 고객·관리자가 고르게 넘김
 		String name = blank(detected) ? "기타" : trim(detected);
 		return new MappedItem(name.length() > 50 ? name.substring(0, 50) : name, "02", qty, 0, detected, r.room(),
-				r.evidence(), VideoAnalysis.UNMAPPED, true);
+				r.evidence(), VideoAnalysis.UNMAPPED, true, r.inch(), r.wallMounted());
 	}
 
 	private static MappedItem mapped(ItemCatalog.Item item, String size, int qty, String detected, RawItem r,
 			String type, boolean review) {
 		return new MappedItem(item.name(), size, qty, item.size(size).cbm(), detected, r.room(), r.evidence(), type,
-				review);
+				review, r.inch(), r.wallMounted());
 	}
 
 	private static String validSize(String code) {

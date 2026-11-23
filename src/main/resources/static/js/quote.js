@@ -557,24 +557,44 @@
 	renderCalendar();
 
 	/* ---------- 6. 예상 견적 ---------- */
-	/* 예상 견적: 서버(MoveService.estimate)와 같은 식. 기본요금 + 부피 × 단가, 반포장은 할증, 만원 단위 반올림 */
-	function estimate() {
-		const p = DATA.estimate || {};
-		const cbm = state.items.reduce((sum, it) => sum + itemCbm(it), 0);
-		const raw = (p.base || 0) + cbm * (p.perCbm || 0);
-		const amount = Math.round((state.options.packType === '02' ? raw * (p.partialRate || 1) : raw) / 10000) * 10000;
-		return { amount, min: amount - (p.minus || 0), max: amount + (p.plus || 0) };
+	/* 예상 견적: 서버 EstimateCalculator(대표님 견적 방식)로 계산. 이사 요청 때 저장되는 금액과 같은 식 */
+	let estimateRun = 0;
+	function renderEstimate() {
+		const run = ++estimateRun;
+		const amountEl = $('[data-est-amount]');
+		amountEl.textContent = '계산 중…';
+		$('[data-est-breakdown]').hidden = true;
+		const body = {
+			packType: state.options.packType,
+			moveDate: state.dateSkipped ? null : state.date,
+			items: state.items.map((it) => ({ name: it.name, sizeCode: sizeOf(it).code, count: it.count })),
+		};
+		fetch(DATA.estimateUrl || 'quote/estimate', {
+			method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+		})
+			.then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
+			.then((est) => {
+				if (run !== estimateRun) return;
+				$('[data-est-kicker]').textContent = state.dateSkipped ? '예상 견적 범위' : 'AI 예상 견적';
+				amountEl.textContent = est.min === est.max ? fmtWon(est.min)
+					: `${est.min.toLocaleString('ko-KR')} ~ ${fmtWon(est.max)}`;
+				$('[data-est-note]').textContent = state.dateSkipped
+					? '이사 날짜에 따라 비용이 달라질 수 있어요.'
+					: '선택한 일정과 영상 분석 결과를 반영했어요.';
+				$('[data-est-volume]').textContent = `짐 양 ${est.ton} (${est.trucks}) · 작업 ${est.workers}명`;
+				$('[data-est-fees]').innerHTML = est.fees.map((f) => `<li><span>${esc(f.label)}</span><b>${
+					f.min === f.max ? fmtWon(f.min) : `${f.min.toLocaleString('ko-KR')}~${fmtWon(f.max)}`}</b></li>`).join('');
+				$('[data-est-notes]').innerHTML = est.notes.map((n) => `<li>${esc(n)}</li>`).join('');
+				$('[data-est-breakdown]').hidden = false;
+			})
+			.catch(() => {
+				if (run !== estimateRun) return;
+				amountEl.textContent = '잠시 후 다시 확인해주세요';
+			});
 	}
 
 	function renderSummary() {
-		const est = estimate();
-		$('[data-est-kicker]').textContent = state.dateSkipped ? '예상 견적 범위' : 'AI 예상 견적';
-		$('[data-est-amount]').textContent = state.dateSkipped
-			? `${(est.min || 0).toLocaleString('ko-KR')} ~ ${fmtWon(est.max || 0)}`
-			: fmtWon(est.amount || 0);
-		$('[data-est-note]').textContent = state.dateSkipped
-			? '이사 날짜에 따라 비용이 달라질 수 있어요.'
-			: '선택한 일정과 영상 분석 결과를 반영했어요.';
+		renderEstimate();
 		$('[data-sum="date"]').textContent = state.dateSkipped ? '일정 미정' : dateLabel() || '—';
 		$('[data-sum="from"]').textContent = state.address.from || '—';
 		$('[data-sum="to"]').textContent = state.address.to || '—';
