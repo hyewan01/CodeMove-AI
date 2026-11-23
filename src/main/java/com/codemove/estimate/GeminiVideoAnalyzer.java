@@ -165,7 +165,7 @@ public class GeminiVideoAnalyzer {
 					.POST(HttpRequest.BodyPublishers.ofFile(video)).build();
 			return json.readTree(send(put).body()).path("file");
 		} catch (IOException e) {
-			throw new AnalyzerException(VideoAnalysis.ERR_API, "영상 업로드 실패: " + e.getMessage());
+			throw new AnalyzerException(VideoAnalysis.ERR_BUSY, "영상 업로드 연결 불안정: " + e.getMessage());
 		}
 	}
 
@@ -253,7 +253,8 @@ public class GeminiVideoAnalyzer {
 		} catch (HttpTimeoutException e) {
 			throw new AnalyzerException(VideoAnalysis.ERR_TIMEOUT, "AI 응답 시간 초과");
 		} catch (IOException e) {
-			throw new AnalyzerException(VideoAnalysis.ERR_API, "AI 서버 연결 실패: " + e.getMessage());
+			// 연결 끊김(Connection reset 등)은 일시적이라 혼잡과 같이 재시도 · 예비 모델 대상
+			throw new AnalyzerException(VideoAnalysis.ERR_BUSY, "AI 서버 연결 불안정: " + e.getMessage());
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 			throw new AnalyzerException(VideoAnalysis.ERR_TIMEOUT, "중단됨");
