@@ -29,12 +29,23 @@
 			<button type="button" class="action chat-attach" aria-label="파일 첨부" data-chat-attach>
 				<img alt="" th:src="@{/assets/paperclip.svg}">
 			</button>
-			<input type="file" hidden data-chat-file accept="image/*,.pdf">
+			<input type="file" hidden data-chat-file accept="image/*,video/*,.pdf">
 			<div aria-label="상담 내용 입력" class="chat-editor designed-scroll" contenteditable="true"
 				 data-placeholder="상담할 내용을 입력해주세요" role="textbox" data-chat-editor></div>
 			<button type="button" class="action chat-send is-disabled" aria-label="메시지 보내기" data-chat-send>
 				<img alt="" th:src="@{/assets/send.svg}">
 			</button>
+		</div>
+	</div>
+	<!-- 내 메시지 고치기 (꾹 누르거나 오른쪽 클릭 → 수정) -->
+	<div class="scrim" style="z-index: 60" data-chat-edit-scrim data-chat-edit-close hidden></div>
+	<div class="chat-edit-sheet" role="dialog" aria-modal="true" aria-label="메시지 수정" data-chat-edit hidden>
+		<strong>메시지 수정</strong>
+		<textarea rows="4" maxlength="1000" data-chat-edit-text aria-label="고칠 내용"></textarea>
+		<small>보낸 지 하루가 지나면 고칠 수 없어요. 상담사에게는 '수정됨'으로 보여요.</small>
+		<div class="chat-edit-actions">
+			<button type="button" class="action outline" data-chat-edit-close>취소</button>
+			<button type="button" class="action primary" data-chat-edit-save>저장</button>
 		</div>
 	</div>
 </div>

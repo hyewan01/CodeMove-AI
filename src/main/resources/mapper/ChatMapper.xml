@@ -67,6 +67,24 @@
 		UPDATE TBL_CHAT_MESSAGE SET IS_READ = 'Y' WHERE ROOM_ID = #{roomId} AND SENDER_TYPE = '01' AND IS_READ = 'N'
 	</update>
 
+	<update id="markAdminRead">
+		UPDATE TBL_CHAT_MESSAGE SET IS_READ = 'Y' WHERE ROOM_ID = #{roomId} AND SENDER_TYPE = '03' AND IS_READ = 'N'
+	</update>
+
+	<select id="findMessage" resultType="com.codemove.chat.ChatMessage">
+		SELECT * FROM TBL_CHAT_MESSAGE WHERE MESSAGE_ID = #{messageId}
+	</select>
+
+	<update id="editMessage">
+		UPDATE TBL_CHAT_MESSAGE SET CONTENT = #{content}, EDITED_AT = SYSDATE
+		 WHERE MESSAGE_ID = #{messageId} AND DELETED_AT IS NULL
+	</update>
+
+	<update id="deleteMessage">
+		UPDATE TBL_CHAT_MESSAGE SET DELETED_AT = SYSDATE
+		 WHERE MESSAGE_ID = #{messageId} AND DELETED_AT IS NULL AND IS_READ = 'N'
+	</update>
+
 	<select id="findSetting" resultType="com.codemove.chat.ChatSetting">
 		SELECT * FROM (SELECT * FROM TBL_CHAT_SETTING ORDER BY SETTING_ID) WHERE ROWNUM = 1
 	</select>

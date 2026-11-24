@@ -638,11 +638,26 @@ public class CustomerPageController {
 		return chats.customerAsk(memberId(session), text, file);
 	}
 
-	/** 상담사 답변 확인 (after 이후 메시지) */
+	/** 상담사 새 답변(after 이후) + 모든 메시지 상태 (수정 · 삭제 · 읽음) */
 	@GetMapping("/chat/messages")
 	@ResponseBody
-	public List<Map<String, Object>> chatUpdates(@RequestParam(defaultValue = "0") long after, HttpSession session) {
+	public Map<String, Object> chatUpdates(@RequestParam(defaultValue = "0") long after, HttpSession session) {
 		return chats.customerUpdates(memberId(session), after);
+	}
+
+	/** 내 메시지 고치기 (보낸 지 하루 안) */
+	@PostMapping("/chat/messages/{id}/edit")
+	@ResponseBody
+	public Map<String, Object> chatEdit(@PathVariable long id, @RequestParam(defaultValue = "") String text,
+			HttpSession session) {
+		return chats.customerEdit(memberId(session), id, text);
+	}
+
+	/** 내 메시지 지우기 (보낸 지 하루 안 · 상담사가 아직 안 읽음) */
+	@PostMapping("/chat/messages/{id}/delete")
+	@ResponseBody
+	public Map<String, Object> chatDelete(@PathVariable long id, HttpSession session) {
+		return chats.customerDelete(memberId(session), id);
 	}
 
 	/* ---------- 더보기 (SCR-U-020~021, 031~034) ---------- */

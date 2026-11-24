@@ -31,6 +31,15 @@ public interface ChatMapper {
 
 	void markCustomerRead(long roomId);
 
+	/** 고객이 상담 화면을 보면 관리자 메시지를 읽음으로 (관리자 메시지 삭제 가능 여부에 씀) */
+	void markAdminRead(long roomId);
+
+	ChatMessage findMessage(long messageId);
+
+	int editMessage(@Param("messageId") long messageId, @Param("content") String content);
+
+	int deleteMessage(long messageId);
+
 	/* ---------- 설정 ---------- */
 
 	ChatSetting findSetting();

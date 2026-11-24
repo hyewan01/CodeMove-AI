@@ -22,4 +22,7 @@ public class ChatMessage {
 	private String isRead;
 	private String needsReply;
 	private LocalDateTime sentAt;
+	/** 고친 · 지운 시각 (V7). 지운 메시지는 줄은 남기고 화면에만 "삭제된 메시지" */
+	private LocalDateTime editedAt;
+	private LocalDateTime deletedAt;
 }

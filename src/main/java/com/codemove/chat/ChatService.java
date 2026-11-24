@@ -172,28 +172,174 @@ public class ChatService {
 	}
 
 	/** 관리자 답장 → 상담 중 (챗봇 미응답이었으면 챗봇 응대로 복귀), 고객에게 알림 */
-	@Transactional
 	public void adminSend(long roomId, String text, String replyTo, Long adminId) {
+		adminSend(roomId, text, replyTo, adminId, null);
+	}
+
+	/** @param file 사진 · 영상 · PDF (없으면 null). 고객이 상담 화면을 보면 읽음이 됨 (그 전까지만 삭제 가능) */
+	@Transactional
+	public void adminSend(long roomId, String text, String replyTo, Long adminId, MultipartFile file) {
 		ChatRoomLine room = chats.findRoom(roomId);
-		if (room == null || text == null || text.isBlank()) {
+		boolean hasFile = file != null && !file.isEmpty();
+		if (room == null || (text == null || text.isBlank()) && !hasFile) {
 			return;
+		}
+		if (hasFile && fileProblem(file) != null) {
+			throw new IllegalArgumentException(fileProblem(file));
 		}
 		ChatMessage m = new ChatMessage();
 		m.setRoomId(roomId);
 		m.setAdminId(adminId);
 		m.setSenderType("03");
-		m.setMessageType("01");
-		String body = text.trim();
-		if (replyTo != null && !replyTo.isBlank()) {
+		m.setMessageType(hasFile ? "02" : "01");
+		String body = text == null ? "" : text.trim();
+		if (!body.isEmpty() && replyTo != null && !replyTo.isBlank()) {
 			body = REPLY_MARK + cut(replyTo.replace("\n", " ").trim(), 80) + "\n" + body;
 		}
-		m.setContent(cut(body, 1000));
-		m.setIsRead("Y");
+		m.setContent(body.isEmpty() ? null : cut(body, 1000));
+		if (hasFile) {
+			m.setAttachmentPath(files.save("chat", file));
+			m.setAttachmentName(cut(file.getOriginalFilename() == null ? "첨부파일" : file.getOriginalFilename(), 100));
+		}
+		m.setIsRead("N");
 		chats.insertMessage(m);
 		chats.markCustomerRead(roomId);
 		// 챗봇이 못 한 답을 관리자가 채웠으면 다시 챗봇 응대, 상담사 요청(또는 상담 중)이면 상담 중
 		chats.updateRoomStatus(roomId, UNANSWERED.equals(room.getStatus()) ? BOT : CONSULTING, adminId);
-		notifications.toMember(room.getMemberId(), "15", "상담 답변이 도착했어요", cut(text.trim(), 100), "/chat");
+		String preview = text == null || text.isBlank()
+				? (isVideo(m.getAttachmentName()) ? "동영상을 보냈어요." : isImage(m.getAttachmentName()) ? "사진을 보냈어요." : "파일을 보냈어요.")
+				: cut(text.trim(), 100);
+		notifications.toMember(room.getMemberId(), "15", "상담 답변이 도착했어요", preview, "/chat");
+	}
+
+	/* ---------- 메시지 수정 · 삭제 · 첨부 ---------- */
+
+	/** 보낸 지 이 시간 안에만 고치거나 지울 수 있음 */
+	static final java.time.Duration CHANGE_WINDOW = java.time.Duration.ofHours(24);
+	/** 채팅 첨부 한 개 최대 크기 */
+	static final long MAX_FILE_BYTES = 100L * 1024 * 1024;
+
+	/** 고칠 수 없는 이유, 고칠 수 있으면 null */
+	static String editBlock(ChatMessage m, java.time.LocalDateTime now) {
+		if (m.getDeletedAt() != null) return "삭제한 메시지예요.";
+		if (m.getContent() == null || splitReply(m.getContent())[1].isBlank()) return "글이 없는 메시지는 고칠 수 없어요.";
+		if (m.getSentAt().plus(CHANGE_WINDOW).isBefore(now)) return "보낸 지 하루가 지나 고칠 수 없어요.";
+		return null;
+	}
+
+	/** 지울 수 없는 이유, 지울 수 있으면 null */
+	static String deleteBlock(ChatMessage m, java.time.LocalDateTime now) {
+		if (m.getDeletedAt() != null) return "이미 삭제한 메시지예요.";
+		if (m.getSentAt().plus(CHANGE_WINDOW).isBefore(now)) return "보낸 지 하루가 지나 삭제할 수 없어요.";
+		if ("Y".equals(m.getIsRead())) return "상대방이 이미 읽어서 삭제할 수 없어요.";
+		return null;
+	}
+
+	/** 관리자 화면용 (다른 패키지) */
+	public static String editBlockOf(ChatMessage m, java.time.LocalDateTime now) {
+		return editBlock(m, now);
+	}
+
+	public static String deleteBlockOf(ChatMessage m, java.time.LocalDateTime now) {
+		return deleteBlock(m, now);
+	}
+
+	/** 사진 · 영상 · PDF 만, 100MB 까지. 문제없으면 null */
+	public static String fileProblem(MultipartFile file) {
+		String type = file.getContentType() == null ? "" : file.getContentType();
+		String name = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
+		boolean ok = type.startsWith("image/") || type.startsWith("video/") || "application/pdf".equals(type)
+				|| isImage(name) || isVideo(name) || name.toLowerCase(java.util.Locale.ROOT).endsWith(".pdf");
+		if (!ok) return "사진 · 동영상 · PDF 파일만 보낼 수 있어요.";
+		if (file.getSize() > MAX_FILE_BYTES) return "100MB 보다 작은 파일만 보낼 수 있어요.";
+		return null;
+	}
+
+	static boolean isImage(String name) {
+		return name != null && name.toLowerCase(java.util.Locale.ROOT).matches(".*\\.(jpe?g|png|gif|webp|heic|bmp)$");
+	}
+
+	static boolean isVideo(String name) {
+		return name != null && name.toLowerCase(java.util.Locale.ROOT).matches(".*\\.(mp4|mov|webm|m4v|avi)$");
+	}
+
+	/** image · video · file · "" (첨부 없음) */
+	public static String fileKind(ChatMessage m) {
+		if (m.getAttachmentPath() == null) return "";
+		return isImage(m.getAttachmentName()) ? "image" : isVideo(m.getAttachmentName()) ? "video" : "file";
+	}
+
+	/** 결과 { ok, message } */
+	private static Map<String, Object> result(boolean ok, String message) {
+		Map<String, Object> r = new LinkedHashMap<>();
+		r.put("ok", ok);
+		r.put("message", message);
+		return r;
+	}
+
+	/** 고객이 자기 메시지 고치기 */
+	@Transactional
+	public Map<String, Object> customerEdit(long memberId, long messageId, String text) {
+		ChatMessage m = chats.findMessage(messageId);
+		if (m == null) {
+			return result(false, "고칠 수 없는 메시지예요.");
+		}
+		ChatRoomLine room = chats.findRoom(m.getRoomId());
+		if (room == null || room.getMemberId() != memberId || !"01".equals(m.getSenderType())) {
+			return result(false, "고칠 수 없는 메시지예요.");
+		}
+		return edit(m, text);
+	}
+
+	@Transactional
+	public Map<String, Object> customerDelete(long memberId, long messageId) {
+		ChatMessage m = chats.findMessage(messageId);
+		if (m == null) {
+			return result(false, "삭제할 수 없는 메시지예요.");
+		}
+		ChatRoomLine room = chats.findRoom(m.getRoomId());
+		if (room == null || room.getMemberId() != memberId || !"01".equals(m.getSenderType())) {
+			return result(false, "삭제할 수 없는 메시지예요.");
+		}
+		return delete(m);
+	}
+
+	/** 관리자가 관리자 메시지 고치기 */
+	@Transactional
+	public Map<String, Object> adminEdit(long roomId, long messageId, String text) {
+		ChatMessage m = chats.findMessage(messageId);
+		if (m == null || m.getRoomId() != roomId || !"03".equals(m.getSenderType())) {
+			return result(false, "고칠 수 없는 메시지예요.");
+		}
+		return edit(m, text);
+	}
+
+	@Transactional
+	public Map<String, Object> adminDelete(long roomId, long messageId) {
+		ChatMessage m = chats.findMessage(messageId);
+		if (m == null || m.getRoomId() != roomId || !"03".equals(m.getSenderType())) {
+			return result(false, "삭제할 수 없는 메시지예요.");
+		}
+		return delete(m);
+	}
+
+	private Map<String, Object> edit(ChatMessage m, String text) {
+		String block = editBlock(m, java.time.LocalDateTime.now());
+		String t = text == null ? "" : text.trim();
+		if (block != null) return result(false, block);
+		if (t.isEmpty()) return result(false, "내용을 입력해 주세요.");
+		// 답장 인용은 그대로 두고 본문만 바꿈
+		String[] parts = splitReply(m.getContent());
+		String body = parts[0] == null ? t : REPLY_MARK + parts[0] + "\n" + t;
+		chats.editMessage(m.getMessageId(), cut(body, 1000));
+		return result(true, "메시지를 고쳤어요.");
+	}
+
+	private Map<String, Object> delete(ChatMessage m) {
+		String block = deleteBlock(m, java.time.LocalDateTime.now());
+		if (block != null) return result(false, block);
+		return chats.deleteMessage(m.getMessageId()) > 0 ? result(true, "메시지를 삭제했어요.")
+				: result(false, "상대방이 이미 읽어서 삭제할 수 없어요.");
 	}
 
 	/** 저장된 내용 → [인용, 본문] */
@@ -208,27 +354,50 @@ public class ChatService {
 	/* ---------- 고객 채팅 ---------- */
 
 	private Map<String, Object> view(ChatMessage m) {
+		java.time.LocalDateTime now = java.time.LocalDateTime.now();
+		boolean mine = "01".equals(m.getSenderType());
+		boolean deleted = m.getDeletedAt() != null;
 		Map<String, Object> v = new LinkedHashMap<>();
 		v.put("id", m.getMessageId());
 		v.put("role", switch (m.getSenderType()) { case "01" -> "user"; case "03" -> "admin"; default -> "bot"; });
-		v.put("text", splitReply(m.getContent())[1]);
-		v.put("file", m.getAttachmentName());
+		v.put("text", deleted ? "" : splitReply(m.getContent())[1]);
+		v.put("file", deleted ? null : m.getAttachmentName());
+		v.put("fileUrl", deleted ? null : m.getAttachmentPath());
+		v.put("fileKind", deleted ? "" : fileKind(m));
 		v.put("time", m.getSentAt().format(HM));
+		v.put("edited", m.getEditedAt() != null);
+		v.put("deleted", deleted);
+		v.put("mine", mine);
+		// 고객 자기 메시지: 고치기 · 지우기가 안 되면 그 이유 (되면 null)
+		v.put("editBlock", mine ? editBlock(m, now) : "내 메시지만 고칠 수 있어요.");
+		v.put("deleteBlock", mine ? deleteBlock(m, now) : "내 메시지만 삭제할 수 있어요.");
 		return v;
 	}
 
-	/** 진행 중인 상담 내용 */
+	/** 진행 중인 상담 내용 (보는 순간 상담사 메시지는 읽음) */
+	@Transactional
 	public List<Map<String, Object>> customerThread(long memberId) {
 		ChatRoomLine room = chats.findOpenRoom(memberId);
-		return room == null ? List.of() : chats.listMessages(room.getRoomId(), 0).stream().map(this::view).toList();
+		if (room == null) return List.of();
+		chats.markAdminRead(room.getRoomId());
+		return chats.listMessages(room.getRoomId(), 0).stream().map(this::view).toList();
 	}
 
-	/** 상담사 답장만 (after 이후) */
-	public List<Map<String, Object>> customerUpdates(long memberId, long after) {
+	/** 상담사 새 답장(after 이후)과 모든 메시지의 지금 상태 (수정 · 삭제 · 읽음 반영) */
+	@Transactional
+	public Map<String, Object> customerUpdates(long memberId, long after) {
 		ChatRoomLine room = chats.findOpenRoom(memberId);
-		return room == null ? List.of()
-				: chats.listMessages(room.getRoomId(), after).stream().filter(m -> "03".equals(m.getSenderType()))
-						.map(this::view).toList();
+		Map<String, Object> out = new LinkedHashMap<>();
+		if (room == null) {
+			out.put("messages", List.of());
+			out.put("states", List.of());
+			return out;
+		}
+		chats.markAdminRead(room.getRoomId());
+		List<Map<String, Object>> all = chats.listMessages(room.getRoomId(), 0).stream().map(this::view).toList();
+		out.put("messages", all.stream().filter(v -> "admin".equals(v.get("role")) && (Long) v.get("id") > after).toList());
+		out.put("states", all);
+		return out;
 	}
 
 	/**
@@ -250,6 +419,11 @@ public class ChatService {
 			room.setStatus(BOT);
 		}
 		long roomId = room.getRoomId();
+		if (file != null && !file.isEmpty() && fileProblem(file) != null) {
+			Map<String, Object> bad = new LinkedHashMap<>();
+			bad.put("error", fileProblem(file));
+			return bad;
+		}
 		String value = text == null ? "" : text.trim();
 		ChatMessage m = new ChatMessage();
 		m.setRoomId(roomId);
@@ -302,6 +476,8 @@ public class ChatService {
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("id", m.getMessageId());
+		result.put("fileUrl", m.getAttachmentPath());
+		result.put("fileKind", fileKind(m));
 		if (reply != null) {
 			ChatMessage bot = new ChatMessage();
 			bot.setRoomId(roomId);

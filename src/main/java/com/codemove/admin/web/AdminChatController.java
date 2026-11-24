@@ -94,11 +94,33 @@ public class AdminChatController {
 		return "admin/chat-detail";
 	}
 
+	/** 답장 (사진 · 동영상 · PDF 첨부 가능) */
 	@PostMapping("/chats/{id}/messages")
-	public String send(@PathVariable long id, @RequestParam String text, @RequestParam(defaultValue = "") String replyTo,
-			@RequestParam(defaultValue = "") String from, HttpSession session) {
-		chats.adminSend(id, text, replyTo, AdminSession.adminId(session));
+	public String send(@PathVariable long id, @RequestParam(defaultValue = "") String text,
+			@RequestParam(defaultValue = "") String replyTo, @RequestParam(defaultValue = "") String from,
+			@RequestParam(required = false) org.springframework.web.multipart.MultipartFile file, HttpSession session,
+			org.springframework.web.servlet.mvc.support.RedirectAttributes ra) {
+		try {
+			chats.adminSend(id, text, replyTo, AdminSession.adminId(session), file);
+		} catch (IllegalArgumentException e) {
+			ra.addFlashAttribute("chatError", e.getMessage());
+		}
 		return "redirect:/admin/chats/" + id + (from.isEmpty() ? "" : "?from=" + from);
+	}
+
+	/** 관리자 메시지 고치기 (보낸 지 하루 안) */
+	@PostMapping("/chats/{id}/messages/{messageId}/edit")
+	@org.springframework.web.bind.annotation.ResponseBody
+	public java.util.Map<String, Object> edit(@PathVariable long id, @PathVariable long messageId,
+			@RequestParam(defaultValue = "") String text) {
+		return chats.adminEdit(id, messageId, text);
+	}
+
+	/** 관리자 메시지 지우기 (보낸 지 하루 안 · 고객이 아직 안 읽음) */
+	@PostMapping("/chats/{id}/messages/{messageId}/delete")
+	@org.springframework.web.bind.annotation.ResponseBody
+	public java.util.Map<String, Object> delete(@PathVariable long id, @PathVariable long messageId) {
+		return chats.adminDelete(id, messageId);
 	}
 
 	/* ---------- 채팅 운영 설정 ---------- */

@@ -2457,3 +2457,31 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 .cl-add input { min-width: 0; flex: 1; height: 42px; padding: 0 14px; box-sizing: border-box; border: 1.5px solid #e3e7e3; border-radius: 12px; font: inherit; font-size: 14px; }
 .cl-add input:focus { outline: 2px solid var(--green); outline-offset: 0; border-color: transparent; }
 .cl-add .action { flex: none; height: 42px; padding: 0 16px; border-radius: 12px; background: var(--green-pale); color: var(--green); font-family: "Pretendard:Bold"; font-size: 14px; }
+
+/* ==================================================
+   상담: 사진 · 동영상 첨부, 수정 · 삭제 (2026-11-25)
+   ================================================== */
+.chat-message-body { display: flex; flex-direction: column; gap: 6px; }
+.chat-message-wrap.user .chat-message-body { align-items: flex-end; }
+.chat-photo { display: block; max-width: 220px; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgb(26 58 30 / .12); background: var(--surface); }
+.chat-photo img { display: block; width: 100%; max-height: 280px; object-fit: cover; }
+.chat-video { display: block; width: 240px; max-width: 100%; max-height: 320px; border-radius: 14px; background: #000; }
+a.chat-file-message { color: inherit; text-decoration: none; }
+.message.deleted { background: transparent !important; border: 1px dashed #cfd6cf; color: #9aa29c !important; font-style: italic; box-shadow: none; }
+.chat-message-wrap.user .chat-message-content { -webkit-touch-callout: none; user-select: none; }
+
+.chat-menu { position: absolute; z-index: 40; min-width: 120px; padding: 6px; border-radius: 14px; background: var(--white); box-shadow: 0 12px 32px rgb(26 58 30 / .2); display: flex; flex-direction: column; }
+.chat-menu[hidden] { display: none; }
+.chat-menu .action { min-height: 40px; padding: 0 14px; border-radius: 10px; text-align: left; color: var(--ink); font-family: "Pretendard:SemiBold"; font-size: 14.5px; }
+.chat-menu .action:hover { background: var(--surface); }
+.chat-menu .action.danger { color: #c4554c; }
+.chat-menu .action.blocked { color: #b7bdb8; }
+
+.chat-edit-sheet { position: fixed; z-index: 61; left: 50%; top: 50%; width: min(360px, calc(100vw - 32px)); padding: 22px 20px 18px; box-sizing: border-box; border-radius: 22px; background: var(--white); transform: translate(-50%, -50%); display: flex; flex-direction: column; gap: 10px; box-shadow: 0 24px 64px rgb(0 0 0 / .22); }
+.chat-edit-sheet[hidden] { display: none; }
+.chat-edit-sheet strong { color: var(--ink); font-family: "Pretendard:Bold"; font-size: 17px; }
+.chat-edit-sheet textarea { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1.5px solid #e3e7e3; border-radius: 14px; font: inherit; font-size: 15px; line-height: 1.5; resize: none; }
+.chat-edit-sheet textarea:focus { outline: 2px solid var(--green); border-color: transparent; }
+.chat-edit-sheet small { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.chat-edit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chat-edit-actions .action { min-height: 46px; border-radius: 14px; font-family: "Pretendard:Bold"; font-size: 15px; }

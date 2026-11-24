@@ -3,7 +3,25 @@
 <body>
 <!-- 채팅 상세 (SCR-A-007) -->
 <th:block th:fragment="content">
-<div class="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#f5f6f8]" data-chat-detail>
+<div class="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#f5f6f8]" data-chat-detail
+	 th:data-messages-url="@{/admin/chats/{id}/messages(id=${room.id})}">
+	<!-- 관리자 메시지 메뉴 (꾹 누르기 · 오른쪽 클릭) -->
+	<div class="absolute z-40 flex min-w-[120px] flex-col rounded-xl border border-[#e2e7e2] bg-white p-1.5 shadow-[0_12px_32px_rgba(34,53,37,.18)]" role="menu" data-msg-menu hidden>
+		<button type="button" role="menuitem" class="rounded-lg px-3 py-2.5 text-left text-[15px] font-semibold text-[#303832] hover:bg-[#f5f6f5]" data-menu-edit>수정</button>
+		<button type="button" role="menuitem" class="rounded-lg px-3 py-2.5 text-left text-[15px] font-semibold text-[#c4554c] hover:bg-[#fbefed]" data-menu-delete>삭제</button>
+	</div>
+	<!-- 메시지 수정 -->
+	<div class="absolute inset-0 z-50 grid place-items-center bg-[#1f2d21]/45 p-6" data-msg-edit hidden>
+		<div class="w-full max-w-[360px] rounded-[20px] bg-white p-5 shadow-2xl">
+			<h3 class="text-[17px] font-extrabold text-[#303832]">메시지 수정</h3>
+			<textarea class="mt-3 w-full resize-none rounded-xl border border-[#dfe4df] p-3 text-[15px] leading-6 outline-none focus:border-[#346538]" rows="4" maxlength="1000" aria-label="고칠 내용" data-msg-edit-text></textarea>
+			<p class="mt-1 text-[13px] text-[#8b928d]">보낸 지 하루가 지나면 고칠 수 없어요. 고객에게는 '수정됨'으로 보여요.</p>
+			<div class="mt-4 grid grid-cols-2 gap-2">
+				<button type="button" class="h-11 rounded-xl border border-[#d9ded9] bg-white text-[15px] font-bold text-[#69716b]" data-msg-edit-close>취소</button>
+				<button type="button" class="h-11 rounded-xl bg-[#346538] text-[15px] font-bold text-white" data-msg-edit-save>저장</button>
+			</div>
+		</div>
+	</div>
 	<header class="flex h-14 shrink-0 items-center justify-between border-b border-[#e8ece8] bg-white px-3">
 		<div class="flex min-w-0 items-center gap-1">
 			<a aria-label="채팅 목록으로 돌아가기" class="grid h-10 w-9 shrink-0 place-items-center rounded-full text-[#3f4941] hover:bg-[#f2f5f2]" th:href="@{${backUrl}}">
@@ -47,14 +65,30 @@
 		<div class="space-y-4">
 			<div th:each="m : ${messages}" th:with="isCustomer=${m.role == 'customer'}"
 				 class="flex max-w-[84%] flex-col gap-1" th:classappend="${isCustomer} ? 'items-start' : 'ml-auto items-end'"
-				 th:data-role="${m.role}" th:data-waiting="${m.waiting}" th:data-text="${m.text}" data-msg>
+				 th:data-role="${m.role}" th:data-waiting="${m.waiting}" th:data-text="${m.text}" data-msg
+				 th:data-msg-id="${m.id}" th:data-edit-block="${m.editBlock}" th:data-delete-block="${m.deleteBlock}" th:data-deleted="${m.deleted}">
 				<span th:unless="${isCustomer}" class="text-[14px] font-bold" th:classappend="${m.role == 'ai'} ? 'text-[#6c7d6e]' : 'text-[#346538]'"
 					  th:text="${m.role == 'ai'} ? 'AI' : '관리자'">AI</span>
-				<div class="rounded-2xl p-3 text-[16px] leading-5 shadow-sm"
-					 th:classappend="${m.waiting} ? 'border border-[#efc4bf] bg-[#fff0ee] text-[#a44038]' : (${isCustomer} ? 'rounded-tl-md bg-white text-[#343b36]' : (${m.role == 'ai'} ? 'rounded-tr-md bg-[#e8efe8] text-[#355639]' : 'rounded-tr-md bg-[#346538] text-white'))">
-					<span th:if="${m.replyTo}" class="mb-2 block rounded-lg border-l-2 border-[#d8b65d] bg-white/20 px-2 py-1 text-[15px] opacity-90" th:text="${m.replyTo}"></span>
-					<th:block th:text="${m.text}"></th:block>
-				</div>
+				<!-- 지운 메시지 -->
+				<div th:if="${m.deleted}" class="rounded-2xl border border-dashed border-[#cfd6cf] px-3 py-2 text-[15px] italic text-[#9aa29c]">삭제된 메시지예요</div>
+				<th:block th:unless="${m.deleted}">
+					<div th:unless="${#strings.isEmpty(m.text)}" class="whitespace-pre-line rounded-2xl p-3 text-[16px] leading-5 shadow-sm" data-msg-bubble
+						 th:classappend="${m.waiting} ? 'border border-[#efc4bf] bg-[#fff0ee] text-[#a44038]' : (${isCustomer} ? 'rounded-tl-md bg-white text-[#343b36]' : (${m.role == 'ai'} ? 'rounded-tr-md bg-[#e8efe8] text-[#355639]' : 'rounded-tr-md bg-[#346538] text-white'))">
+						<span th:if="${m.replyTo}" class="mb-2 block rounded-lg border-l-2 border-[#d8b65d] bg-white/20 px-2 py-1 text-[15px] opacity-90" th:text="${m.replyTo}"></span>
+						<th:block th:text="${m.text}"></th:block>
+					</div>
+					<!-- 첨부: 사진 · 동영상은 바로 보이게, PDF 는 파일 이름 -->
+					<a th:if="${m.fileKind == 'image'}" th:href="@{${m.file}}" target="_blank" rel="noopener" class="block max-w-[240px] overflow-hidden rounded-2xl shadow-sm" data-msg-bubble>
+						<img class="block max-h-[280px] w-full object-cover" th:src="@{${m.file}}" th:alt="${m.fileName}" loading="lazy"></a>
+					<video th:if="${m.fileKind == 'video'}" class="block max-h-[320px] w-[260px] max-w-full rounded-2xl bg-black" controls preload="metadata" playsinline th:src="@{${m.file}}" data-msg-bubble></video>
+					<a th:if="${m.fileKind == 'file'}" th:href="@{${m.file}}" target="_blank" rel="noopener" data-msg-bubble
+					   class="flex max-w-[240px] items-center gap-2 rounded-xl bg-[#e7eee8] px-3 py-2 text-[14px] font-semibold text-[#4f6652]">
+						<svg th:replace="~{admin/fragments/icon :: icon('document', 15, 'shrink-0')}"></svg><span class="truncate" th:text="${m.fileName}">파일</span></a>
+				</th:block>
+				<span class="text-[12px] text-[#9aa29c]" th:if="${m.role == 'admin'}"
+					  th:text="${m.time} + (${m.edited and !m.deleted} ? ' · 수정됨' : '') + (${m.read} ? ' · 읽음' : ' · 안 읽음')">10:00 · 읽음</span>
+				<span class="text-[12px] text-[#9aa29c]" th:if="${m.role == 'customer'}"
+					  th:text="${m.time} + (${m.edited and !m.deleted} ? ' · 수정됨' : '')">10:00</span>
 				<span th:if="${m.waiting}" class="flex items-center gap-1 text-[14px] font-semibold text-[#ba554c]">답변 대기 · 왼쪽으로 밀어 답장</span>
 			</div>
 			<div class="py-16 text-center" data-msg-empty hidden>
@@ -65,8 +99,16 @@
 	</div>
 
 	<form class="shrink-0 border-t border-[#e1e6e1] bg-white px-3 pb-3 pt-2 shadow-[0_-4px_16px_rgba(36,58,39,.06)]"
-		  method="post" th:action="@{/admin/chats/{id}/messages(id=${room.id})}" data-send>
+		  method="post" enctype="multipart/form-data" th:action="@{/admin/chats/{id}/messages(id=${room.id})}" data-send>
 		<input type="hidden" name="from" th:value="${from}">
+		<p th:if="${chatError}" class="mb-2 rounded-xl bg-[#fff0ee] px-3 py-2 text-[14px] font-semibold text-[#a44038]" th:text="${chatError}">오류</p>
+		<!-- 첨부한 파일 -->
+		<div class="mb-2 flex items-center gap-2 rounded-xl bg-[#edf3ed] px-3 py-2" data-file-chip hidden>
+			<svg th:replace="~{admin/fragments/icon :: icon('document', 15, 'shrink-0 text-[#346538]')}"></svg>
+			<span class="min-w-0 flex-1 truncate text-[14px] font-semibold text-[#346538]" data-file-name></span>
+			<button aria-label="첨부 취소" class="grid h-7 w-7 place-items-center rounded-full text-[#5d6b5f]" type="button" data-file-cancel>
+				<svg th:replace="~{admin/fragments/icon :: icon2('x', 15, '')}"></svg></button>
+		</div>
 		<input type="hidden" name="replyTo" data-reply-value>
 		<div class="mb-2 flex items-center gap-2 rounded-xl border-l-4 border-[#d6b24e] bg-[#fff8df] px-3 py-2" data-reply hidden>
 			<div class="min-w-0 flex-1">
@@ -76,7 +118,10 @@
 			<button aria-label="답장 취소" class="grid h-7 w-7 place-items-center rounded-full text-[#7a704f]" type="button" data-reply-cancel>
 				<svg th:replace="~{admin/fragments/icon :: icon2('x', 15, '')}"></svg></button>
 		</div>
-		<div class="flex items-center gap-2 rounded-full bg-[#f2f3f5] py-1.5 pl-4 pr-1.5">
+		<div class="flex items-center gap-2 rounded-full bg-[#f2f3f5] py-1.5 pl-1.5 pr-1.5">
+			<button aria-label="사진 · 동영상 첨부" class="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#5d6b5f] hover:bg-white" type="button" data-file-pick>
+				<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.4 11.1-8.9 8.9a5.5 5.5 0 0 1-7.8-7.8l8.9-8.9a3.7 3.7 0 0 1 5.2 5.2l-8.9 8.9a1.8 1.8 0 0 1-2.6-2.6l8.2-8.2"/></svg></button>
+			<input type="file" name="file" accept="image/*,video/*,.pdf" hidden data-file-input>
 			<input aria-label="메시지 입력" class="min-w-0 flex-1 bg-transparent py-2 text-[15px] text-[#29302b] outline-none placeholder:text-[#9ca29e]" name="text" placeholder="메시지를 입력하세요" autocomplete="off" data-draft>
 			<button aria-label="메시지 전송" class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#346538] text-white transition disabled:bg-[#b8c2b9]" type="submit" disabled data-send-btn>
 				<svg th:replace="~{admin/fragments/icon :: icon2('send', 17, '')}"></svg></button>
@@ -137,8 +182,88 @@
 			m.addEventListener('touchend', (e) => end(e.changedTouches[0].clientX));
 		});
 
+		/* 첨부: 사진 · 동영상 · PDF (100MB 까지) */
 		const draft = $('[data-draft]');
-		draft.addEventListener('input', () => ($('[data-send-btn]').disabled = !draft.value.trim()));
+		const fileInput = $('[data-file-input]');
+		const refresh = () => ($('[data-send-btn]').disabled = !draft.value.trim() && !(fileInput.files && fileInput.files.length));
+		draft.addEventListener('input', refresh);
+		$('[data-file-pick]').addEventListener('click', () => fileInput.click());
+		fileInput.addEventListener('change', () => {
+			const f = fileInput.files[0];
+			if (f && f.size > 100 * 1024 * 1024) { alert('100MB 보다 작은 파일만 보낼 수 있어요.'); fileInput.value = ''; }
+			$('[data-file-chip]').hidden = !fileInput.files.length;
+			$('[data-file-name]').textContent = fileInput.files.length ? fileInput.files[0].name : '';
+			refresh();
+		});
+		$('[data-file-cancel]').addEventListener('click', () => { fileInput.value = ''; $('[data-file-chip]').hidden = true; refresh(); });
+		$('[data-send]').addEventListener('submit', () => {
+			const b = $('[data-send-btn]');
+			setTimeout(() => (b.disabled = true), 0);
+		});
+
+		/* 관리자 메시지: 꾹 누르거나 오른쪽 클릭 → 수정 · 삭제 (하루 안, 삭제는 고객이 읽기 전까지) */
+		const menu = $('[data-msg-menu]');
+		let target = null;
+		const closeMenu = () => { menu.hidden = true; target = null; };
+		document.addEventListener('click', (e) => { if (!menu.contains(e.target)) closeMenu(); });
+		let openedAt = 0;
+		area.addEventListener('scroll', () => { if (Date.now() - openedAt > 400) closeMenu(); }, { passive: true });
+		const openMenu = (m, x, y) => {
+			if (m.dataset.deleted === 'true') return;
+			target = m;
+			openedAt = Date.now();
+			menu.querySelector('[data-menu-edit]').classList.toggle('opacity-40', !!m.dataset.editBlock);
+			menu.querySelector('[data-menu-delete]').classList.toggle('opacity-40', !!m.dataset.deleteBlock);
+			menu.hidden = false;
+			const r = root.getBoundingClientRect();
+			menu.style.left = `${Math.max(8, Math.min(x - r.left - menu.offsetWidth + 12, r.width - menu.offsetWidth - 8))}px`;
+			menu.style.top = `${Math.min(y - r.top + 6, r.height - menu.offsetHeight - 80)}px`;
+		};
+		msgs.filter((m) => m.dataset.role === 'admin').forEach((m) => {
+			m.addEventListener('contextmenu', (e) => { e.preventDefault(); openMenu(m, e.clientX, e.clientY); });
+			let timer = null;
+			m.addEventListener('touchstart', (e) => {
+				const t = e.touches[0];
+				timer = setTimeout(() => openMenu(m, t.clientX, t.clientY), 500);
+			}, { passive: true });
+			['touchend', 'touchmove', 'touchcancel'].forEach((ev) => m.addEventListener(ev, () => clearTimeout(timer), { passive: true }));
+		});
+		const base = root.dataset.messagesUrl;
+		const post = (url, data) => fetch(url, {
+			method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body: new URLSearchParams(data || {}).toString(),
+		}).then((r) => (r.ok ? r.json() : Promise.reject(r)));
+		const edit = $('[data-msg-edit]');
+		menu.querySelector('[data-menu-edit]').addEventListener('click', (e) => {
+			e.stopPropagation();
+			const m = target;
+			closeMenu();
+			if (!m) return;
+			if (m.dataset.editBlock) { alert(m.dataset.editBlock); return; }
+			edit.dataset.id = m.dataset.msgId;
+			$('[data-msg-edit-text]').value = m.dataset.text;
+			edit.hidden = false;
+			$('[data-msg-edit-text]').focus();
+		});
+		root.querySelectorAll('[data-msg-edit-close]').forEach((b) => b.addEventListener('click', () => (edit.hidden = true)));
+		$('[data-msg-edit-save]').addEventListener('click', () => {
+			const text = $('[data-msg-edit-text]').value.trim();
+			if (!text) return;
+			post(`${base}/${edit.dataset.id}/edit`, { text })
+				.then((res) => { if (res.ok) location.reload(); else alert(res.message); })
+				.catch(() => alert('고치지 못했어요. 잠시 후 다시 시도해 주세요.'));
+		});
+		menu.querySelector('[data-menu-delete]').addEventListener('click', (e) => {
+			e.stopPropagation();
+			const m = target;
+			closeMenu();
+			if (!m) return;
+			if (m.dataset.deleteBlock) { alert(m.dataset.deleteBlock); return; }
+			if (!confirm('이 메시지를 삭제할까요? 고객에게는 삭제된 메시지로 보여요.')) return;
+			post(`${base}/${m.dataset.msgId}/delete`)
+				.then((res) => { if (res.ok) location.reload(); else alert(res.message); })
+				.catch(() => alert('삭제하지 못했어요. 잠시 후 다시 시도해 주세요.'));
+		});
 	})();
 </script>
 </th:block>
