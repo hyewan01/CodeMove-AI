@@ -78,7 +78,7 @@
 					</label>
 					<label class="mt-4 block">
 						<span class="mb-2 block text-[14px] leading-4 text-[#7e8680]">키워드 언급 시 고객에게 전달할 내용을 입력해주세요. (글자 수 제한 없음)</span>
-						<span class="mb-2 block text-[13px] leading-[18px] text-[#8a918c]">내용에 <b class="font-bold text-[#346538]">{예약가능날짜}</b>를 넣으면 답할 때 실제 예약 가능한 날짜(휴무·마감 반영)로 바뀌어요.</span>
+						<span class="mb-2 block text-[13px] leading-[18px] text-[#8a918c]">내용에 <b class="font-bold text-[#346538]">{예약가능날짜}</b>를 넣으면 답할 때 실제 예약 가능한 날짜(휴무·마감 반영)로, <b class="font-bold text-[#346538]">{손없는날}</b>은 물어본 달의 손 없는 날로 바뀌어요.</span>
 						<textarea class="h-28 w-full resize-none rounded-xl border border-[#dfe4df] bg-[#f7f8f7] p-3 text-[15px] leading-5 outline-none focus:border-[#89a18b]"
 								  th:name="'lorebooks[' + ${it.index} + '].content'" th:text="${entry.content}" placeholder="고객에게 전달할 답변을 입력하세요" data-lore-field="content"></textarea>
 					</label>

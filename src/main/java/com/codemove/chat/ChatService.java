@@ -52,6 +52,48 @@ public class ChatService {
 
 	/** 로어북 내용에 넣으면 답할 때 실제 예약 현황으로 바뀜 */
 	public static final String AVAILABLE_DATES = "{예약가능날짜}";
+	/** 물어본 달(또는 날짜)의 손 없는 날 */
+	public static final String NO_SON_DAYS = "{손없는날}";
+
+	/** 실시간 값이 들어가는 로어북인지 */
+	static boolean hasLive(String content) {
+		return content != null && (content.contains(AVAILABLE_DATES) || content.contains(NO_SON_DAYS));
+	}
+
+	String fillLive(String content, String question) {
+		String out = content;
+		if (out.contains(AVAILABLE_DATES)) out = out.replace(AVAILABLE_DATES, availableDates(question));
+		if (out.contains(NO_SON_DAYS)) out = out.replace(NO_SON_DAYS, noSonDays(question));
+		return out;
+	}
+
+	/** "11월 27일 손 없는 날이야?" → 그날, 아니면 물어본 달(이번 달은 오늘부터)의 손 없는 날 + 예약 상태 */
+	String noSonDays(String question) {
+		java.time.LocalDate today = java.time.LocalDate.now();
+		java.time.LocalDate day = askedDate(question, today);
+		if (day != null) {
+			String label = day.getMonthValue() + "월 " + day.getDayOfMonth() + "일(" + "일월화수목금토".charAt(day.getDayOfWeek().getValue() % 7) + ")";
+			String lunar = com.codemove.common.LunarDays.lunar(day).label();
+			return com.codemove.common.LunarDays.isNoSonDay(day)
+					? label + "은 손 없는 날이에요. (" + lunar + ")\n이사가 몰려 비용이 오르고 예약이 빨리 마감될 수 있어요."
+					: label + "은 손 없는 날이 아니에요. (" + lunar + ")";
+		}
+		java.time.LocalDate month = askedMonth(question, today);
+		boolean thisMonth = month.getYear() == today.getYear() && month.getMonthValue() == today.getMonthValue();
+		java.time.LocalDate from = thisMonth ? today : month, to = month.plusMonths(1);
+		Map<java.time.LocalDate, String> blocked = booking.blockedDates(from, to);
+		List<String> days = new ArrayList<>();
+		for (java.time.LocalDate d = from; d.isBefore(to); d = d.plusDays(1)) {
+			if (com.codemove.common.LunarDays.isNoSonDay(d)) {
+				String reason = blocked.get(d);
+				days.add("· " + d.getDayOfMonth() + "일(" + "일월화수목금토".charAt(d.getDayOfWeek().getValue() % 7) + ") "
+						+ com.codemove.common.LunarDays.lunar(d).label()
+						+ (reason == null ? "" : " · " + com.codemove.schedule.BookingService.label(reason)));
+			}
+		}
+		String title = month.getMonthValue() + "월 손 없는 날" + (thisMonth ? " (오늘부터)" : "");
+		return days.isEmpty() ? title + "\n· 남은 손 없는 날이 없어요." : title + "\n" + String.join("\n", days);
+	}
 
 	/** 질문에 "다음 달"이 있으면 다음 달, 아니면 이번 달(오늘부터). 이번 달에 남은 날이 3일보다 적으면 다음 달도 */
 	String availableDates(String question) {
@@ -630,9 +672,9 @@ public class ChatService {
 			Lorebook hit = "Y".equals(s.getBotEnabled()) ? matchLorebook(value) : null;
 			if (hit != null) {
 				String content = hit.getContent();
-				if (content != null && content.contains(AVAILABLE_DATES)) {
-					// 실시간 예약 현황 (관리자가 로어북 문구는 고칠 수 있음)
-					reply = new Reply(content.replace(AVAILABLE_DATES, availableDates(value)),
+				if (hasLive(content)) {
+					// 실시간 예약 현황 · 손 없는 날 (관리자가 로어북 문구는 고칠 수 있음)
+					reply = new Reply(fillLive(content, value),
 							List.of(action("날짜 골라 견적 받기", null, "quote"), action(CONSULT_MENU, CONSULT_MENU, null)), hit.getTopicId());
 				} else {
 					reply = new Reply(content, List.of(action(CONSULT_MENU, CONSULT_MENU, null)), hit.getTopicId());
