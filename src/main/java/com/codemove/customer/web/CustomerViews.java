@@ -24,6 +24,7 @@ import com.codemove.move.MoveService.CurrentMove;
 import com.codemove.move.Quote;
 import com.codemove.move.QuoteOption;
 import com.codemove.move.QuoteService;
+import com.codemove.move.Reservation;
 import com.codemove.move.Review;
 import com.codemove.notification.Notification;
 import com.codemove.notification.NotificationService;
@@ -79,7 +80,9 @@ public class CustomerViews {
 			boolean justNow) {
 	}
 
-	public record Alert(long id, String type, String title, String body, String time, boolean unread, String day) {
+	/** chat: 상담사 답변 (메신저 알림 모양), clock: 오후 6:31, greet: "김*완 님," */
+	public record Alert(long id, String type, String title, String body, String time, boolean unread, String day,
+			boolean chat, String clock, String greet, String link) {
 	}
 
 	/** 현재 이사 화면 묶음 (내 이사 · 견적 상세 · 예약 상세 · 예약내역 · 견적내역) */
@@ -87,7 +90,16 @@ public class CustomerViews {
 			List<QuoteRow> receiptRows, List<QuoteRow> moveInfoRows, List<QuoteRow> paymentRows,
 			List<DetectedItem> detectedItems, String cbmLabel, String analysisSec, String confidence, String issuedLabel,
 			String totalLabel, String routeLabel, String scheduleLabel, String depositLabel, String balanceLabel,
-			String expiresLabel, String dday, String arrivedSummary) {
+			String expiresLabel, String dday, String arrivedSummary, String rangeLabel, String memo) {
+	}
+
+	/**
+	 * 내 이사 > 예약 정보 요약 (관리자 예약 관리 상세와 같은 항목).
+	 * 견적 요청 때 날짜를 고르면 예약이 함께 만들어지므로 견적 검토 중에도 보임
+	 */
+	public record BookingSummary(String state, String reservationNo, String quoteNo, String appliedDate, String type,
+			String moveDate, String moveTime, String from, String to, String deposit, String payStatus, String memo,
+			boolean confirmed) {
 	}
 
 	/** 후기 작성 대상 이사 */
@@ -178,7 +190,7 @@ public class CustomerViews {
 		Quote q = c.quote();
 		if (r == null) {
 			return new MoveView("none", null, null, null, List.of(), List.of(), List.of(), List.of(), "", "", "", "", "",
-					"", "", "", "", "", "", "");
+					"", "", "", "", "", "", "", "", "");
 		}
 		LocalDate date = c.reservation() != null ? c.reservation().getMoveDate()
 				: q != null && q.getWorkDate() != null ? q.getWorkDate() : r.getMoveDate();
@@ -200,10 +212,15 @@ public class CustomerViews {
 						String.format("%.1f", i.getVolume() == null ? 0 : i.getVolume())))
 				.toList();
 		String cbm = r.getAiCbm() == null ? "-" : String.format("%.1f CBM", r.getAiCbm());
+		// 고객이 신청할 때 본 예상 범위 · 남긴 요청 (귀중품 · 요청 사항)
+		String range = r.getAiEstMin() == null || r.getAiEstMax() == null ? ""
+				: Fmt.money(r.getAiEstMin()) + " ~ " + Fmt.money(r.getAiEstMax()) + "원";
+		String memo = c.reservation() != null && c.reservation().getMoveMemo() != null ? c.reservation().getMoveMemo()
+				: "";
 
 		if (q == null) {
 			return new MoveView(c.status(), booking, null, null, List.of(), List.of(), List.of(), detected, cbm, "", "", "",
-					"", route, schedule, "", "", "", booking.dday(), "");
+					"", route, schedule, "", "", "", booking.dday(), "", range, memo);
 		}
 		long total = nz(q.getTotalAmount());
 		long fromLadder = nz(q.getFromLadderCost()), toLadder = nz(q.getToLadderCost());
@@ -235,7 +252,37 @@ public class CustomerViews {
 				r.getAiAnalysisSec() == null ? "-" : r.getAiAnalysisSec() + "초",
 				r.getAiConfidence() == null ? "-" : r.getAiConfidence() + "%",
 				Fmt.dot(q.getEstimateDate()) + " 발행", totalLabel, route, schedule, deposit, balance, expires,
-				booking.dday(), arrived);
+				booking.dday(), arrived, range, memo);
+	}
+
+	/** 예약 정보 탭 요약. 진행 중인 예약(STATUS 01)이 없으면 null */
+	public BookingSummary bookingSummary(CurrentMove c) {
+		MoveRequest r = c.request();
+		Reservation v = c.reservation();
+		if (r == null || v == null || !MoveService.BOOKED.equals(v.getStatus())) {
+			return null;
+		}
+		Quote q = c.quote();
+		String qs = q == null ? QuoteService.REVIEWING : q.getStatus();
+		String state = switch (qs) {
+			case QuoteService.APPROVED -> "견적 도착";
+			case QuoteService.CONFIRMED -> "예약 확정";
+			default -> "견적 검토 중";
+		};
+		long deposit = q != null && q.getDepositAmount() != null ? q.getDepositAmount()
+				: r.getAiEstAmount() == null ? 0 : r.getAiEstAmount() / 10;
+		String pay = switch (v.getPayStatus() == null ? "" : v.getPayStatus()) {
+			case "02" -> "결제 완료";
+			case "03" -> "결제 취소";
+			default -> "결제 대기";
+		};
+		return new BookingSummary(state, nz(v.getReservationNo()), q == null ? "-" : nz(q.getQuoteNo()),
+				v.getAppliedAt() == null ? "-" : Fmt.dot(v.getAppliedAt().toLocalDate()),
+				typeLabel(r.getHouseType(), r.getPackType()),
+				v.getMoveDate() == null ? "미정" : Fmt.dot(v.getMoveDate()) + " (" + Fmt.weekday(v.getMoveDate()) + ")",
+				Fmt.ampm(v.getMoveTime()), full(r.getFromAddress(), r.getFromDetail()), full(r.getToAddress(), r.getToDetail()),
+				Fmt.money(deposit) + "원", pay, v.getMoveMemo() == null ? "" : v.getMoveMemo(),
+				QuoteService.CONFIRMED.equals(qs));
 	}
 
 	public VendorDoc vendorDoc(Quote q) {
@@ -363,9 +410,30 @@ public class CustomerViews {
 	}
 
 	public List<Alert> alerts(long memberId) {
+		Member m = members.find(memberId);
+		String greet = maskName(m == null ? "" : m.getMemberName()) + " 님,";
 		return notifications.memberAlerts(memberId).stream().map((Notification n) -> new Alert(n.getNotificationId(),
 				alertType(n.getNtfDetail()), n.getNtfTitle(), n.getNtfContent(), ago(n.getCreatedAt()), "N".equals(n.getIsRead()),
-				dayGroup(n.getCreatedAt()))).toList();
+				dayGroup(n.getCreatedAt()), CHAT_REPLY.equals(n.getNtfDetail() == null ? "" : n.getNtfDetail().trim()),
+				clock(n.getCreatedAt()), greet, n.getLinkUrl())).toList();
+	}
+
+	/** 상담사 답변 알림 (ChatService.adminSend) → 메신저 알림 모양 */
+	static final String CHAT_REPLY = "15";
+
+	/** 김혜완 → 김*완, 홍길 → 홍*, 남궁민수 → 남**수 */
+	static String maskName(String name) {
+		String n = name == null ? "" : name.strip();
+		if (n.length() <= 1) return n.isEmpty() ? "고객" : n;
+		if (n.length() == 2) return n.charAt(0) + "*";
+		return n.charAt(0) + "*".repeat(n.length() - 2) + n.charAt(n.length() - 1);
+	}
+
+	/** 오후 6:31 */
+	private static String clock(LocalDateTime t) {
+		if (t == null) return "";
+		int h = t.getHour();
+		return (h < 12 ? "오전 " : "오후 ") + (h % 12 == 0 ? 12 : h % 12) + ":" + String.format("%02d", t.getMinute());
 	}
 
 	/* ---------- 도우미 ---------- */

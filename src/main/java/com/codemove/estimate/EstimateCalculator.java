@@ -68,9 +68,35 @@ public final class EstimateCalculator {
 	}
 
 	/** 출발지·도착지 한 곳: 층수 + 나르는 방법 (모르면 null) */
-	public record Site(Integer floor, Carry carry) {
+	public record Site(Integer floor, java.util.Set<Carry> carries) {
 
-		public static final Site UNKNOWN = new Site(null, null);
+		public static final Site UNKNOWN = new Site(null, java.util.Set.of());
+
+		public Site {
+			carries = carries == null || carries.isEmpty() ? java.util.Set.of()
+					: java.util.Collections.unmodifiableSet(java.util.EnumSet.copyOf(carries));
+		}
+
+		/** 한 가지 방법만 고른 경우 */
+		public Site(Integer floor, Carry carry) {
+			this(floor, carry == null ? java.util.Set.<Carry>of() : java.util.EnumSet.of(carry));
+		}
+
+		public boolean has(Carry c) {
+			return carries.contains(c);
+		}
+
+		/** "E", "E,L" 처럼 여러 개 (고객은 큰 짐은 사다리차, 나머지는 엘리베이터처럼 여러 방법을 고를 수 있음) */
+		public static java.util.Set<Carry> parse(String codes) {
+			java.util.Set<Carry> out = java.util.EnumSet.noneOf(Carry.class);
+			for (String c : (codes == null ? "" : codes).split(",")) {
+				Carry x = Carry.of(c);
+				if (x != null) {
+					out.add(x);
+				}
+			}
+			return out;
+		}
 	}
 
 	/**
@@ -274,11 +300,11 @@ public final class EstimateCalculator {
 		site("출발지", cond.from(), t, fees, notes);
 		site("도착지", cond.to(), t, fees, notes);
 		Site from = cond.from() == null ? Site.UNKNOWN : cond.from(), to = cond.to() == null ? Site.UNKNOWN : cond.to();
-		if (from.carry() == Carry.ELEVATOR || to.carry() == Carry.ELEVATOR) {
+		if (from.has(Carry.ELEVATOR) || to.has(Carry.ELEVATOR)) {
 			notes.add("엘리베이터 이용료(보통 " + Math.round(t.rule("엘리베이터이용료최소") / 10_000) + "만~"
 					+ Math.round(t.rule("엘리베이터이용료최대") / 10_000) + "만 원)는 관리사무소에 따로 내요. 미리 예약해 주세요.");
 		}
-		if (from.carry() == null || to.carry() == null) {
+		if (from.carries().isEmpty() || to.carries().isEmpty()) {
 			notes.add("층수와 나르는 방법(엘리베이터·사다리차·계단)에 따라 사다리차 요금이나 인력이 더해질 수 있어요.");
 		}
 
@@ -371,15 +397,17 @@ public final class EstimateCalculator {
 
 	/** 출발지·도착지 한 곳의 사다리차 · 계단 인력 */
 	private static void site(String where, Site s, Tables t, List<Fee> fees, List<String> notes) {
-		if (s == null || s.floor() == null || s.floor() <= 1 || s.carry() == null) {
+		if (s == null || s.floor() == null || s.floor() <= 1 || s.carries().isEmpty()) {
 			return;
 		}
-		if (s.carry() == Carry.LADDER) {
+		// 여러 방법을 고르면 고른 방법마다 더함 (예: 큰 짐은 사다리차 + 나머지는 계단)
+		if (s.has(Carry.LADDER)) {
 			long amount = ladder(s.floor(), t, notes);
 			if (amount > 0) {
 				fees.add(new Fee(where + " 사다리차 " + s.floor() + "층", amount, amount, null));
 			}
-		} else if (s.carry() == Carry.STAIRS) {
+		}
+		if (s.has(Carry.STAIRS)) {
 			// 계단: 층 3개마다 인력 1명 (아정당: 1명 15~20만 원, 층수에 따라 늘어남)
 			int people = (int) Math.ceil((s.floor() - 1) / t.rule("계단층당인력"));
 			fees.add(new Fee(where + " 계단 " + s.floor() + "층", won(people * t.rule("계단인력최소")),

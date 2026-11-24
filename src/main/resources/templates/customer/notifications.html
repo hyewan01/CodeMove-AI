@@ -25,7 +25,23 @@
 			<p class="ntf-group-title" th:text="${g.key}">이번 주</p>
 			<div class="ntf-card">
 		<th:block th:each="n : ${g.value}">
-		<button type="button" class="action notification-row"
+		<!-- 상담사 답변: 메신저 알림 모양 (앱 아이콘 · 업체명 · 시각 / 이름 님, / 답변 첫 줄…) → 누르면 상담 화면 -->
+		<button type="button" class="action ntf-chat" th:if="${n.chat}"
+				th:classappend="${n.unread} ? 'unread'" th:aria-label="'상담 답변: ' + ${n.body}"
+				th:data-ntf-id="${n.id}" th:data-ntf-type="${n.type}" th:data-ntf-link="@{${n.link != null ? n.link : '/chat'}}">
+			<span class="ntf-chat-app" aria-hidden="true">
+				<svg viewBox="0 0 44 44" fill="none"><rect width="44" height="44" rx="13" fill="#346538"/><path d="M12 22.5 22 14l10 8.5V31a2 2 0 0 1-2 2H14a2 2 0 0 1-2-2v-8.5Z" fill="#e8e8cd"/><path d="M17.5 25.5c1.2 1.6 2.7 2.4 4.5 2.4s3.3-.8 4.5-2.4" stroke="#346538" stroke-width="2" stroke-linecap="round"/></svg>
+				<b>TALK</b>
+			</span>
+			<span class="ntf-chat-copy">
+				<span class="ntf-chat-top"><strong>명품익스프레스</strong><small th:text="${n.clock}">오후 6:31</small></span>
+				<span class="ntf-chat-greet" th:text="${n.greet}">김*완 님,</span>
+				<span class="ntf-chat-text" th:text="${n.body}">상담 답변 내용</span>
+			</span>
+			<svg class="ntf-chat-chevron" aria-hidden="true" viewBox="0 0 16 16" width="16" height="16"><path d="m3.5 6 4.5 4.5L12.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			<i th:if="${n.unread}" aria-label="안 읽음"></i>
+		</button>
+		<button type="button" class="action notification-row" th:unless="${n.chat}"
 				th:classappend="${n.unread} ? 'unread'"
 				th:aria-label="${n.title}" th:data-ntf-id="${n.id}" th:data-ntf-type="${n.type}">
 			<div class="notification-type-icon" th:switch="${n.type}">
@@ -94,11 +110,13 @@
 		const rows = root.querySelectorAll('[data-ntf-id]');
 		/* 알림 읽음 처리 */
 		rows.forEach((row) => row.addEventListener('click', () => {
-			if (!row.classList.contains('unread')) return;
+			const go = () => { if (row.dataset.ntfLink) location.href = row.dataset.ntfLink; };
+			if (!row.classList.contains('unread')) { go(); return; }
 			row.classList.remove('unread');
 			const dot = row.querySelector(':scope > i');
 			if (dot) dot.remove();
-			fetch(`${root.dataset.readUrl}/${row.dataset.ntfId}`, { method: 'POST' });
+			// 상담 답변은 읽음 처리 뒤 상담 화면으로
+			fetch(`${root.dataset.readUrl}/${row.dataset.ntfId}`, { method: 'POST' }).finally(go);
 		}));
 		/* 종류별 보기 */
 		root.querySelectorAll('[data-ntf-filter]').forEach((btn) => btn.addEventListener('click', () => {

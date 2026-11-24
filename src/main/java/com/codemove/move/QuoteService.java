@@ -348,10 +348,9 @@ public class QuoteService {
 		// 운반방법: 양식은 칸마다 전(출발)·후(도착) 하나만 고르므로 출발지를 먼저 표시
 		EstimateCalculator.Site from = cond.from() == null ? EstimateCalculator.Site.UNKNOWN : cond.from();
 		EstimateCalculator.Site to = cond.to() == null ? EstimateCalculator.Site.UNKNOWN : cond.to();
-		d.setLadder(side(from.carry() == EstimateCalculator.Carry.LADDER, to.carry() == EstimateCalculator.Carry.LADDER));
-		d.setElevator(side(from.carry() == EstimateCalculator.Carry.ELEVATOR,
-				to.carry() == EstimateCalculator.Carry.ELEVATOR));
-		d.setStairs(side(from.carry() == EstimateCalculator.Carry.STAIRS, to.carry() == EstimateCalculator.Carry.STAIRS));
+		d.setLadder(side(from.has(EstimateCalculator.Carry.LADDER), to.has(EstimateCalculator.Carry.LADDER)));
+		d.setElevator(side(from.has(EstimateCalculator.Carry.ELEVATOR), to.has(EstimateCalculator.Carry.ELEVATOR)));
+		d.setStairs(side(from.has(EstimateCalculator.Carry.STAIRS), to.has(EstimateCalculator.Carry.STAIRS)));
 		d.setDepartureFloor(from.floor() == null ? "" : String.valueOf(from.floor()));
 		d.setDestinationFloor(to.floor() == null ? "" : String.valueOf(to.floor()));
 		long fromLadder = feeMid(est, "출발지 사다리차"), toLadder = feeMid(est, "도착지 사다리차");

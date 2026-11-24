@@ -2184,3 +2184,92 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 .receipt-notes { margin: 16px 0 0; padding: 14px 0 0; border-top: 1.5px dashed #dfe3df; list-style: none; }
 .receipt-notes li { margin-top: 4px; padding-left: 12px; position: relative; color: var(--muted); font-size: 12px; line-height: 1.5; word-break: keep-all; }
 .receipt-notes li::before { content: "·"; position: absolute; left: 2px; }
+
+/* ==================================================
+   내 이사: 예약 요약 · 예약 취소 · 검토 중 신청 내용 (2026-11-24)
+   ================================================== */
+.booking-summary { margin: 16px 20px 0; padding: 20px 18px 18px; border-radius: var(--card-radius, 24px); background: var(--white); box-shadow: var(--card-shadow); }
+.booking-summary-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.booking-summary-state { padding: 5px 10px; border-radius: 999px; background: #fdf3e3; color: #a2600f; font-family: "Pretendard:Bold"; font-size: 12.5px; }
+.booking-summary-state.done { background: var(--green-pale); color: var(--green); }
+.booking-summary-head small { color: var(--muted); font-size: 12.5px; }
+.booking-summary-rows { margin: 16px 0 0; padding: 14px 14px; border-radius: 16px; background: var(--surface); display: flex; flex-direction: column; gap: 9px; }
+.booking-summary-rows > div { display: grid; grid-template-columns: 68px 1fr; gap: 10px; align-items: baseline; }
+.booking-summary-rows dt { color: #737b75; font-family: "Pretendard:SemiBold"; font-size: 13px; }
+.booking-summary-rows dd { margin: 0; color: var(--ink); font-size: 13.5px; line-height: 1.45; word-break: keep-all; }
+.booking-summary-pay { margin-top: 12px; padding: 12px 14px; border: 1px solid #e3e8e3; border-radius: 14px; display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+.booking-summary-pay span { color: #737b75; font-family: "Pretendard:SemiBold"; }
+.booking-summary-pay b { margin-left: auto; color: var(--ink); font-family: "Pretendard:Bold"; font-size: 15px; }
+.booking-summary-pay em { padding: 3px 8px; border-radius: 999px; background: #fdf3e3; color: #a2600f; font-style: normal; font-family: "Pretendard:Bold"; font-size: 11.5px; }
+.booking-summary-note { margin: 12px 2px 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; word-break: keep-all; }
+.booking-summary-actions { margin-top: 14px; display: flex; gap: 8px; }
+.booking-summary-actions .action { flex: 1; min-height: 46px; border-radius: 14px; display: grid; place-items: center; font-family: "Pretendard:Bold"; font-size: 14.5px; }
+.booking-summary-link { background: var(--green); color: var(--white); }
+.booking-summary-cancel { border: 1.5px solid #e6cfcc; background: var(--white); color: #b9574f; }
+
+.confirm-dialog { position: fixed; z-index: 61; left: 50%; top: 50%; width: min(340px, calc(100vw - 32px)); padding: 26px 22px 20px; box-sizing: border-box; border-radius: 24px; background: var(--white); transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; box-shadow: 0 24px 64px rgb(0 0 0 / .22); }
+.confirm-dialog[hidden] { display: none; }
+.confirm-dialog strong { color: var(--ink); font-family: "Pretendard:Bold"; font-size: 18px; }
+.confirm-dialog span { color: var(--muted); font-size: 13.5px; line-height: 1.5; word-break: keep-all; }
+.confirm-dialog-actions { width: 100%; margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.confirm-dialog-actions .action { min-height: 46px; border-radius: 14px; font-family: "Pretendard:Bold"; font-size: 14.5px; }
+.confirm-dialog-actions .danger { background: #c4554c; color: var(--white); }
+
+.my-request { margin: 14px 20px 0; }
+.my-request-switch { padding: 4px; border-radius: 14px; background: var(--white); box-shadow: var(--card-shadow); display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.my-request-switch .action { min-height: 38px; border-radius: 10px; display: grid; place-items: center; text-align: center; color: #6b736d; font-family: "Pretendard:SemiBold"; font-size: 13.5px; }
+.my-request-switch .action.active { background: var(--green-pale); color: var(--green); }
+.my-request .receipt { margin-top: 12px; margin-bottom: 24px; }
+.my-request .receipt-info > div { grid-template-columns: 64px 1fr; }
+
+/* ==================================================
+   이사 견적 2차 수정 (2026-11-24)
+   ================================================== */
+/* 분석 진행률 */
+.analysis-meter { width: min(260px, 80%); height: 8px; margin-top: 14px; border-radius: 999px; background: #e7ece7; overflow: hidden; }
+.analysis-meter i { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--green); transition: width .45s ease; }
+.analysis-meter-text { width: min(260px, 80%); margin-top: 8px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.analysis-meter-text span { color: var(--muted); font-size: 13px; text-align: left; }
+.analysis-meter-text b { color: var(--green); font-family: "Pretendard:Bold"; font-size: 15px; font-variant-numeric: tabular-nums; }
+.analysis-card[data-analysis-loading] .analysis-meter-text span { color: var(--muted); }
+
+/* 추가 작업: 맡기기만 고르고 작업을 안 골랐을 때 */
+.extra-hint { margin: 0; color: #b5651d; font-family: "Pretendard:SemiBold"; font-size: 12px; }
+.extra-hint[hidden] { display: none; }
+.extra-detail { flex-wrap: wrap; }
+
+/* 주소: 고른 주소를 초록 상자 대신 상세주소 칸과 같은 흰 칸으로 */
+.addr-selected { background: var(--white); border: 1.5px solid #e3e7e3; border-radius: 14px; }
+.addr-reset { border-color: #dfe4df; color: #59615b; }
+.addr-detail-wrap { margin-top: 8px; }
+.addr-detail-wrap input.addr-detail-input { min-height: 50px; padding: 12px 16px; border: 1.5px solid #e3e7e3; border-radius: 14px; background: var(--white); font-size: 15px; }
+.addr-detail-wrap input.addr-detail-input:focus { border-color: var(--green); }
+.addr-detail-input:-webkit-autofill, .addr-detail-input:autofill { box-shadow: 0 0 0 40px var(--white) inset; -webkit-text-fill-color: var(--ink); }
+.addr-detail-hint { margin: 6px 4px 0; color: var(--muted); font-size: 12px; }
+
+/* 주소 검색 창: 미리 준비해 두고, 뜨는 동안 안내 */
+.addr-sheet-body { position: relative; }
+.addr-sheet-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); font-size: 13px; }
+.addr-sheet-loading i { width: 26px; height: 26px; border: 3px solid #e3e8e3; border-top-color: var(--green); border-radius: 50%; animation: addr-spin .8s linear infinite; }
+@keyframes addr-spin { to { transform: rotate(360deg); } }
+.addr-sheet-frame { position: relative; z-index: 1; width: 100%; height: 100%; }
+
+/* 시간 선택: 오전 · 오후 두 줄 묶음 */
+.cal-time-group.afternoon .cal-time-period strong { background: var(--green-pale); color: var(--green); }
+
+/* 알림: 상담사 답변은 메신저 알림 모양 (2026-11-24) */
+.ntf-chat { position: relative; width: 100%; padding: 14px 14px 14px 12px; display: flex; align-items: center; gap: 12px; text-align: left; border-bottom: 1px solid #f0f2ef; }
+.ntf-chat:last-child { border-bottom: 0; }
+.ntf-chat[hidden] { display: none; }
+.ntf-chat-app { position: relative; flex: none; width: 46px; height: 46px; }
+.ntf-chat-app svg { width: 46px; height: 46px; display: block; }
+.ntf-chat-app b { position: absolute; right: -6px; bottom: -4px; padding: 3px 4px; border-radius: 8px; background: #fee500; border: 2px solid var(--white); color: #3c1e1e; font-family: "Pretendard:ExtraBold"; font-size: 8px; line-height: 1; letter-spacing: -.02em; }
+.ntf-chat-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.ntf-chat-top { display: flex; align-items: baseline; gap: 8px; }
+.ntf-chat-top strong { color: var(--ink); font-family: "Pretendard:Bold"; font-size: 15px; }
+.ntf-chat-top small { color: var(--muted); font-size: 12px; }
+.ntf-chat-greet, .ntf-chat-text { color: #3d4540; font-size: 13.5px; line-height: 1.45; }
+.ntf-chat-text { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ntf-chat-chevron { flex: none; color: #9aa29c; }
+.ntf-chat > i { position: absolute; left: 6px; top: 12px; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+.ntf-chat.unread .ntf-chat-top strong { color: var(--green); }

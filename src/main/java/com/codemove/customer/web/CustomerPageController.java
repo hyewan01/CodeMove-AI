@@ -134,7 +134,7 @@ public class CustomerPageController {
 	static com.codemove.estimate.EstimateCalculator.Site site(Integer floor, String carry) {
 		Integer f = floor == null || floor < 1 || floor > 80 ? null : floor;
 		return new com.codemove.estimate.EstimateCalculator.Site(f,
-				com.codemove.estimate.EstimateCalculator.Carry.of(carry));
+				com.codemove.estimate.EstimateCalculator.Site.parse(carry));
 	}
 
 	/** 층수를 따로 받지 않으면 상세주소("3층 301호")에서 읽음 */
@@ -497,6 +497,7 @@ public class CustomerPageController {
 		String active = cs.getMoveTab() != null ? cs.getMoveTab() : "confirmed".equals(c.status()) ? "booking" : "estimate";
 		model.addAttribute("tab", active);
 		addMoveModel(model, c);
+		model.addAttribute("summary", views.bookingSummary(c));
 		model.addAttribute("doneMoves", views.doneMoves(memberId(session)));
 		return "customer/move/move";
 	}
@@ -540,10 +541,16 @@ public class CustomerPageController {
 		return "redirect:/move/reservation";
 	}
 
-	/** 예약 취소 → 견적 도착 상태로 되돌림 */
+	/** 예약 취소 (확정한 견적이면 견적 도착 상태로 되돌림) */
 	@PostMapping("/move/reservation/cancel")
-	public String cancelReservation(HttpSession session) {
-		moves.cancel(memberId(session));
+	public String cancelReservation(@RequestParam(defaultValue = "") String back, HttpSession session,
+			RedirectAttributes ra) {
+		boolean ok = moves.cancel(memberId(session));
+		ra.addFlashAttribute("toast", ok ? "이사 예약을 취소했어요." : "취소할 예약이 없어요.");
+		if ("booking".equals(back)) {
+			CustomerSession.of(session).setMoveTab("booking");
+			return "redirect:/move?tab=booking";
+		}
 		CustomerSession.of(session).setMoveTab("estimate");
 		return "redirect:/home";
 	}

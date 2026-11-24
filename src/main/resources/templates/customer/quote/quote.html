@@ -88,7 +88,11 @@
 			<div class="analysis-card" data-analysis-loading>
 				<div class="scan-box"><img alt="" th:src="@{/assets/91e58.svg}"><i></i></div>
 				<strong>영상 속 가구와 짐을 찾고 있어요</strong>
-				<span data-analysis-progress>잠시만 기다려주세요</span>
+				<!-- 진행률: 업로드는 실제 보낸 양, 분석은 보통 걸리는 시간 기준으로 어림 (끝나면 100%) -->
+				<div class="analysis-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="분석 진행률" data-analysis-meter>
+					<i data-analysis-bar></i>
+				</div>
+				<div class="analysis-meter-text"><span data-analysis-progress>잠시만 기다려주세요</span><b data-analysis-pct>0%</b></div>
 			</div>
 			<div class="analysis-card analysis-error" data-analysis-error hidden>
 				<i aria-hidden="true">!</i>
@@ -150,6 +154,7 @@
 							<button type="button" class="action" data-extra-work="first" th:text="${x.first}">탈착</button>
 							<button type="button" class="action" data-extra-work="second" th:text="${x.second}">설치</button>
 						</div>
+						<p class="extra-hint" data-extra-hint>맡길 작업을 골라주세요</p>
 						<div class="extra-count">
 							<button type="button" class="action" aria-label="수량 줄이기" data-extra-count="-1">−</button>
 							<b data-extra-count-value>1</b>
@@ -272,8 +277,8 @@
 					<strong data-carry-address>—</strong>
 					<small data-carry-floor-text></small>
 				</div>
-				<div class="carry-options" role="radiogroup" th:aria-label="${label} + ' 짐 나르는 방법'">
-					<button type="button" class="action carry-option" role="radio" aria-checked="false"
+				<div class="carry-options" role="group" th:aria-label="${label} + ' 짐 나르는 방법 (여러 개 고를 수 있어요)'">
+					<button type="button" class="action carry-option" role="checkbox" aria-checked="false"
 							th:each="c : ${ { {'E', '엘리베이터', '건물 엘리베이터로'}, {'L', '사다리차', '창문으로 사다리차'}, {'S', '계단', '계단으로 직접'} } }"
 							th:data-carry="${c[0]}">
 						<strong th:text="${c[1]}">엘리베이터</strong>
@@ -288,7 +293,7 @@
 				<input type="hidden" th:name="${key} + 'Floor'" data-carry-floor-value>
 				<input type="hidden" th:name="${key} + 'Carry'" data-carry-value>
 			</div>
-			<p class="flow-help">사다리차는 층수에 따라, 계단은 3개 층마다 작업 인력이 더해져요. 엘리베이터 이용료는 관리사무소에 따로 내요.</p>
+			<p class="flow-help">여러 개를 고를 수 있어요(예: 큰 짐은 사다리차, 나머지는 엘리베이터). 한 번 더 누르면 취소돼요. 사다리차는 층수에 따라, 계단은 3개 층마다 작업 인력이 더해져요.</p>
 		</section>
 
 		<!-- 7. 날짜·시간 (SCR-U-008) -->
@@ -317,9 +322,9 @@
 						<strong>시간 선택</strong>
 						<button type="button" class="action" aria-label="닫기" data-modal-close>×</button>
 					</div>
-					<!-- 이사 시작 시간: 오전 6시 ~ 오후 8시, 1시간 단위 (오전 · 오후 · 저녁으로 묶어 3칸씩) -->
+					<!-- 이사 시작 시간: 오전 6시 ~ 오후 8시, 1시간 단위 (오전 · 오후 두 묶음, 3칸씩) -->
 					<div class="cal-time-groups designed-scroll">
-						<div class="cal-time-group" th:each="g : ${ { {'morning', '오전', 6, 11}, {'afternoon', '오후', 12, 17}, {'evening', '저녁', 18, 20} } }"
+						<div class="cal-time-group" th:each="g : ${ { {'morning', '오전', 6, 11}, {'afternoon', '오후', 12, 20} } }"
 							 th:classappend="${g[0]}">
 							<div class="cal-time-period"><strong th:text="${g[1]}">오전</strong></div>
 							<div class="cal-time-slots">
@@ -494,6 +499,8 @@
 	})();
 </script>
 <!-- 카카오 우편번호 서비스: API 키 불필요. t1.daumcdn.net 은 2026-11-30 종료 → t1.kakaocdn.net -->
+<link rel="preconnect" href="https://t1.kakaocdn.net">
+<link rel="preconnect" href="https://postcode.map.kakao.com">
 <script defer src="https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
 <script defer th:src="@{/js/quote.js}"></script>
 </div>

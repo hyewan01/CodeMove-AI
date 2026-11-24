@@ -70,6 +70,7 @@
 			case 'analysis': return state.analysisDone;
 			case 'options': return !!(state.options.houseType && state.options.packType);
 			case 'address': return !!(state.address.from && state.address.to);
+			case 'extras': return extrasReady();
 			case 'carry': return carryReady();
 			case 'calendar': return !!state.date;
 			default: return true;
@@ -175,6 +176,16 @@
 		showAnalysis('error');
 		refreshNext();
 	}
+	/* 진행률: 업로드 0~30% 는 실제로 보낸 양, 30~96% 는 AI 분석에 보통 걸리는 시간(40초~2분)으로 어림, 끝나면 100% */
+	const UPLOAD_SHARE = 30;
+	function setProgress(pct) {
+		const v = Math.max(0, Math.min(100, Math.round(pct)));
+		$('[data-analysis-bar]').style.width = `${v}%`;
+		$('[data-analysis-pct]').textContent = `${v}%`;
+		$('[data-analysis-meter]').setAttribute('aria-valuenow', String(v));
+		const msg = v < UPLOAD_SHARE ? 0 : v < 50 ? 1 : v < 70 ? 2 : v < 88 ? 3 : 4;
+		$('[data-analysis-progress]').textContent = v >= 100 ? '분석이 끝났어요' : PROGRESS[msg];
+	}
 	function startAnalysis() {
 		const file = videoInput.files && videoInput.files[0];
 		if (state.analyzedFile && state.analyzedFile === file) {
@@ -184,24 +195,43 @@
 		if (!file) { failAnalysis('영상 파일을 다시 선택해 주세요'); return; }
 		const run = ++analysisRun;
 		showAnalysis('loading');
-		let p = 0;
-		const progress = $('[data-analysis-progress]');
-		progress.textContent = PROGRESS[0];
 		clearInterval(progressTimer);
-		progressTimer = setInterval(() => { p = Math.min(p + 1, PROGRESS.length - 1); progress.textContent = PROGRESS[p]; }, 8000);
+		setProgress(0);
+		let analyzingSince = null;
 		const body = new FormData();
 		body.append('video', file);
-		fetch(DATA.analyzeUrl || 'quote/analyze', { method: 'POST', body, credentials: 'same-origin' })
-			.then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
-			.then((res) => {
-				if (run !== analysisRun) return;
-				// 영상은 분석 전에 서버에 저장됐으므로 '이사 요청' 때 다시 보내지 않음
-				videoInput.removeAttribute('name');
-				if (!res.ok) { failAnalysis(res.message); return; }
-				state.analyzedFile = file;
-				finishAnalysis(res.items || [], [res.demo ? res.message : '', res.memo].filter(Boolean).join(' · '));
-			})
-			.catch(() => { if (run === analysisRun) failAnalysis('네트워크가 불안정해요. 다시 시도해 주세요'); });
+		const xhr = new XMLHttpRequest();
+		xhr.open('POST', DATA.analyzeUrl || 'quote/analyze');
+		xhr.withCredentials = true;
+		xhr.responseType = 'json';
+		xhr.upload.onprogress = (e) => {
+			if (run === analysisRun && e.lengthComputable) setProgress((e.loaded / e.total) * UPLOAD_SHARE);
+		};
+		xhr.upload.onload = () => {
+			if (run !== analysisRun) return;
+			analyzingSince = Date.now();
+			setProgress(UPLOAD_SHARE);
+			progressTimer = setInterval(() => {
+				const sec = (Date.now() - analyzingSince) / 1000;
+				setProgress(UPLOAD_SHARE + (96 - UPLOAD_SHARE) * (1 - Math.exp(-sec / 40)));
+			}, 500);
+		};
+		xhr.onload = () => {
+			if (run !== analysisRun) return;
+			clearInterval(progressTimer);
+			const res = xhr.response;
+			if (xhr.status < 200 || xhr.status >= 300 || !res) { failAnalysis('잠시 후 다시 시도해 주세요'); return; }
+			// 영상은 분석 전에 서버에 저장됐으므로 '이사 요청' 때 다시 보내지 않음
+			videoInput.removeAttribute('name');
+			if (!res.ok) { failAnalysis(res.message); return; }
+			state.analyzedFile = file;
+			setProgress(100);
+			setTimeout(() => {
+				if (run === analysisRun) finishAnalysis(res.items || [], [res.demo ? res.message : '', res.memo].filter(Boolean).join(' · '));
+			}, 400);
+		};
+		xhr.onerror = () => { if (run === analysisRun) failAnalysis('네트워크가 불안정해요. 다시 시도해 주세요'); };
+		xhr.send(body);
 	}
 	$('[data-analysis-retry]').addEventListener('click', () => { state.analyzedFile = null; startAnalysis(); });
 	$('[data-analysis-manual]').addEventListener('click', () => finishAnalysis([], ''));
@@ -424,9 +454,8 @@
 			const hits = state.items.filter(EXTRA_FIND[code] || (() => false));
 			// 2in1 에어컨은 스탠드 + 벽걸이 2대
 			const found = hits.reduce((s, it) => s + it.count * (code === '08' && it.sizeCode === '03' ? 2 : 1), 0);
-			const grand = code === '01' && hits.some((it) => it.sizeCode === '03');
-			state.extras[code] = { mode: found ? 'ours' : 'none', first: !grand, second: code === '01' ? grand : true,
-				count: Math.max(1, found), found };
+			// 고객이 직접 고르도록 처음엔 아무것도 고르지 않음 (영상에서 찾은 수는 안내 · 수량에만 씀)
+			state.extras[code] = { mode: 'none', first: false, second: false, count: Math.max(1, found), found };
 		});
 	}
 	function renderExtras() {
@@ -444,25 +473,36 @@
 			});
 			li.classList.toggle('chosen', x.mode !== 'none');
 			$('[data-extra-detail]', li).hidden = x.mode !== 'ours';
-			$$('[data-extra-work]', li).forEach((b) => b.classList.toggle('active', !!x[b.dataset.extraWork]));
+			$$('[data-extra-work]', li).forEach((b) => {
+				b.classList.toggle('active', !!x[b.dataset.extraWork]);
+				b.setAttribute('aria-pressed', String(!!x[b.dataset.extraWork]));
+			});
+			$('[data-extra-hint]', li).hidden = x.first || x.second;
 			$('[data-extra-count-value]', li).textContent = `${x.count}${li.dataset.extra === '03' ? '개' : '대'}`;
 			$('[data-extra-count="-1"]', li).disabled = x.count <= 1;
 		});
 	}
 	$$('[data-extra]').forEach((li) => {
 		const x = () => state.extras[li.dataset.extra];
-		$$('[data-extra-mode]', li).forEach((b) => b.addEventListener('click', () => { x().mode = b.dataset.extraMode; renderExtras(); }));
+		$$('[data-extra-mode]', li).forEach((b) => b.addEventListener('click', () => {
+			x().mode = b.dataset.extraMode;
+			renderExtras();
+			refreshNext();
+		}));
 		$$('[data-extra-work]', li).forEach((b) => b.addEventListener('click', () => {
 			const v = x(), k = b.dataset.extraWork, other = k === 'first' ? 'second' : 'first';
-			if (li.dataset.extra === '01') { v[k] = true; v[other] = false; } // 피아노: 일반 · 그랜드 중 하나
-			else if (!v[k] || v[other]) v[k] = !v[k]; // 하나는 남김
+			v[k] = !v[k]; // 다시 누르면 취소
+			if (li.dataset.extra === '01' && v[k]) v[other] = false; // 피아노: 일반 · 그랜드 중 하나
 			renderExtras();
+			refreshNext();
 		}));
 		$$('[data-extra-count]', li).forEach((b) => b.addEventListener('click', () => {
 			x().count = Math.min(20, Math.max(1, x().count + Number(b.dataset.extraCount)));
 			renderExtras();
 		}));
 	});
+	/* 맡기기를 골랐으면 작업(분해 · 조립 …)도 하나 이상 골라야 다음으로 */
+	const extrasReady = () => Object.values(state.extras || {}).every((v) => v.mode !== 'ours' || v.first || v.second);
 	/* 계산 · 제출용: 고른 것만 (맡김 · 다른 업체) */
 	const chosenExtras = () => Object.entries(state.extras || {}).filter(([, v]) => v.mode !== 'none')
 		.map(([code, v]) => ({ code, first: v.mode === 'ours' && v.first, second: v.mode === 'ours' && v.second,
@@ -489,10 +529,16 @@
 		m = detail.match(/(?<!\d)(\d{3,4})\s*호/);
 		return m ? valid(Math.floor(Number(m[1]) / 100)) : null;
 	};
-	const sites = { from: { floor: null, carry: null, asked: null }, to: { floor: null, carry: null, asked: null } };
+	/* 나르는 방법은 여러 개 고를 수 있음 (큰 짐은 사다리차 + 나머지는 엘리베이터 등) */
+	const sites = { from: { floor: null, carries: new Set(), asked: null }, to: { floor: null, carries: new Set(), asked: null } };
 	const CARRY = { E: '엘리베이터', L: '사다리차', S: '계단' };
+	const CARRY_ORDER = ['E', 'L', 'S'];
+	const carryCodes = (k) => CARRY_ORDER.filter((c) => sites[k].carries.has(c)).join(',');
+	const carryNames = (k) => CARRY_ORDER.filter((c) => sites[k].carries.has(c)).map((c) => CARRY[c]).join('·');
+	/* 사다리차 · 계단이면 층수가 필요 */
+	const needsFloor = (k) => sites[k].carries.has('L') || sites[k].carries.has('S');
 	const detailOf = (key) => $(`[data-address="${key}"] [data-addr-detail]`).value.trim();
-	const carryReady = () => ['from', 'to'].every((k) => sites[k].carry && (sites[k].carry === 'E' || sites[k].floor));
+	const carryReady = () => ['from', 'to'].every((k) => sites[k].carries.size > 0 && (!needsFloor(k) || sites[k].floor));
 	function renderCarry() {
 		$$('[data-carry-site]').forEach((card) => {
 			const key = card.dataset.carrySite, s = sites[key];
@@ -500,20 +546,25 @@
 			s.floor = parsed || s.asked;
 			$('[data-carry-address]', card).textContent = [state.address[key], detailOf(key)].filter(Boolean).join(' ') || '—';
 			$('[data-carry-floor-text]', card).textContent = parsed ? `상세주소 기준 ${parsed}층` : '';
-			$('[data-carry-floor-ask]', card).hidden = !!parsed || !s.carry || s.carry === 'E';
+			$('[data-carry-floor-ask]', card).hidden = !!parsed || !needsFloor(key);
 			$$('[data-carry]', card).forEach((b) => {
-				const on = b.dataset.carry === s.carry;
+				const on = s.carries.has(b.dataset.carry);
 				b.classList.toggle('active', on);
 				b.setAttribute('aria-checked', String(on));
 			});
 			$('[data-carry-floor-value]', card).value = s.floor || '';
-			$('[data-carry-value]', card).value = s.carry || '';
+			$('[data-carry-value]', card).value = carryCodes(key);
 		});
 		refreshNext();
 	}
 	$$('[data-carry-site]').forEach((card) => {
 		const s = sites[card.dataset.carrySite];
-		$$('[data-carry]', card).forEach((b) => b.addEventListener('click', () => { s.carry = b.dataset.carry; renderCarry(); }));
+		$$('[data-carry]', card).forEach((b) => b.addEventListener('click', () => {
+			const c = b.dataset.carry;
+			if (s.carries.has(c)) s.carries.delete(c); // 다시 누르면 취소
+			else s.carries.add(c);
+			renderCarry();
+		}));
 		$('[data-carry-floor-input]', card).addEventListener('input', (e) => {
 			const n = parseInt(e.target.value, 10);
 			s.asked = n >= 1 && n <= 80 ? n : null;
@@ -533,15 +584,23 @@
 	/* ---------- 4. 주소 검색 (카카오 우편번호 서비스, 불러오지 못하면 목업 주소로 대체) ---------- */
 	const addrSheet = $$('[data-addr-sheet]');
 	const addrSheetBody = $('[data-addr-sheet-body]');
-	const closeAddrSheet = () => {
-		addrSheet.forEach((el) => (el.hidden = true));
-		addrSheetBody.innerHTML = '';
-	};
+	/*
+	 * 검색 창은 미리 만들어 둠: 누를 때마다 새로 만들면 카카오 화면을 불러오는 몇 초 동안 빈 창이 보임.
+	 * 주소를 고르면 다음 검색(도착지)을 위해 뒤에서 새 창을 다시 준비함.
+	 */
+	let postPick = null;
+	let postReady = false;
+	let prepTimer = null; // 주소를 고른 뒤 새 창을 준비하기까지 잠깐 (카카오 콜백 안에서 바로 지우지 않음)
+	const closeAddrSheet = () => addrSheet.forEach((el) => (el.hidden = true));
 	$$('[data-addr-sheet-close]').forEach((el) => el.addEventListener('click', closeAddrSheet));
-	const openPostcode = (label, term, onPick) => {
-		$('[data-addr-sheet-title]').textContent = `${label} 주소 검색`;
-		addrSheet.forEach((el) => (el.hidden = false));
-		addrSheetBody.innerHTML = '';
+	function prepPostcode() {
+		clearTimeout(prepTimer);
+		prepTimer = null;
+		if (!(window.daum && window.daum.Postcode)) return;
+		addrSheetBody.innerHTML = '<div class="addr-sheet-loading" data-addr-loading><i aria-hidden="true"></i>주소 검색을 불러오고 있어요</div>';
+		const holder = document.createElement('div');
+		holder.className = 'addr-sheet-frame';
+		addrSheetBody.appendChild(holder);
 		new window.daum.Postcode({
 			width: '100%',
 			height: '100%',
@@ -549,15 +608,33 @@
 			oncomplete: (data) => {
 				// 도로명(신주소) + 지번(구주소). 지번을 고르지 않았으면 자동 매칭된 지번 사용
 				const building = data.buildingName && data.apartment === 'Y' ? ` (${data.buildingName})` : '';
-				onPick({
+				if (postPick) postPick({
 					road: (data.roadAddress || data.autoRoadAddress) + building,
 					jibun: data.jibunAddress || data.autoJibunAddress || '',
 					zonecode: data.zonecode,
 				});
 				closeAddrSheet();
+				prepTimer = setTimeout(prepPostcode, 300);
 			},
-		}).embed(addrSheetBody, { q: term, autoClose: false });
+		}).embed(holder, { autoClose: false });
+		// 카카오 화면이 다 뜨면 '불러오는 중' 문구를 없앰
+		const watch = setInterval(() => {
+			const frame = holder.querySelector('iframe');
+			if (!frame) return;
+			clearInterval(watch);
+			frame.addEventListener('load', () => $('[data-addr-loading]', addrSheetBody)?.remove(), { once: true });
+		}, 50);
+		postReady = true;
+	}
+	const openPostcode = (label, term, onPick) => {
+		postPick = onPick;
+		$('[data-addr-sheet-title]').textContent = `${label} 주소 검색`;
+		// 아직 준비 전이거나, 방금 고른 창을 새로 바꾸기 전이면 지금 바꿈
+		if (!postReady || prepTimer) prepPostcode();
+		addrSheet.forEach((el) => (el.hidden = false));
 	};
+	// 주소 단계 전에 미리 준비 (페이지가 뜬 뒤 쉬는 틈에)
+	setTimeout(() => { if (!postReady) prepPostcode(); }, 1500);
 
 	$$('[data-address]').forEach((wrap) => {
 		const key = wrap.dataset.address;
@@ -724,9 +801,9 @@
 			fromDetail: detailOf('from'),
 			toDetail: detailOf('to'),
 			fromFloor: sites.from.floor,
-			fromCarry: sites.from.carry,
+			fromCarry: carryCodes('from'),
 			toFloor: sites.to.floor,
-			toCarry: sites.to.carry,
+			toCarry: carryCodes('to'),
 			storageDays: state.options.packType === '03' ? Number($('[name=storageDays]').value) : null,
 			options: chosenExtras(),
 		};
@@ -758,7 +835,7 @@
 	function renderSummary() {
 		renderEstimate();
 		$('[data-sum="date"]').textContent = state.dateSkipped ? '일정 미정' : dateLabel() || '—';
-		const siteText = (k) => [sites[k].floor ? `${sites[k].floor}층` : '', CARRY[sites[k].carry] || '']
+		const siteText = (k) => [sites[k].floor ? `${sites[k].floor}층` : '', carryNames(k)]
 			.filter(Boolean).join(' · ');
 		['from', 'to'].forEach((k) => {
 			$(`[data-sum="${k}"]`).textContent = state.address[k]

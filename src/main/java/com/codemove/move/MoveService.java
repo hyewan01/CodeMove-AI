@@ -265,19 +265,24 @@ public class MoveService {
 		return true;
 	}
 
-	/** 예약 취소 → 견적은 다시 '견적 승인'(견적 도착)으로 */
+	/**
+	 * 예약 취소. 견적 요청 때 고른 날짜로 만든 예약(견적 검토 중)도 취소할 수 있음.
+	 * 확정한 견적이면 다시 '견적 승인'(견적 도착)으로, 아직 검토 중이면 견적 요청은 그대로 둠.
+	 */
 	@Transactional
 	public boolean cancel(long memberId) {
 		CurrentMove c = current(memberId);
-		if (!"confirmed".equals(c.status())) {
+		if (c.reservation() == null || !BOOKED.equals(c.reservation().getStatus())) {
 			return false;
 		}
 		moves.cancelReservation(c.reservation().getReservationId(), "01");
-		quotes.updateStatus(c.quote().getQuoteId(), QuoteService.APPROVED);
+		if (c.quote() != null && QuoteService.CONFIRMED.equals(c.quote().getStatus())) {
+			quotes.updateStatus(c.quote().getQuoteId(), QuoteService.APPROVED);
+		}
 		Member m = members.findMember(memberId);
 		notifications.toAdmin("05", "예약 취소", m.getMemberName() + " 고객님이 이사 예약을 취소했습니다.", "/admin/reservations",
 				true);
-		notifications.toMember(memberId, "05", "이사 예약이 취소되었어요", "다시 예약하려면 도착한 견적을 확정해주세요.", "/move");
+		notifications.toMember(memberId, "05", "이사 예약이 취소되었어요", "견적이 도착하면 확정해서 다시 예약할 수 있어요.", "/move");
 		return true;
 	}
 
