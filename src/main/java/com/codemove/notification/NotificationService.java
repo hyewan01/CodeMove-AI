@@ -33,7 +33,7 @@ public class NotificationService {
 	/** NTF_DETAIL → 관리자 알림 패널 아이콘 */
 	public static String icon(String detail) {
 		return switch (detail == null ? "" : detail.trim()) {
-			case "13", "15" -> "chat";
+			case "13", "15", "18" -> "chat";
 			case "07", "08", "09" -> "truck";
 			case "04", "05", "10" -> "calendar";
 			case "01", "02", "03" -> "document";
@@ -125,6 +125,20 @@ public class NotificationService {
 
 	public boolean hasUnreadAdmin() {
 		return mapper.countUnreadAdmin() > 0;
+	}
+
+	/** 같은 곳(link)으로 가는 안 읽은 알림이 없을 때만 관리자 알림 (상담 중 고객 메시지가 여러 개여도 한 줄) */
+	@Transactional
+	public void toAdminOnce(String detail, String title, String content, String link) {
+		if (mapper.countUnreadAdminLink(detail, link) == 0) {
+			toAdmin(detail, title, content, link, false);
+		}
+	}
+
+	/** 관리자가 그 채팅방을 열거나 답하면 그 방의 채팅 알림은 읽음 */
+	@Transactional
+	public void markAdminChatRead(String link) {
+		mapper.markAdminReadLink(link);
 	}
 
 	@Transactional

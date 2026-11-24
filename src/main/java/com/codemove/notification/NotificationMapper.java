@@ -16,6 +16,11 @@ public interface NotificationMapper {
 
 	int countUnreadAdmin();
 
+	int countUnreadAdminLink(@org.apache.ibatis.annotations.Param("detail") String detail,
+			@org.apache.ibatis.annotations.Param("link") String link);
+
+	int markAdminReadLink(@org.apache.ibatis.annotations.Param("link") String link);
+
 	void markAllAdminRead();
 
 	List<Notification> listMember(long memberId);

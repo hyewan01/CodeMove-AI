@@ -204,8 +204,10 @@ public class ChatService {
 		m.setIsRead("N");
 		chats.insertMessage(m);
 		chats.markCustomerRead(roomId);
-		// 챗봇이 못 한 답을 관리자가 채웠으면 다시 챗봇 응대, 상담사 요청(또는 상담 중)이면 상담 중
-		chats.updateRoomStatus(roomId, UNANSWERED.equals(room.getStatus()) ? BOT : CONSULTING, adminId);
+		// 관리자가 한 번이라도 말하면 상담 중: 고객 답장은 관리자에게 가고 AI 는 끼어들지 않음
+		// (상담 종료 버튼 또는 관리자 마지막 메시지 뒤 24시간이 지나면 다시 AI)
+		chats.updateRoomStatus(roomId, CONSULTING, adminId);
+		notifications.markAdminChatRead("/admin/chats/" + roomId);
 		String preview = text == null || text.isBlank()
 				? (isVideo(m.getAttachmentName()) ? "동영상을 보냈어요." : isImage(m.getAttachmentName()) ? "사진을 보냈어요." : "파일을 보냈어요.")
 				: cut(text.trim(), 100);
@@ -395,8 +397,10 @@ public class ChatService {
 		}
 		chats.markAdminRead(room.getRoomId());
 		List<Map<String, Object>> all = chats.listMessages(room.getRoomId(), 0).stream().map(this::view).toList();
-		out.put("messages", all.stream().filter(v -> "admin".equals(v.get("role")) && (Long) v.get("id") > after).toList());
+		// 번호 순서를 믿지 않고(예시 데이터 번호가 더 큼) 고객이 아닌 메시지를 모두 보냄. 화면이 이미 그린 번호는 건너뜀
+		out.put("messages", all.stream().filter(v -> !"user".equals(v.get("role"))).toList());
 		out.put("states", all);
+		out.put("mode", modeOf(room));
 		return out;
 	}
 
@@ -439,6 +443,10 @@ public class ChatService {
 		String name = member.getMemberName();
 		ChatSetting s = settings();
 		Reply reply;
+		if (CONSULTING.equals(room.getStatus()) && consultExpired(roomId)) {
+			chats.updateRoomStatus(roomId, BOT, null); // 관리자 답 없이 24시간 → 다시 AI
+			room.setStatus(BOT);
+		}
 		boolean consulting = CONSULTING.equals(room.getStatus());
 		if (isConsultRequest(value)) {
 			m.setNeedsReply("Y");
@@ -451,7 +459,11 @@ public class ChatService {
 			reply = new Reply("상담사 연결 요청을 접수했어요." + (hours == null ? "" : "\n상담 운영시간(" + hours + ")에 순서대로 답변드려요.")
 					+ "\n기다리시는 동안에도 궁금한 내용을 편하게 물어보세요.", List.of());
 		} else if (consulting) {
+			// 상담 중: AI 는 조용히, 관리자에게 알림 (안 읽은 알림이 이미 있으면 새로 만들지 않음)
 			reply = null;
+			m.setNeedsReply("Y");
+			String preview = value.isEmpty() ? (m.getAttachmentName() == null ? "새 메시지" : "파일: " + m.getAttachmentName()) : cut(value, 80);
+			notifications.toAdminOnce("18", "고객 메시지", name + " 고객님: " + preview, "/admin/chats/" + roomId);
 		} else if (m.getAttachmentName() != null && value.isEmpty()) {
 			reply = new Reply(m.getAttachmentName() + " 파일을 받았어요.\n상담사가 확인할 수 있도록 함께 전달할게요.",
 					List.of(action(CONSULT_MENU, CONSULT_MENU, null)));
@@ -459,17 +471,20 @@ public class ChatService {
 			Lorebook hit = "Y".equals(s.getBotEnabled()) ? matchLorebook(value) : null;
 			if (hit != null) {
 				reply = new Reply(hit.getContent(), List.of(action(CONSULT_MENU, CONSULT_MENU, null)), hit.getTopicId());
+			} else if (isGreeting(value)) {
+				reply = new Reply("안녕하세요" + (name == null ? "" : ", " + name + " 고객님") + "! 명품익스프레스 AI 이사 도우미예요.\n"
+						+ "견적, 예약, 이사 준비처럼 궁금한 걸 편하게 물어보세요.",
+						List.of(action("견적 받기", null, "quote"), action(CONSULT_MENU, CONSULT_MENU, null)));
+			} else if (isDecline(value)) {
+				reply = new Reply("알겠어요. 다른 궁금한 점이 생기면 언제든 물어보세요.", List.of());
 			} else {
-				// 대응 규칙: 챗봇이 답하지 못한 질문 → 관리자 채팅 목록에 '대기 중'으로
+				// 챗봇이 답하지 못한 질문: 상담사 연결을 먼저 물어봄. 관리자 목록에는 '미응답'으로 보이되 알림은 연결을 요청할 때만
 				m.setNeedsReply("Y");
 				if (BOT.equals(room.getStatus())) {
 					chats.updateRoomStatus(roomId, UNANSWERED, null);
-					notifications.toAdmin("13", "채팅 대기", name + " 고객님의 질문에 챗봇이 답하지 못했습니다. 확인이 필요합니다.",
-							"/admin/chats/" + roomId, false);
 				}
-				String fallback = s.getDelayMessage() == null || s.getDelayMessage().isBlank()
-						? "문의하신 내용은 상담사가 확인한 뒤 답변드릴게요." : s.getDelayMessage();
-				reply = new Reply(fallback, List.of(action(CONSULT_MENU, CONSULT_MENU, null)));
+				reply = new Reply("이 질문은 제가 정확히 답하기 어려워요.\n상담사를 연결해 드릴까요?",
+						List.of(action("상담사 연결", CONSULT_MENU, null), action("괜찮아요", "괜찮아요", null)));
 			}
 		}
 		chats.insertMessage(m);
@@ -488,11 +503,56 @@ public class ChatService {
 			bot.setIsRead("Y");
 			chats.insertMessage(bot);
 			result.put("lastId", bot.getMessageId());
-			result.put("reply", Map.of("text", reply.text(), "actions", reply.actions()));
+			result.put("reply", Map.of("id", bot.getMessageId(), "text", reply.text(), "actions", reply.actions()));
 		} else {
 			result.put("lastId", m.getMessageId());
 		}
+		result.put("mode", modeOf(chats.findRoom(roomId)));
 		return result;
+	}
+
+	/** 고객 화면 머리글: counselor(상담사와 대화 중) | ai */
+	public static String modeOf(ChatRoomLine room) {
+		return room != null && (CONSULTING.equals(room.getStatus()) || WAITING.equals(room.getStatus())) ? "counselor" : "ai";
+	}
+
+	public String customerMode(long memberId) {
+		return modeOf(chats.findOpenRoom(memberId));
+	}
+
+	/** 상담 중인데 관리자 마지막 메시지가 24시간 넘게 지났으면 끝난 것으로 */
+	private boolean consultExpired(long roomId) {
+		return chats.listMessages(roomId, 0).stream().filter(x -> "03".equals(x.getSenderType()))
+				.map(ChatMessage::getSentAt).filter(java.util.Objects::nonNull).max(java.util.Comparator.naturalOrder())
+				.map(t -> t.isBefore(java.time.LocalDateTime.now().minusHours(24))).orElse(false);
+	}
+
+	/** 관리자 "상담 종료": 다시 AI 가 답하고, 고객에게 안내 한 줄 */
+	@Transactional
+	public void endConsult(long roomId) {
+		ChatRoomLine room = chats.findRoom(roomId);
+		if (room == null || BOT.equals(room.getStatus())) {
+			return;
+		}
+		chats.updateRoomStatus(roomId, BOT, null);
+		ChatMessage bot = new ChatMessage();
+		bot.setRoomId(roomId);
+		bot.setSenderType("02");
+		bot.setMessageType("01");
+		bot.setContent("상담사와의 상담이 끝났어요. 이제 다시 AI 이사 도우미가 답해 드려요.\n상담사가 필요하면 언제든 '상담사 연결'이라고 보내 주세요.");
+		bot.setIsRead("Y");
+		chats.insertMessage(bot);
+		notifications.markAdminChatRead("/admin/chats/" + roomId);
+	}
+
+	static boolean isGreeting(String value) {
+		String v = value.toLowerCase().replaceAll("[\\s!?.~^ㅎㅋ]", "");
+		return v.length() <= 12 && v.matches("(안녕|안뇽|하이|헬로|hi|hello|반가|처음뵙|좋은(아침|하루|저녁)).*");
+	}
+
+	static boolean isDecline(String value) {
+		String v = value.replaceAll("[\\s!?.~]", "");
+		return v.matches("(괜찮아요|괜찮습니다|괜찮아|아니요|아니오|아뇨|됐어요|아니에요|아니야|노|ㄴㄴ)");
 	}
 
 	/** '상담사 연결' 퀵메뉴, "상담사 연결해 주세요", "상담원 요청" 등 */

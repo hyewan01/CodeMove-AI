@@ -154,6 +154,9 @@
 				.then((b) => {
 					if (!b) return;
 					$$('[data-chat-dot]').forEach((d) => (d.hidden = !b.chat));
+					/* 종 점: 알림 패널을 보고 있을 때는 그대로 둠 */
+					const bell = $('[data-unread-dot]');
+					if (bell && b.bell !== undefined && !$('[data-panel="notifications"]:not([hidden])')) bell.hidden = !b.bell;
 					const latest = b.latest;
 					if (!latest || latest.key === seen.get()) return;
 					const first = seen.get() === null;

@@ -637,6 +637,7 @@ public class CustomerPageController {
 		model.addAttribute("greeting", chats.settings().getGreeting());
 		model.addAttribute("hours", chats.consultHours());
 		model.addAttribute("history", chats.customerThread(memberId));
+		model.addAttribute("chatMode", chats.customerMode(memberId));
 		return "customer/chat/chat";
 	}
 

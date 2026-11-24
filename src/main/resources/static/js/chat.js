@@ -225,6 +225,8 @@
 	});
 
 	/* ---------- 보내기 ---------- */
+	/* 보내는 중에는 새 메시지 확인을 쉼 (AI 답이 확인 쪽으로 먼저 와서 버튼이 빠지지 않게) */
+	let sending = 0;
 	function ask(value) {
 		const text = (value || '').trim();
 		const file = attachment;
@@ -245,7 +247,9 @@
 		const body = new FormData();
 		body.append('text', text);
 		if (file) body.append('file', file);
+		sending++;
 		fetch(URL_MESSAGES, { method: 'POST', body })
+			.finally(() => { sending--; })
 			.then((r) => (r.ok ? r.json() : Promise.reject(r)))
 			.then((res) => {
 				typing.remove();
@@ -261,12 +265,19 @@
 				if (res.fileUrl) { entry.state.fileUrl = res.fileUrl; entry.state.fileKind = res.fileKind; paint(entry); }
 				byId.set(res.id, entry);
 				lastId = Math.max(lastId, res.lastId || 0);
-				if (res.reply) addMessage({ role: 'bot', text: res.reply.text }, res.reply.actions);
+				if (res.mode) setMode(res.mode);
+				if (res.reply && !byId.has(res.reply.id)) addMessage({ id: res.reply.id, role: 'bot', text: res.reply.text }, res.reply.actions);
 			})
 			.catch(() => {
 				typing.remove();
 				addMessage({ role: 'bot', text: '메시지를 보내지 못했어요. 잠시 후 다시 시도해주세요.' });
 			});
+	}
+
+	/* 머리글: 누가 답하는지 */
+	function setMode(mode) {
+		const label = $('[data-chat-mode]');
+		if (label) label.textContent = mode === 'counselor' ? '상담사와 대화 중' : 'AI 이사 도우미';
 	}
 
 	/* 이전 상담 내용 */
@@ -277,7 +288,7 @@
 
 	/* 상담사 답장 · 수정 · 삭제 · 읽음 확인 */
 	setInterval(() => {
-		if (document.hidden) return;
+		if (document.hidden || sending) return;
 		fetch(`${URL_MESSAGES}?after=${lastId}`)
 			.then((r) => (r.ok ? r.json() : { messages: [], states: [] }))
 			.then((res) => {
@@ -286,6 +297,7 @@
 					if (!byId.has(m.id)) addMessage(m);
 				});
 				(res.states || []).forEach(applyState);
+				if (res.mode) setMode(res.mode);
 			})
 			.catch(() => {});
 	}, 5000);

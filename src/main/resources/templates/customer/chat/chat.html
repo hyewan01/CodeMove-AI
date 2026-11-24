@@ -10,7 +10,8 @@
 		<a th:replace="~{customer/fragments/common :: back('/home')}"></a>
 		<div class="chat-header-title">
 			<strong>명품 상담</strong>
-			<span>AI 이사 도우미</span>
+			<!-- 누가 답하는지: AI 이사 도우미 / 상담사와 대화 중 (상담 중이면 AI 는 답하지 않음) -->
+			<span data-chat-mode th:text="${chatMode == 'counselor'} ? '상담사와 대화 중' : 'AI 이사 도우미'">AI 이사 도우미</span>
 		</div>
 		<span></span>
 	</div>

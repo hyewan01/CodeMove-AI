@@ -31,6 +31,8 @@
 			<div class="min-w-0"><h1 class="truncate text-[17px] font-extrabold text-[#346538]" th:text="${room.name}">홍길동</h1></div>
 			<span th:if="${room.waiting}" class="ml-1 flex shrink-0 items-center gap-1 rounded-full bg-[#fff0ee] px-2 py-1 text-[13px] font-bold text-[#bd5147]">
 				<span class="h-1.5 w-1.5 rounded-full bg-[#d95c50]"></span>대기 중</span>
+			<!-- 상담 중이면 AI 는 답하지 않음 (상담 종료 또는 24시간 뒤 다시 AI) -->
+			<span th:if="${consultMode and !room.waiting}" class="ml-1 shrink-0 rounded-full bg-[#edf3ed] px-2 py-1 text-[13px] font-bold text-[#346538]">상담 중</span>
 		</div>
 		<div class="flex shrink-0 items-center">
 			<button aria-label="대화 내용 검색" class="grid h-10 w-9 place-items-center rounded-full text-[#3f4941] hover:bg-[#f2f5f2]" type="button" data-toggle="msg-search">
@@ -45,6 +47,11 @@
 						<span class="grid h-5 w-5 place-items-center rounded-md border border-[#d8ddd8] group-aria-pressed:border-0 group-aria-pressed:bg-[#346538] group-aria-pressed:text-white">
 							<svg th:replace="~{admin/fragments/icon :: icon2('check', 13, 'hidden group-aria-pressed:block')}"></svg></span>
 					</button>
+					<form th:if="${consultMode}" class="mt-1 border-t border-[#eef0ee] pt-1" method="post" th:action="@{/admin/chats/{id}/end(id=${room.id})}">
+						<input type="hidden" name="from" th:value="${from}">
+						<button class="w-full rounded-lg px-3 py-2.5 text-left text-[14px] font-semibold text-[#346538] hover:bg-[#f5f6f5]" type="submit">
+							상담 종료 <span class="block text-[12px] font-normal text-[#8a918c]">다시 AI 가 답하도록</span></button>
+					</form>
 				</div>
 			</div>
 		</div>

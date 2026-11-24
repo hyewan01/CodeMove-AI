@@ -19,6 +19,17 @@
 		SELECT COUNT(*) FROM TBL_NOTIFICATION WHERE RECEIVER_TYPE = '02' AND IS_READ = 'N'
 	</select>
 
+	<select id="countUnreadAdminLink" resultType="int">
+		SELECT COUNT(*) FROM TBL_NOTIFICATION
+		 WHERE RECEIVER_TYPE = '02' AND IS_READ = 'N' AND TRIM(NTF_DETAIL) = #{detail} AND LINK_URL = #{link}
+	</select>
+
+	<!-- 채팅방을 열면 그 방으로 가는 채팅 알림(13 대기 · 18 고객 메시지)은 읽음 -->
+	<update id="markAdminReadLink">
+		UPDATE TBL_NOTIFICATION SET IS_READ = 'Y'
+		 WHERE RECEIVER_TYPE = '02' AND IS_READ = 'N' AND TRIM(NTF_DETAIL) IN ('13', '18') AND LINK_URL = #{link}
+	</update>
+
 	<update id="markAllAdminRead">
 		UPDATE TBL_NOTIFICATION SET IS_READ = 'Y' WHERE RECEIVER_TYPE = '02' AND IS_READ = 'N'
 	</update>

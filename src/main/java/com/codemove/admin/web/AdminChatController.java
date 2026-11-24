@@ -27,9 +27,11 @@ import jakarta.servlet.http.HttpSession;
 public class AdminChatController {
 
 	private final ChatService chats;
+	private final com.codemove.notification.NotificationService notifications;
 
-	public AdminChatController(ChatService chats) {
+	public AdminChatController(ChatService chats, com.codemove.notification.NotificationService notifications) {
 		this.chats = chats;
+		this.notifications = notifications;
 	}
 
 	private List<AdminChat.ChatRoom> rooms() {
@@ -57,6 +59,7 @@ public class AdminChatController {
 		List<ChatRoomLine> rooms = chats.rooms();
 		java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
 		out.put("chat", rooms.stream().mapToInt(r -> r.getUnread() == null ? 0 : r.getUnread()).sum());
+		out.put("bell", notifications.hasUnreadAdmin());
 		rooms.stream().filter(r -> r.getUnread() != null && r.getUnread() > 0 && r.getLastCustomerAt() != null)
 				.max(java.util.Comparator.comparing(ChatRoomLine::getLastCustomerAt))
 				.ifPresent(r -> out.put("latest", java.util.Map.of(
@@ -66,6 +69,13 @@ public class AdminChatController {
 						"message", r.getLastMessage() == null ? "새 메시지가 왔어요" : r.getLastMessage(),
 						"href", request.getContextPath() + "/admin/chats/" + r.getRoomId())));
 		return out;
+	}
+
+	/** 상담 종료: 다시 AI 가 답함 (고객에게 안내 메시지) */
+	@PostMapping("/chats/{id}/end")
+	public String endConsult(@PathVariable long id, @RequestParam(defaultValue = "") String from) {
+		chats.endConsult(id);
+		return "redirect:/admin/chats/" + id + (from.isBlank() ? "" : "?from=" + from);
 	}
 
 	/* ---------- 채팅 목록 · 상세 ---------- */
@@ -97,6 +107,8 @@ public class AdminChatController {
 		}
 		AdminChat.ChatRoom room = AdminChat.ChatRoom.of(line);
 		List<ChatMessage> messages = chats.openRoom(id);
+		notifications.markAdminChatRead("/admin/chats/" + id); // 이 방의 채팅 알림은 읽음
+		model.addAttribute("consultMode", "counselor".equals(ChatService.modeOf(line)));
 		// 답변이 필요한 고객 메시지 중 그 뒤에 관리자 답장이 없는 것 = 붉게
 		int lastAdmin = -1;
 		for (int i = 0; i < messages.size(); i++) {
