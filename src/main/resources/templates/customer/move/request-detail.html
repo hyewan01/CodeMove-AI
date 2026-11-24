@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('견적 상세')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'" th:with="st=${req.status}">
+<!-- 내 이사 > 견적 정보 > 견적 한 건: 영수증 · 견적서(관리자와 같은 양식) 두 가지로 보기 -->
+<div class="screen form-page soft-page">
+	<div th:replace="~{customer/fragments/common :: formHead('/move?tab=estimate', '견적 상세')}"></div>
+	<div class="form-content req-detail">
+		<div class="move-state-card" th:classappend="${st == 'waiting-approval'} ? 'waiting'">
+			<span th:text="${st == 'waiting-approval'} ? '관리자 확인 중' : (${st == 'approved'} ? '견적 도착' : (${st == 'confirmed'} ? '견적 확정' : '지난 견적'))">관리자 확인 중</span>
+			<strong th:text="${st == 'waiting-approval'} ? '견적 요청을 검토하고 있어요.' : (${st == 'approved'} ? '담당자가 견적을 보냈어요.' : (${st == 'confirmed'} ? '확정한 견적이에요.' : '신청했던 견적이에요.'))">견적 요청을 검토하고 있어요.</strong>
+			<small th:text="${st == 'waiting-approval'} ? '담당자가 확인하면 알려드려요.' : '아래에서 영수증과 견적서로 볼 수 있어요.'">담당자가 확인하면 알려드려요.</small>
+		</div>
+
+		<th:block th:if="${quote != null}">
+			<div class="my-request-switch" role="tablist" aria-label="보기 방식">
+				<button type="button" class="action active" role="tab" aria-selected="true" data-view-tab="receipt">영수증으로 보기</button>
+				<button type="button" class="action" role="tab" aria-selected="false" data-view-tab="sheet">견적서로 보기</button>
+			</div>
+
+			<div class="receipt" data-view="receipt">
+				<div class="receipt-head">
+					<span th:text="${st == 'waiting-approval'} ? '신청한 예상 견적' : '견적 금액'">신청한 예상 견적</span>
+					<strong th:text="${st == 'waiting-approval' and !#strings.isEmpty(mv.rangeLabel)} ? ${mv.rangeLabel} : ${quote.totalLabel}">0원</strong>
+					<small th:text="${mv.issuedLabel} + (${st == 'waiting-approval'} ? ' · 담당자 확인 후 금액이 정해져요' : '')">발행</small>
+				</div>
+				<dl class="receipt-info">
+					<div th:each="row : ${moveInfoRows}"><dt th:text="${row.label}">견적 번호</dt><dd th:text="${row.value}">QT</dd></div>
+					<div><dt>짐 양</dt><dd th:text="${mv.cbmLabel} + ' · ' + ${vendorDoc.volume}">22.5 CBM</dd></div>
+					<div th:if="${!#strings.isEmpty(mv.memo)}"><dt>요청 사항</dt><dd th:text="${mv.memo}">메모</dd></div>
+				</dl>
+				<div class="receipt-lines">
+					<ul>
+						<li th:each="row : ${quote.rows}"><span><th:block th:text="${row.label}">기본 운송비</th:block><small th:if="${row.sub != null}" th:text="${row.sub}"></small></span><b th:text="${row.value}">0원</b></li>
+					</ul>
+					<div class="receipt-total"><span>견적서 금액</span><b th:text="${quote.totalLabel}">0원</b></div>
+					<div class="receipt-sub"><span>계약금 (10%)</span><span th:text="${vendorDoc.deposit}">₩ 0</span></div>
+				</div>
+			</div>
+
+			<div class="req-sheet" data-view="sheet" hidden>
+				<iframe title="견적서" loading="lazy" data-sheet-src th:attr="data-src=@{/move/request/{id}/sheet(id=${req.request.requestId})}"></iframe>
+				<a class="action req-sheet-open" target="_blank" rel="noopener" th:href="@{/move/request/{id}/sheet(id=${req.request.requestId})}">크게 보기</a>
+			</div>
+
+			<form method="post" th:action="@{/move/estimate/confirm}" th:if="${canConfirm}">
+				<button class="action req-confirm">이 견적으로 확정하기</button>
+			</form>
+		</th:block>
+	</div>
+</div>
+<script>
+	(function () {
+		const tabs = document.querySelectorAll('[data-view-tab]');
+		tabs.forEach((t) => t.addEventListener('click', () => {
+			tabs.forEach((x) => { const on = x === t; x.classList.toggle('active', on); x.setAttribute('aria-selected', String(on)); });
+			document.querySelectorAll('[data-view]').forEach((v) => (v.hidden = v.dataset.view !== t.dataset.viewTab));
+			// 견적서는 처음 열 때 불러옴
+			const f = document.querySelector('[data-sheet-src]');
+			if (t.dataset.viewTab === 'sheet' && f && !f.src) f.src = f.dataset.src;
+		}));
+	})();
+</script>
+</div>
+</body>
+</html>

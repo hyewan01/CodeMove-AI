@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('예약 상세')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+<!-- 내 이사 > 예약 정보 > 예약 한 건: 관리자 예약 관리 상세와 같은 항목 + 예약 취소 -->
+<div class="screen form-page soft-page">
+	<div th:replace="~{customer/fragments/common :: formHead('/move?tab=booking', '예약 상세')}"></div>
+	<div class="form-content">
+		<section class="booking-summary">
+			<div class="booking-summary-head">
+				<span class="booking-summary-state" th:classappend="${summary.confirmed and summary.active} ? 'done' : (${!summary.active} ? 'off')" th:text="${summary.state}">견적 검토 중</span>
+				<small th:text="'신청일 ' + ${summary.appliedDate}">신청일</small>
+			</div>
+			<dl class="booking-summary-rows">
+				<div><dt>예약 번호</dt><dd th:text="${summary.reservationNo}">RSV</dd></div>
+				<div><dt>견적 번호</dt><dd th:text="${summary.quoteNo}">QT</dd></div>
+				<div><dt>이사 유형</dt><dd th:text="${summary.type}">원룸 · 포장이사</dd></div>
+				<div><dt>이사일</dt><dd th:text="${summary.moveDate}">2026. 12. 06 (일)</dd></div>
+				<div><dt>이사 시간</dt><dd th:text="${summary.moveTime}">오전 10:00</dd></div>
+				<div><dt>출발지</dt><dd th:text="${summary.from}">출발지</dd></div>
+				<div><dt>도착지</dt><dd th:text="${summary.to}">도착지</dd></div>
+				<div th:if="${!#strings.isEmpty(summary.memo)}"><dt>요청 사항</dt><dd th:text="${summary.memo}">메모</dd></div>
+			</dl>
+			<div class="booking-summary-pay" th:if="${summary.active}">
+				<span>계약금 10%</span>
+				<b th:text="${summary.deposit}">220,000원</b>
+				<em th:text="${summary.payStatus}">결제 대기</em>
+			</div>
+			<p class="booking-summary-note" th:if="${summary.active and !summary.confirmed}">담당자가 견적을 확인하면 알려드려요. 견적을 확정하면 예약이 확정돼요.</p>
+			<p class="booking-summary-note" th:unless="${summary.active}">취소한 예약이에요. 견적이 도착하면 확정해서 다시 예약할 수 있어요.</p>
+			<div class="booking-summary-actions">
+				<a class="action booking-summary-link" th:href="@{/move/request/{id}(id=${summary.requestId})}">견적 보기</a>
+				<button type="button" class="action booking-summary-cancel" data-modal-open="booking-cancel" th:if="${summary.active}">예약 취소</button>
+			</div>
+		</section>
+	</div>
+
+	<th:block th:if="${summary.active}">
+		<div class="scrim" style="z-index: 60" data-modal="booking-cancel" data-modal-close hidden></div>
+		<form class="confirm-dialog" style="z-index: 61" method="post" th:action="@{/move/booking/{id}/cancel(id=${summary.reservationId})}" data-modal="booking-cancel" hidden>
+			<strong>예약을 취소할까요?</strong>
+			<span th:text="${summary.moveDate} + ' 이사 예약이 취소돼요. 견적 요청은 그대로 남아요.'">예약이 취소돼요.</span>
+			<div class="confirm-dialog-actions">
+				<button type="button" class="action outline" data-modal-close>닫기</button>
+				<button class="action primary danger">예약 취소</button>
+			</div>
+		</form>
+	</th:block>
+	<div class="save-toast" th:if="${toast}" th:text="${toast}" data-toast></div>
+	<script>
+		(function () {
+			const t = document.querySelector('[data-toast]');
+			if (t) setTimeout(() => t.remove(), 3200);
+		})();
+	</script>
+</div>
+</div>
+</body>
+</html>

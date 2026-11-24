@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!--
+	고객 > 견적 상세 > 견적서로 보기: 관리자 견적서와 똑같은 양식 (admin/fragments/estimate-sheet, 읽기 전용).
+	관리자 CSS(Tailwind)를 쓰므로 고객 화면과 섞이지 않게 이 페이지만 따로 그려 상세 화면의 iframe 에 넣습니다.
+-->
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>견적서 | 명품익스프레스</title>
+	<link rel="preload" th:href="@{/fonts/Pretendard-Regular.woff2}" as="font" type="font/woff2" crossorigin>
+	<link rel="stylesheet" th:href="@{/css/admin.css}">
+	<style>
+		html, body { margin: 0; background: #dfe4df; }
+		.sheet-wrap { padding: 10px; }
+		.sheet-page { background: #fff; box-shadow: 0 6px 18px rgb(0 0 0 / .12); container-type: inline-size; }
+	</style>
+</head>
+<body>
+<div class="sheet-wrap">
+	<div class="sheet-page">
+		<article th:replace="~{admin/fragments/estimate-sheet :: sheet(${doc}, false)}"></article>
+	</div>
+</div>
+</body>
+</html>

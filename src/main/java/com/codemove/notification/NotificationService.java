@@ -151,6 +151,19 @@ public class NotificationService {
 		mapper.markMemberRead(memberId, id);
 	}
 
+	/** 상담사 답변(15) 중 안 읽은 게 있으면 하단 채팅 아이콘에 점 */
+	public static final String CHAT_REPLY = "15";
+
+	public boolean hasUnreadChat(long memberId) {
+		return mapper.countUnreadMemberDetail(memberId, CHAT_REPLY) > 0;
+	}
+
+	/** 고객이 상담 화면을 열면 상담 답변 알림은 읽은 것으로 */
+	@Transactional
+	public void markChatRead(long memberId) {
+		mapper.markMemberReadDetail(memberId, CHAT_REPLY);
+	}
+
 	@Transactional
 	public void markAllRead(long memberId) {
 		mapper.markAllMemberRead(memberId);

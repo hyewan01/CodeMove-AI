@@ -497,9 +497,57 @@ public class CustomerPageController {
 		String active = cs.getMoveTab() != null ? cs.getMoveTab() : "confirmed".equals(c.status()) ? "booking" : "estimate";
 		model.addAttribute("tab", active);
 		addMoveModel(model, c);
-		model.addAttribute("summary", views.bookingSummary(c));
+		// 견적 · 예약은 여러 건일 수 있어 목록으로 (누르면 상세)
+		List<CurrentMove> all = moves.all(memberId(session));
+		model.addAttribute("estimateCards", views.estimateCards(all));
+		model.addAttribute("bookingCards", views.bookingCards(all));
 		model.addAttribute("doneMoves", views.doneMoves(memberId(session)));
 		return "customer/move/move";
+	}
+
+	/** 견적 상세 (견적 정보 목록에서 한 건): 영수증 · 견적서 두 가지로 보기 */
+	@GetMapping("/move/request/{requestId}")
+	public String requestDetail(@PathVariable long requestId, HttpSession session, Model model) {
+		CurrentMove c = moves.forRequest(memberId(session), requestId);
+		if (c == null) {
+			return "redirect:/move?tab=estimate";
+		}
+		addMoveModel(model, c);
+		model.addAttribute("req", c);
+		// 견적 확정은 가장 최근 요청(지금 진행 중인 이사)일 때만
+		model.addAttribute("canConfirm", "approved".equals(c.status())
+				&& current(session).request() != null && current(session).request().getRequestId() == requestId);
+		return "customer/move/request-detail";
+	}
+
+	/** 견적서: 관리자 화면과 똑같은 양식 (관리자 CSS 를 쓰므로 따로 그려 상세 화면에 끼움) */
+	@GetMapping("/move/request/{requestId}/sheet")
+	public String requestSheet(@PathVariable long requestId, HttpSession session, Model model) {
+		CurrentMove c = moves.forRequest(memberId(session), requestId);
+		if (c == null || c.quote() == null) {
+			return "redirect:/move?tab=estimate";
+		}
+		model.addAttribute("doc", views.estimateDoc(c.quote()));
+		return "customer/move/sheet";
+	}
+
+	/** 예약 상세 (예약 정보 목록에서 한 건): 요약 + 예약 취소 */
+	@GetMapping("/move/booking/{reservationId}")
+	public String bookingDetail(@PathVariable long reservationId, HttpSession session, Model model) {
+		CurrentMove c = moves.forReservation(memberId(session), reservationId);
+		if (c == null) {
+			return "redirect:/move?tab=booking";
+		}
+		addMoveModel(model, c);
+		model.addAttribute("summary", views.bookingSummary(c));
+		return "customer/move/booking-detail";
+	}
+
+	@PostMapping("/move/booking/{reservationId}/cancel")
+	public String cancelBooking(@PathVariable long reservationId, HttpSession session, RedirectAttributes ra) {
+		boolean ok = moves.cancel(memberId(session), reservationId);
+		ra.addFlashAttribute("toast", ok ? "이사 예약을 취소했어요." : "취소할 수 없는 예약이에요.");
+		return "redirect:/move/booking/" + reservationId;
 	}
 
 	/** 견적 확정 → 예약 */
@@ -560,6 +608,7 @@ public class CustomerPageController {
 	@GetMapping("/chat")
 	public String chat(HttpSession session, Model model) {
 		long memberId = memberId(session);
+		notifications.markChatRead(memberId); // 상담 화면을 열면 하단 채팅 점 · 상담 답변 알림은 읽음
 		model.addAttribute("topics", chats.quickMenuTitles());
 		model.addAttribute("greeting", chats.settings().getGreeting());
 		model.addAttribute("hours", chats.consultHours());

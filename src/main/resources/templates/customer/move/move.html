@@ -17,49 +17,23 @@
 			</div>
 		</div>
 
-		<!-- 예약 정보 -->
+		<!-- 예약 정보: 예약이 여러 건일 수 있어 목록 → 누르면 예약 상세 (요약 · 예약 취소) -->
 		<div data-tab-panel="booking" th:hidden="${tab != 'booking'}">
-			<!-- 예약 요약 (관리자 예약 관리 상세와 같은 항목) + 예약 취소 -->
-			<section class="booking-summary" th:if="${summary != null}">
-				<div class="booking-summary-head">
-					<span class="booking-summary-state" th:classappend="${summary.confirmed} ? 'done'" th:text="${summary.state}">견적 검토 중</span>
-					<small th:text="'신청일 ' + ${summary.appliedDate}">신청일</small>
-				</div>
-				<dl class="booking-summary-rows">
-					<div><dt>예약 번호</dt><dd th:text="${summary.reservationNo}">RSV</dd></div>
-					<div><dt>견적 번호</dt><dd th:text="${summary.quoteNo}">QT</dd></div>
-					<div><dt>이사 유형</dt><dd th:text="${summary.type}">원룸 · 포장이사</dd></div>
-					<div><dt>이사일</dt><dd th:text="${summary.moveDate}">2026. 12. 06 (일)</dd></div>
-					<div><dt>이사 시간</dt><dd th:text="${summary.moveTime}">오전 10:00</dd></div>
-					<div><dt>출발지</dt><dd th:text="${summary.from}">출발지</dd></div>
-					<div><dt>도착지</dt><dd th:text="${summary.to}">도착지</dd></div>
-					<div th:if="${!#strings.isEmpty(summary.memo)}"><dt>요청 사항</dt><dd th:text="${summary.memo}">메모</dd></div>
-				</dl>
-				<div class="booking-summary-pay">
-					<span>계약금 10%</span>
-					<b th:text="${summary.deposit}">220,000원</b>
-					<em th:text="${summary.payStatus}">결제 대기</em>
-				</div>
-				<p class="booking-summary-note" th:unless="${summary.confirmed}">담당자가 견적을 확인하면 알려드려요. 견적을 확정하면 예약이 확정돼요.</p>
-				<div class="booking-summary-actions">
-					<a class="action booking-summary-link" th:if="${summary.confirmed}" th:href="@{/move/reservation}">예약 상세 보기</a>
-					<button type="button" class="action booking-summary-cancel" data-modal-open="booking-cancel">예약 취소</button>
-				</div>
-			</section>
-			<!-- 예약 취소 확인 -->
-			<th:block th:if="${summary != null}">
-				<div class="scrim" style="z-index: 60" data-modal="booking-cancel" data-modal-close hidden></div>
-				<form class="confirm-dialog" style="z-index: 61" method="post" th:action="@{/move/reservation/cancel}" data-modal="booking-cancel" hidden>
-					<input type="hidden" name="back" value="booking">
-					<strong>예약을 취소할까요?</strong>
-					<span th:text="${summary.moveDate} + ' 이사 예약이 취소돼요. 견적 요청은 그대로 남아요.'">예약이 취소돼요.</span>
-					<div class="confirm-dialog-actions">
-						<button type="button" class="action outline" data-modal-close>닫기</button>
-						<button class="action primary danger">예약 취소</button>
+			<div class="move-list" th:unless="${#lists.isEmpty(bookingCards)}">
+				<a class="action move-list-card" th:each="b : ${bookingCards}" th:href="@{/move/booking/{id}(id=${b.reservationId})}"
+				   th:classappend="${b.state == 'cancelled'} ? 'off'">
+					<div class="move-list-head">
+						<span class="move-list-chip" th:classappend="${b.state}" th:text="${b.stateLabel}">견적 확인 중</span>
+						<small th:text="${b.type}">원룸 · 포장이사</small>
 					</div>
-				</form>
-			</th:block>
-			<div class="booking-empty-state" th:if="${summary == null}">
+					<strong class="move-list-title" th:text="${b.date} + ' ' + ${b.time}">2026. 11. 27 (금) 오전 10:00</strong>
+					<div class="move-list-row">
+						<span th:text="${b.route}">서구 → 북구</span>
+						<img th:replace="~{customer/fragments/common :: chevron}">
+					</div>
+				</a>
+			</div>
+			<div class="booking-empty-state" th:if="${#lists.isEmpty(bookingCards)}">
 				<svg aria-hidden="true" fill="none" height="36" viewBox="0 0 36 36" width="36" xmlns="http://www.w3.org/2000/svg">
 					<rect height="25" rx="4" stroke="currentColor" stroke-width="1.6" width="28" x="4" y="7"/>
 					<path d="M4 14h28M11 4v6M25 4v6" stroke="currentColor" stroke-linecap="round" stroke-width="1.6"/>
@@ -74,90 +48,28 @@
 			</div>
 		</div>
 
-		<!-- 견적 정보 -->
+		<!-- 견적 정보: 요청마다 한 칸 → 누르면 견적 상세 (영수증 · 견적서) -->
 		<div data-tab-panel="estimate" th:hidden="${tab != 'estimate'}">
-			<div class="move-state-card waiting" th:if="${status == 'waiting-approval'}">
-				<span>관리자 확인 중</span>
-				<strong>견적 요청을 검토하고 있어요.</strong>
-				<small>담당자가 확인하면 알려드려요. 아래에서 신청한 내용을 볼 수 있어요.</small>
+			<div class="move-list" th:unless="${#lists.isEmpty(estimateCards)}">
+				<a class="action move-list-card" th:each="e : ${estimateCards}" th:href="@{/move/request/{id}(id=${e.requestId})}"
+				   th:classappend="${e.state == 'expired'} ? 'off'">
+					<div class="move-list-head">
+						<span class="move-list-chip" th:classappend="${e.state}" th:text="${e.stateLabel}">검토 중</span>
+						<small th:text="'신청 ' + ${e.requested}">신청 2026. 11. 24</small>
+					</div>
+					<strong class="move-list-title" th:text="${e.route}">서구 → 북구</strong>
+					<div class="move-list-meta" th:text="${e.type} + ' · ' + ${e.moveDate}">원룸 · 반포장 · 2026. 11. 27 (금)</div>
+					<div class="move-list-row">
+						<b th:text="${e.amount}">2,440,000 ~ 2,640,000원</b>
+						<img th:replace="~{customer/fragments/common :: chevron}">
+					</div>
+				</a>
 			</div>
-
-			<!-- 검토 중에도 신청한 내용: 영수증 · 견적서(관리자가 보는 양식) 두 가지로 -->
-			<section class="my-request" th:if="${status == 'waiting-approval' and quote != null}">
-				<div class="my-request-switch" role="tablist" aria-label="보기 방식">
-					<button type="button" class="action active" role="tab" aria-selected="true">영수증으로 보기</button>
-					<button type="button" class="action" role="tab" aria-selected="false" data-modal-open="quote-doc">견적서로 보기</button>
-				</div>
-				<div class="receipt">
-					<div class="receipt-head">
-						<span>신청한 예상 견적</span>
-						<strong th:text="${!#strings.isEmpty(mv.rangeLabel)} ? ${mv.rangeLabel} : ${quote.totalLabel}">2,125,000 ~ 2,345,000원</strong>
-						<small th:text="${mv.issuedLabel} + ' · 담당자 확인 후 금액이 정해져요'">발행</small>
-					</div>
-					<dl class="receipt-info">
-						<div th:each="row : ${moveInfoRows}"><dt th:text="${row.label}">견적 번호</dt><dd th:text="${row.value}">QT</dd></div>
-						<div><dt>짐 양</dt><dd th:text="${mv.cbmLabel} + ' · ' + ${vendorDoc.volume}">22.5 CBM</dd></div>
-						<div th:if="${!#strings.isEmpty(mv.memo)}"><dt>요청 사항</dt><dd th:text="${mv.memo}">메모</dd></div>
-					</dl>
-					<div class="receipt-lines">
-						<ul>
-							<li th:each="row : ${quote.rows}"><span><th:block th:text="${row.label}">기본 운송비</th:block><small th:if="${row.sub != null}" th:text="${row.sub}"></small></span><b th:text="${row.value}">0원</b></li>
-						</ul>
-						<div class="receipt-total"><span>견적서 금액</span><b th:text="${quote.totalLabel}">0원</b></div>
-						<div class="receipt-sub"><span>계약금 (10%)</span><span th:text="${vendorDoc.deposit}">₩ 0</span></div>
-					</div>
-				</div>
-			</section>
-
-			<div class="move-state-card" th:if="${status == 'none'}">
+			<div class="move-state-card" th:if="${#lists.isEmpty(estimateCards)}">
 				<span>견적 없음</span>
 				<strong>아직 요청한 견적이 없습니다.</strong>
 				<small>영상 견적을 요청하면 진행 상태를 확인할 수 있습니다.</small>
 				<a class="action move-state-action" th:href="@{/quote}">새 견적 받기</a>
-			</div>
-
-			<div class="move-estimate-section" th:if="${status == 'approved' or confirmed}">
-				<div class="move-estimate-card">
-					<div class="move-estimate-badge">진행중 견적</div>
-					<div class="move-estimate-company">명품익스프레스</div>
-					<div class="move-estimate-price">
-						<b th:text="${quote.totalLabel}">410,000원</b>
-						<span>포장 · 운송 · 정리 포함</span>
-					</div>
-					<div class="move-estimate-meta">
-						<span th:text="'🏠 ' + ${quote.typeLabel}">🏠 원룸 · 일반포장</span>
-						<span th:text="'📅 ' + ${quote.scheduleLabel}">📅 2026. 03. 18 오전 10:00</span>
-						<span th:text="'📍 ' + ${quote.routeLabel}">📍 강남구 → 서초구</span>
-					</div>
-					<form class="move-estimate-actions" method="post" th:action="@{/move/estimate/confirm}">
-						<button type="button" class="action move-quote-btn" data-modal-open="quote-doc">
-							<svg fill="none" height="16" viewBox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg"><rect height="12" rx="1.5" stroke="currentColor" stroke-width="1.4" width="10" x="3" y="2"/><path d="M6 6h4M6 9h4M6 12h2" stroke="currentColor" stroke-linecap="round" stroke-width="1.3"/></svg>
-							견적서 확인
-						</button>
-						<button class="action move-confirm-btn" th:classappend="${confirmed} ? 'confirmed is-disabled'"
-								th:text="${confirmed} ? '✓ 확정 완료' : '견적 확정'">견적 확정</button>
-					</form>
-				</div>
-
-				<div class="move-estimate-detail">
-					<div class="move-estimate-detail-title">상세 견적 내역</div>
-					<div class="receipt-section-label">기본 이사 요금</div>
-					<div class="receipt-rule"></div>
-					<div class="receipt-row" th:each="row : ${quote.rows}">
-						<div class="receipt-row-label">
-							<span th:text="${row.label}"></span>
-							<small th:if="${row.sub != null}" th:text="${row.sub}"></small>
-						</div>
-						<b th:text="${row.value}"></b>
-					</div>
-					<div class="receipt-total-row">
-						<span>최종 견적 금액</span>
-						<b th:text="${quote.totalLabel}">410,000원</b>
-					</div>
-				</div>
-
-				<div class="mini-title" style="margin-top: 24px">다른 진행 중 견적</div>
-				<div class="empty-card">현재 진행 중인 추가 견적이 없습니다.</div>
 			</div>
 		</div>
 
@@ -192,13 +104,6 @@
 		</div>
 	</main>
 
-	<th:block th:if="${status == 'approved' or confirmed}">
-		<th:block th:replace="~{customer/fragments/move :: quoteDoc(${confirmed})}"></th:block>
-	</th:block>
-	<!-- 검토 중: 확정 버튼 없이 보기만 -->
-	<th:block th:if="${status == 'waiting-approval' and vendorDoc != null}">
-		<th:block th:replace="~{customer/fragments/move :: estimateDoc}"></th:block>
-	</th:block>
 	<div class="save-toast" th:if="${toast}" th:text="${toast}" data-toast></div>
 	<script>
 		(function () {

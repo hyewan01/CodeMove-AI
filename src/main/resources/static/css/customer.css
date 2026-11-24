@@ -2337,3 +2337,42 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 .app-shell:not(.easy-mode) .soft-page .flow-head .step-dots li.now { background: #ffe08a; }
 .app-shell:not(.easy-mode) .soft-page .flow-head .step-count { color: rgb(255 255 255 / .82); }
 .app-shell:not(.easy-mode) .soft-page .flow-head { min-height: 60px; padding-top: max(10px, env(safe-area-inset-top)); }
+
+
+/* ==================================================
+   내 이사 목록 · 견적 상세 · 예약 상세 · 채팅 점 (2026-11-24)
+   ================================================== */
+/* 목록 카드 (완료 탭 카드와 같은 모양, 누르면 상세) */
+.move-list { margin: 16px 20px 0; display: flex; flex-direction: column; gap: 12px; }
+.move-list-card { display: block; padding: 18px 18px 16px; border-radius: var(--card-radius, 24px); background: var(--white); box-shadow: var(--card-shadow); text-align: left; }
+.move-list-card:active { transform: scale(.99); }
+.move-list-card.off { opacity: .62; }
+.move-list-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.move-list-head small { color: var(--muted); font-size: 12.5px; }
+.move-list-chip { padding: 4px 9px; border-radius: 999px; background: #fdf3e3; color: #a2600f; font-family: "Pretendard:Bold"; font-size: 12px; }
+.move-list-chip.arrived { background: #e9f1fb; color: #2f6db0; }
+.move-list-chip.confirmed { background: var(--green-pale); color: var(--green); }
+.move-list-chip.cancelled, .move-list-chip.expired { background: #f0f1ef; color: #7d857f; }
+.move-list-title { display: block; margin-top: 12px; color: var(--ink); font-family: "Pretendard:Bold"; font-size: 17px; line-height: 1.35; }
+.move-list-meta { margin-top: 4px; color: var(--muted); font-size: 13px; }
+.move-list-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0f2ef; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: #535b55; font-size: 13.5px; }
+.move-list-row b { color: var(--green); font-family: "Pretendard:Bold"; font-size: 15px; }
+.move-list-row .chevron { width: 16px; height: 16px; opacity: .55; }
+
+/* 견적 상세 */
+.req-detail { display: flex; flex-direction: column; gap: 12px; padding-top: 18px; padding-bottom: 30px; }
+.req-detail .move-state-card { margin: 0; }
+.req-detail .receipt { margin: 0 0 12px; }
+.req-sheet { border-radius: 18px; background: #dfe4df; overflow: hidden; box-shadow: var(--card-shadow); }
+.req-sheet[hidden] { display: none; }
+.req-sheet iframe { display: block; width: 100%; aspect-ratio: 1488 / 2143; border: 0; background: #dfe4df; }
+.req-sheet-open { min-height: 44px; display: grid; place-items: center; background: var(--white); color: var(--green); font-family: "Pretendard:Bold"; font-size: 14px; }
+.req-confirm { width: 100%; min-height: 54px; border-radius: 16px; background: var(--green); color: var(--white); font-family: "Pretendard:Bold"; font-size: 16px; }
+
+/* 예약 상세 */
+.form-content > .booking-summary { margin: 18px 0 30px; }
+.booking-summary-state.off { background: #f0f1ef; color: #7d857f; }
+
+/* 하단 채팅: 상담사 답변을 아직 안 봤으면 빨간 점 */
+.nav-icon { position: relative; }
+.nav-dot { position: absolute; top: -1px; right: -3px; width: 9px; height: 9px; box-sizing: border-box; border: 2px solid var(--white); border-radius: 50%; background: #e5483f; }

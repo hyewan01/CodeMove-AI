@@ -68,7 +68,9 @@
 	</a>
 	<a class="action nav-item" th:href="@{/chat}" aria-label="채팅"
 	   th:classappend="${(active == 'chat' ? 'selected ' : '') + (!cs.loggedIn ? 'nav-locked' : '')}">
-		<div class="nav-icon"><img alt="" th:src="${active == 'chat'} ? @{/assets/chat-active.svg} : @{/assets/d6860.svg}"></div>
+		<div class="nav-icon"><img alt="" th:src="${active == 'chat'} ? @{/assets/chat-active.svg} : @{/assets/d6860.svg}">
+			<!-- 상담사 답변을 아직 안 봤으면 빨간 점 (상담 화면을 열면 사라짐) -->
+			<span class="nav-dot" th:if="${cs.chatUnread and active != 'chat'}" aria-label="새 상담 답변"></span></div>
 		<div>채팅</div>
 	</a>
 	<a class="action nav-item" th:href="@{/more}" aria-label="더보기"

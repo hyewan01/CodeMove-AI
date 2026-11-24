@@ -37,6 +37,16 @@
 		UPDATE TBL_NOTIFICATION SET IS_READ = 'Y' WHERE NOTIFICATION_ID = #{id} AND MEMBER_ID = #{memberId}
 	</update>
 
+	<select id="countUnreadMemberDetail" resultType="int">
+		SELECT COUNT(*) FROM TBL_NOTIFICATION
+		 WHERE RECEIVER_TYPE = '01' AND MEMBER_ID = #{memberId} AND TRIM(NTF_DETAIL) = #{detail} AND IS_READ = 'N'
+	</select>
+
+	<update id="markMemberReadDetail">
+		UPDATE TBL_NOTIFICATION SET IS_READ = 'Y'
+		 WHERE RECEIVER_TYPE = '01' AND MEMBER_ID = #{memberId} AND TRIM(NTF_DETAIL) = #{detail} AND IS_READ = 'N'
+	</update>
+
 	<update id="markAllMemberRead">
 		UPDATE TBL_NOTIFICATION SET IS_READ = 'Y' WHERE RECEIVER_TYPE = '01' AND MEMBER_ID = #{memberId} AND IS_READ = 'N'
 	</update>

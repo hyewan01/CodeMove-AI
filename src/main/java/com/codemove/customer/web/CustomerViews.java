@@ -35,7 +35,7 @@ public class CustomerViews {
 
 	/** 모든 고객 화면 공통 (모델 이름 cs) */
 	public record CustomerView(boolean loggedIn, String userName, String phone, boolean easy, String estimateStatus,
-			int notificationCount, String requestNote, String joinedLabel, List<String> providers) {
+			int notificationCount, String requestNote, String joinedLabel, List<String> providers, boolean chatUnread) {
 	}
 
 	public record HomeReview(String name, String meta, String moveType, String stars, String content) {
@@ -99,7 +99,17 @@ public class CustomerViews {
 	 */
 	public record BookingSummary(String state, String reservationNo, String quoteNo, String appliedDate, String type,
 			String moveDate, String moveTime, String from, String to, String deposit, String payStatus, String memo,
-			boolean confirmed) {
+			boolean confirmed, long reservationId, boolean active, long requestId) {
+	}
+
+	/** 내 이사 > 견적 정보 목록 한 칸 (요청마다). state: reviewing / arrived / confirmed / expired */
+	public record EstimateCard(long requestId, String state, String stateLabel, String requested, String route,
+			String type, String amount, String moveDate) {
+	}
+
+	/** 내 이사 > 예약 정보 목록 한 칸 (예약마다, 이사 완료는 완료 탭). state: booked / confirmed / cancelled */
+	public record BookingCard(long reservationId, String state, String stateLabel, String date, String time,
+			String route, String type) {
 	}
 
 	/** 후기 작성 대상 이사 */
@@ -125,14 +135,14 @@ public class CustomerViews {
 
 	public CustomerView view(CustomerSession cs, CurrentMove current) {
 		if (!cs.isLoggedIn()) {
-			return new CustomerView(false, "", "", cs.isEasy(), "none", 0, "", "", List.of());
+			return new CustomerView(false, "", "", cs.isEasy(), "none", 0, "", "", List.of(), false);
 		}
 		Member m = members.find(cs.getMemberId());
 		String memo = current.reservation() != null && current.reservation().getMoveMemo() != null
 				? current.reservation().getMoveMemo() : "";
 		return new CustomerView(true, m.getMemberName(), m.getPhone(), cs.isEasy(), current.status(),
 				notifications.unreadCount(cs.getMemberId()), memo, Fmt.dot(m.getJoinedAt().toLocalDate()),
-				members.connectedProviders(cs.getMemberId()));
+				members.connectedProviders(cs.getMemberId()), notifications.hasUnreadChat(cs.getMemberId()));
 	}
 
 	/** 원룸 · 일반포장 */
@@ -259,12 +269,13 @@ public class CustomerViews {
 	public BookingSummary bookingSummary(CurrentMove c) {
 		MoveRequest r = c.request();
 		Reservation v = c.reservation();
-		if (r == null || v == null || !MoveService.BOOKED.equals(v.getStatus())) {
+		if (r == null || v == null) {
 			return null;
 		}
 		Quote q = c.quote();
 		String qs = q == null ? QuoteService.REVIEWING : q.getStatus();
-		String state = switch (qs) {
+		boolean active = MoveService.BOOKED.equals(v.getStatus());
+		String state = !active ? ("03".equals(v.getStatus()) ? "예약 취소" : "이사 완료") : switch (qs) {
 			case QuoteService.APPROVED -> "견적 도착";
 			case QuoteService.CONFIRMED -> "예약 확정";
 			default -> "견적 검토 중";
@@ -282,7 +293,61 @@ public class CustomerViews {
 				v.getMoveDate() == null ? "미정" : Fmt.dot(v.getMoveDate()) + " (" + Fmt.weekday(v.getMoveDate()) + ")",
 				Fmt.ampm(v.getMoveTime()), full(r.getFromAddress(), r.getFromDetail()), full(r.getToAddress(), r.getToDetail()),
 				Fmt.money(deposit) + "원", pay, v.getMoveMemo() == null ? "" : v.getMoveMemo(),
-				QuoteService.CONFIRMED.equals(qs));
+				QuoteService.CONFIRMED.equals(qs), v.getReservationId(), active, r.getRequestId());
+	}
+
+	/** 견적 정보 목록: 고객의 요청 전부 (최근 순) */
+	public List<EstimateCard> estimateCards(List<CurrentMove> all) {
+		List<EstimateCard> out = new ArrayList<>();
+		for (CurrentMove c : all) {
+			MoveRequest r = c.request();
+			Quote q = c.quote();
+			String code = q == null ? QuoteService.REVIEWING : q.getStatus();
+			String[] st = switch (code) {
+				case QuoteService.APPROVED -> new String[] { "arrived", "견적 도착" };
+				case QuoteService.CONFIRMED -> new String[] { "confirmed", "견적 확정" };
+				case QuoteService.EXPIRED -> new String[] { "expired", "기한 만료" };
+				default -> new String[] { "reviewing", "검토 중" };
+			};
+			// 검토 중이면 신청 때 본 예상 범위, 견적이 오면 견적서 금액
+			String amount = !"reviewing".equals(st[0]) && q.getTotalAmount() != null ? Fmt.money(q.getTotalAmount()) + "원"
+					: r.getAiEstMin() != null && r.getAiEstMax() != null
+							? Fmt.money(r.getAiEstMin()) + " ~ " + Fmt.money(r.getAiEstMax()) + "원" : "-";
+			LocalDate date = r.getMoveDate();
+			out.add(new EstimateCard(r.getRequestId(), st[0], st[1], Fmt.dot(r.getRequestedAt().toLocalDate()),
+					Fmt.district(r.getFromAddress()) + " → " + Fmt.district(r.getToAddress()),
+					typeLabel(r.getHouseType(), r.getPackType()), amount,
+					date == null ? "이사일 미정" : Fmt.dot(date) + " (" + Fmt.weekday(date) + ")"));
+		}
+		return out;
+	}
+
+	/** 예약 정보 목록: 진행 중 · 취소한 예약 (이사 완료는 완료 탭에) */
+	public List<BookingCard> bookingCards(List<CurrentMove> all) {
+		List<BookingCard> out = new ArrayList<>();
+		for (CurrentMove c : all) {
+			Reservation v = c.reservation();
+			if (v == null || MoveService.DONE.equals(v.getStatus())) {
+				continue;
+			}
+			MoveRequest r = c.request();
+			boolean cancelled = !MoveService.BOOKED.equals(v.getStatus());
+			boolean confirmed = c.quote() != null && QuoteService.CONFIRMED.equals(c.quote().getStatus());
+			String[] st = cancelled ? new String[] { "cancelled", "예약 취소" }
+					: confirmed ? new String[] { "confirmed", "예약 확정" } : new String[] { "booked", "견적 확인 중" };
+			out.add(new BookingCard(v.getReservationId(), st[0], st[1],
+					v.getMoveDate() == null ? "이사일 미정" : Fmt.dot(v.getMoveDate()) + " (" + Fmt.weekday(v.getMoveDate()) + ")",
+					Fmt.ampm(v.getMoveTime()), Fmt.district(r.getFromAddress()) + " → " + Fmt.district(r.getToAddress()),
+					typeLabel(r.getHouseType(), r.getPackType())));
+		}
+		// 진행 중인 예약을 위로
+		out.sort((a, b) -> Boolean.compare("cancelled".equals(a.state()), "cancelled".equals(b.state())));
+		return out;
+	}
+
+	/** 관리자 견적서와 같은 양식에 넣을 값 (admin/fragments/estimate-sheet) */
+	public EstimateDoc estimateDoc(Quote q) {
+		return quotes.toDoc(q);
 	}
 
 	public VendorDoc vendorDoc(Quote q) {

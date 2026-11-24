@@ -123,7 +123,27 @@ public class MoveService {
 		if (requests.isEmpty()) {
 			return CurrentMove.NONE;
 		}
-		MoveRequest r = requests.get(0);
+		return of(requests.get(0));
+	}
+
+	/** 고객의 요청 전부 (최근 순): 내 이사 > 견적 정보 · 예약 정보 목록 */
+	public List<CurrentMove> all(long memberId) {
+		return moves.listRequests(memberId).stream().map(r -> of(r)).toList();
+	}
+
+	/** 그 고객의 요청 하나 (다른 고객 것이면 null) */
+	public CurrentMove forRequest(long memberId, long requestId) {
+		return moves.listRequests(memberId).stream().filter(r -> r.getRequestId() == requestId).findFirst()
+				.map(r -> of(r)).orElse(null);
+	}
+
+	/** 그 고객의 예약 하나 (다른 고객 것이면 null) */
+	public CurrentMove forReservation(long memberId, long reservationId) {
+		return all(memberId).stream().filter(c -> c.reservation() != null
+				&& c.reservation().getReservationId() == reservationId).findFirst().orElse(null);
+	}
+
+	private CurrentMove of(MoveRequest r) {
 		Quote q = quotes.findByRequest(r.getRequestId());
 		Reservation v = moves.findReservationByRequest(r.getRequestId());
 		String status;
@@ -271,7 +291,18 @@ public class MoveService {
 	 */
 	@Transactional
 	public boolean cancel(long memberId) {
-		CurrentMove c = current(memberId);
+		return cancel(current(memberId));
+	}
+
+	/** 예약 하나 취소 (내 이사 > 예약 정보 > 예약 상세) */
+	@Transactional
+	public boolean cancel(long memberId, long reservationId) {
+		CurrentMove c = forReservation(memberId, reservationId);
+		return c != null && cancel(c);
+	}
+
+	private boolean cancel(CurrentMove c) {
+		long memberId = c.request().getMemberId();
 		if (c.reservation() == null || !BOOKED.equals(c.reservation().getStatus())) {
 			return false;
 		}

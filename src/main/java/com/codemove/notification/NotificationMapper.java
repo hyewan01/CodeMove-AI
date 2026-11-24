@@ -26,6 +26,11 @@ public interface NotificationMapper {
 
 	void markAllMemberRead(long memberId);
 
+	/** 한 종류(NTF_DETAIL)의 안 읽은 알림 수 · 읽음 처리 (상담 답변 15 → 하단 채팅 점) */
+	int countUnreadMemberDetail(@Param("memberId") long memberId, @Param("detail") String detail);
+
+	void markMemberReadDetail(@Param("memberId") long memberId, @Param("detail") String detail);
+
 	/** 알림 내역 (관리자·고객 수신 모두, 최근 순) */
 	List<Notification> listHistory(int limit);
 
