@@ -18,6 +18,16 @@ class VideoAnalysisParseTest {
 			2.50, "2026-11-23", "build/ai-logs-test");
 
 	@Test
+	void fallbackModelResultsCarryAWarning() {
+		String p = "gemini-4-hydrogen";
+		assertEquals("메모", VideoAnalysisService.withFallbackNote("메모", p, p));
+		assertTrue(VideoAnalysisService.withFallbackNote("메모", "gemini-3.5-flash", p)
+				.startsWith(VideoAnalysisService.FALLBACK_NOTE));
+		assertTrue(VideoAnalysisService.withFallbackNote("메모", "gemini-3.5-flash", p).endsWith("메모"));
+		assertEquals(VideoAnalysisService.FALLBACK_NOTE, VideoAnalysisService.withFallbackNote("", "x", p));
+	}
+
+	@Test
 	void parsesSchemaResponse() {
 		RawResult r = service.parse("""
 				{"video_ok": true, "reject_reason": null, "rooms": ["거실", "주방"],

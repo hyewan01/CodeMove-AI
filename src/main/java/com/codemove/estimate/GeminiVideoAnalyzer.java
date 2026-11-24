@@ -92,6 +92,16 @@ public class GeminiVideoAnalyzer {
 	}
 
 	public Response analyze(Path video, String mimeType, String prompt, Map<String, Object> schema) {
+		return analyze(video, mimeType, prompt, schema, true);
+	}
+
+	/**
+	 * @param fallbackOnBusy 주 모델이 혼잡(5xx)할 때도 예비 모델로 넘어갈지. 예비 모델은 짐을 많이 빠뜨려서
+	 *                       (같은 영상 F1 42~64% vs 주 모델 90%) 재시도는 주 모델로 먼저 합니다.
+	 *                       한도 초과(429)는 기다려도 풀리지 않으므로 항상 예비 모델로 넘어갑니다.
+	 */
+	public Response analyze(Path video, String mimeType, String prompt, Map<String, Object> schema,
+			boolean fallbackOnBusy) {
 		if (!configured()) {
 			throw new AnalyzerException(VideoAnalysis.ERR_NO_KEY, "GEMINI_API_KEY 가 설정되지 않았습니다");
 		}
@@ -115,8 +125,9 @@ public class GeminiVideoAnalyzer {
 					used = m;
 					break;
 				} catch (AnalyzerException e) {
-					boolean busy = VideoAnalysis.ERR_BUSY.equals(e.code()) || VideoAnalysis.ERR_QUOTA.equals(e.code());
-					if (!busy) {
+					boolean quota = VideoAnalysis.ERR_QUOTA.equals(e.code());
+					boolean busy = VideoAnalysis.ERR_BUSY.equals(e.code()) && (fallbackOnBusy || !m.equals(model));
+					if (!busy && !quota) {
 						throw e;
 					}
 					last = e;

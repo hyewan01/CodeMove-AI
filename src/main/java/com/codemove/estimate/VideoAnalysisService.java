@@ -103,7 +103,9 @@ public class VideoAnalysisService {
 		int retries = 0;
 		while (true) {
 			try {
-				GeminiVideoAnalyzer.Response res = ai.analyze(video, mime, prompt, AnalysisPrompt.schema());
+				// 혼잡하면 주 모델로 다시 해 보고, 마지막 시도에서만 예비 모델 허용
+				GeminiVideoAnalyzer.Response res = ai.analyze(video, mime, prompt, AnalysisPrompt.schema(),
+						retries >= MAX_BUSY_RETRIES);
 				return save(interpret(id, res, t0, retries, version), video);
 			} catch (AnalyzerException e) {
 				boolean busy = VideoAnalysis.ERR_BUSY.equals(e.code());
@@ -124,7 +126,17 @@ public class VideoAnalysisService {
 	}
 
 	static final int MAX_BUSY_RETRIES = 2;
-	static final long BUSY_WAIT_MS = 5_000;
+	static final long BUSY_WAIT_MS = 10_000;
+
+	/** 예비 모델로 분석했을 때 메모 앞에 붙임 (예비 모델은 짐을 더 많이 빠뜨림) */
+	static final String FALLBACK_NOTE = "AI 서버가 혼잡해 예비 모델로 분석했어요. 빠진 짐이 있을 수 있으니 목록을 꼭 확인해 주세요.";
+
+	static String withFallbackNote(String memo, String usedModel, String primaryModel) {
+		if (usedModel == null || usedModel.equals(primaryModel)) {
+			return memo;
+		}
+		return memo == null || memo.isBlank() ? FALLBACK_NOTE : FALLBACK_NOTE + " " + memo;
+	}
 
 	private static void sleep(long ms) {
 		try {
@@ -155,7 +167,7 @@ public class VideoAnalysisService {
 					res.apiMs(), total, retries, res.text());
 		}
 		return new Result(id, true, null, null, res.model(), version, ItemMatcher.map(raw.items()),
-				raw.rooms(), raw.memo(), res.usage(), cost, res.uploadMs(), res.apiMs(), total, retries, res.text());
+				raw.rooms(), withFallbackNote(raw.memo(), res.model(), ai.model()), res.usage(), cost, res.uploadMs(), res.apiMs(), total, retries, res.text());
 	}
 
 	/** 응답 JSON → RawResult. 품목 한 줄이 이상하면 그 줄만 확인 필요로 */
