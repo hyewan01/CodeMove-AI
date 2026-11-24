@@ -2403,3 +2403,57 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 .pay-methods .action.active { border-color: var(--green); background: var(--green-pale); }
 .pay-methods .action.active strong { color: var(--green); }
 .booking-summary-pay em.paid { background: var(--green-pale); color: var(--green); }
+
+/* ==================================================
+   이사 준비 체크리스트 (2026-11-25)
+   ================================================== */
+.cl-card { display: block; margin: 16px 20px 0; padding: 16px 18px; border-radius: var(--card-radius, 24px); background: var(--white); box-shadow: var(--card-shadow); text-align: left; }
+.form-content > .cl-card { margin: 0 0 30px; }
+.cl-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cl-card-top strong { color: var(--ink); font-family: "Pretendard:Bold"; font-size: 15.5px; }
+.cl-card-top span { color: var(--green); font-family: "Pretendard:ExtraBold"; font-size: 15px; }
+.cl-card small { display: block; margin-top: 8px; color: var(--muted); font-size: 12.5px; }
+.cl-bar { height: 8px; margin-top: 10px; border-radius: 999px; background: #e7ece7; overflow: hidden; }
+.cl-bar i { display: block; height: 100%; border-radius: inherit; background: var(--green); transition: width .3s ease; }
+
+.cl-page { padding-top: 18px; padding-bottom: 30px; display: flex; flex-direction: column; gap: 10px; }
+.cl-summary { padding: 20px; border-radius: var(--card-radius, 24px); background: var(--white); box-shadow: var(--card-shadow); }
+.cl-summary-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.cl-summary-top span { display: block; color: var(--muted); font-size: 13px; }
+.cl-summary-top strong { display: block; margin-top: 2px; color: var(--green); font-family: "Pretendard:ExtraBold"; font-size: 28px; letter-spacing: -.02em; }
+.cl-summary-top b { color: var(--ink); font-family: "Pretendard:Bold"; font-size: 15px; }
+.cl-summary-top b em { color: var(--green); font-style: normal; }
+.cl-summary small { display: block; margin-top: 10px; color: #535b55; font-size: 13px; }
+
+.cl-phase { border-radius: 20px; background: var(--white); box-shadow: var(--card-shadow); border: 1.5px solid transparent; scroll-margin-top: 140px; }
+.cl-phase.now { border-color: color-mix(in srgb, var(--green) 45%, transparent); }
+.cl-phase summary { list-style: none; cursor: pointer; padding: 16px 18px; display: flex; align-items: center; gap: 10px; }
+.cl-phase summary::-webkit-details-marker { display: none; }
+.cl-phase summary::after { content: ""; width: 8px; height: 8px; margin-left: 4px; border-right: 2px solid #9aa29c; border-bottom: 2px solid #9aa29c; transform: rotate(45deg); transition: transform .2s ease; }
+.cl-phase details[open] summary::after { transform: rotate(-135deg); }
+.cl-when { min-width: 46px; padding: 4px 0; border-radius: 999px; background: var(--surface); color: #5d655f; font-family: "Pretendard:Bold"; font-size: 11.5px; text-align: center; }
+.cl-phase.now .cl-when { background: var(--green); color: var(--white); }
+.cl-phase summary strong { color: var(--ink); font-family: "Pretendard:Bold"; font-size: 15.5px; }
+.cl-phase summary em { padding: 2px 7px; border-radius: 999px; background: #ffe08a; color: #6b4a00; font-style: normal; font-family: "Pretendard:Bold"; font-size: 11px; }
+.cl-phase summary small { margin-left: auto; color: var(--muted); font-size: 13px; }
+.cl-phase summary small b { color: var(--green); }
+.cl-items { margin: 0; padding: 0 14px; list-style: none; }
+.cl-items li { padding: 12px 4px; border-top: 1px solid #f0f2ef; display: flex; align-items: flex-start; gap: 12px; }
+.cl-check { flex: none; width: 28px; height: 28px; display: grid; place-items: center; }
+.cl-box { width: 22px; height: 22px; box-sizing: border-box; border: 2px solid #cfd6cf; border-radius: 7px; display: grid; place-items: center; transition: background-color .15s ease, border-color .15s ease; }
+.cl-box svg { width: 14px; height: 14px; fill: none; stroke: var(--white); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.cl-items li.done .cl-box { background: var(--green); border-color: var(--green); }
+.cl-items li.done .cl-box svg { opacity: 1; }
+.cl-copy { min-width: 0; flex: 1; padding-top: 3px; }
+.cl-copy strong { display: block; color: var(--ink); font-family: "Pretendard:SemiBold"; font-size: 14.5px; line-height: 1.4; word-break: keep-all; }
+.cl-items li.done .cl-copy strong { color: #9aa29c; text-decoration: line-through; }
+.cl-copy p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; word-break: keep-all; }
+.cl-items li.done .cl-copy p { display: none; }
+.cl-meta { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; }
+.cl-meta span { padding: 2px 8px; border-radius: 999px; background: var(--surface); color: #5d655f; }
+.cl-meta a { color: var(--green); font-family: "Pretendard:Bold"; text-decoration: underline; text-underline-offset: 3px; }
+.cl-delete { width: 28px; height: 28px; color: #9aa29c; font-size: 20px; line-height: 1; }
+.cl-add { margin: 0; padding: 10px 14px 16px; border-top: 1px solid #f0f2ef; display: flex; gap: 8px; }
+.cl-add input { min-width: 0; flex: 1; height: 42px; padding: 0 14px; box-sizing: border-box; border: 1.5px solid #e3e7e3; border-radius: 12px; font: inherit; font-size: 14px; }
+.cl-add input:focus { outline: 2px solid var(--green); outline-offset: 0; border-color: transparent; }
+.cl-add .action { flex: none; height: 42px; padding: 0 16px; border-radius: 12px; background: var(--green-pale); color: var(--green); font-family: "Pretendard:Bold"; font-size: 14px; }

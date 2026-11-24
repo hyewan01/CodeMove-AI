@@ -43,6 +43,14 @@
 				<button type="button" class="action booking-summary-cancel" data-modal-open="booking-cancel" th:if="${summary.active}">예약 취소</button>
 			</div>
 		</section>
+		<a class="action cl-card" th:href="@{/more/checklist}" th:if="${summary.active}">
+			<div class="cl-card-top">
+				<strong>이사 준비 체크리스트</strong>
+				<span th:text="${cl.dday}">D-12</span>
+			</div>
+			<div class="cl-bar"><i th:style="'width:' + ${cl.percent()} + '%'"></i></div>
+			<small th:text="${cl.done} + ' / ' + ${cl.total} + ' 완료' + (${cl.nowPhase != null} ? ' · 지금은 「' + ${cl.nowLabel()} + '」 할 일' : '')">0 / 36 완료</small>
+		</a>
 	</div>
 
 	<th:block th:if="${summary.active}">

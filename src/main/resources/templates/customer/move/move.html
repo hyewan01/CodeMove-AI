@@ -19,6 +19,15 @@
 
 		<!-- 예약 정보: 예약이 여러 건일 수 있어 목록 → 누르면 예약 상세 (요약 · 예약 취소) -->
 		<div data-tab-panel="booking" th:hidden="${tab != 'booking'}">
+			<!-- 이사 준비 체크리스트: 예약이 있을 때 맨 위에 진행 상황 -->
+			<a class="action cl-card" th:href="@{/more/checklist}" th:unless="${#lists.isEmpty(bookingCards)}">
+				<div class="cl-card-top">
+					<strong>이사 준비 체크리스트</strong>
+					<span th:text="${#strings.isEmpty(cl.dday)} ? '' : ${cl.dday}">D-12</span>
+				</div>
+				<div class="cl-bar"><i th:style="'width:' + ${cl.percent()} + '%'"></i></div>
+				<small th:text="${cl.done} + ' / ' + ${cl.total} + ' 완료' + (${cl.nowPhase != null} ? ' · 지금은 「' + ${cl.nowLabel()} + '」 할 일' : '')">0 / 36 완료</small>
+			</a>
 			<div class="move-list" th:unless="${#lists.isEmpty(bookingCards)}">
 				<a class="action move-list-card" th:each="b : ${bookingCards}" th:href="@{/move/booking/{id}(id=${b.reservationId})}"
 				   th:classappend="${b.state == 'cancelled'} ? 'off'">

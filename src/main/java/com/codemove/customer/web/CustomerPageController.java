@@ -158,10 +158,13 @@ public class CustomerPageController {
 	private final BookingService booking;
 
 	private final com.codemove.pay.PaymentService payments;
+	private final com.codemove.checklist.ChecklistService checklist;
 
 	public CustomerPageController(MemberService members, MoveService moves, NotificationService notifications,
-			CustomerViews views, ChatService chats, BookingService booking, com.codemove.pay.PaymentService payments) {
+			CustomerViews views, ChatService chats, BookingService booking, com.codemove.pay.PaymentService payments,
+			com.codemove.checklist.ChecklistService checklist) {
 		this.payments = payments;
+		this.checklist = checklist;
 		this.booking = booking;
 		this.members = members;
 		this.moves = moves;
@@ -504,6 +507,7 @@ public class CustomerPageController {
 		List<CurrentMove> all = moves.all(memberId(session));
 		model.addAttribute("estimateCards", views.estimateCards(all));
 		model.addAttribute("bookingCards", views.bookingCards(all));
+		model.addAttribute("cl", checklist.view(memberId(session))); // 이사 준비 체크리스트 진행
 		model.addAttribute("doneMoves", views.doneMoves(memberId(session)));
 		return "customer/move/move";
 	}
@@ -549,6 +553,7 @@ public class CustomerPageController {
 		model.addAttribute("payable", payments.payable(c));
 		model.addAttribute("payReady", payments.configured());
 		model.addAttribute("paid", payments.paid(reservationId));
+		model.addAttribute("cl", checklist.view(memberId(session)));
 		return "customer/move/booking-detail";
 	}
 

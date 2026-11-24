@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.codemove.checklist.ChecklistMapper">
+
+	<select id="list" resultType="com.codemove.checklist.ChecklistRow">
+		SELECT * FROM TBL_MOVE_CHECKLIST
+		 WHERE MEMBER_ID = #{memberId} AND REQUEST_ID = #{requestId}
+		 ORDER BY CHECK_ID
+	</select>
+
+	<insert id="insert" parameterType="com.codemove.checklist.ChecklistRow">
+		<selectKey keyProperty="checkId" resultType="long" order="BEFORE">
+			SELECT SEQ_MOVE_CHECKLIST.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO TBL_MOVE_CHECKLIST (CHECK_ID, MEMBER_ID, REQUEST_ID, ITEM_CODE, PHASE, TITLE, DONE_YN, CREATED_AT, DONE_AT)
+		VALUES (#{checkId}, #{memberId}, #{requestId}, #{itemCode,jdbcType=VARCHAR}, #{phase}, #{title,jdbcType=VARCHAR},
+		        #{doneYn}, SYSDATE, CASE WHEN #{doneYn} = 'Y' THEN SYSDATE END)
+	</insert>
+
+	<update id="setDone">
+		UPDATE TBL_MOVE_CHECKLIST
+		   SET DONE_YN = #{done}, DONE_AT = CASE WHEN #{done} = 'Y' THEN SYSDATE END
+		 WHERE CHECK_ID = #{checkId} AND MEMBER_ID = #{memberId}
+	</update>
+
+	<delete id="deleteCustom">
+		DELETE FROM TBL_MOVE_CHECKLIST WHERE CHECK_ID = #{checkId} AND MEMBER_ID = #{memberId} AND ITEM_CODE IS NULL
+	</delete>
+</mapper>
