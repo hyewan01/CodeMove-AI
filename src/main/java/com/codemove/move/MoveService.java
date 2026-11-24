@@ -54,13 +54,13 @@ public class MoveService {
 	public record RequestForm(String houseType, String packType, LocalDate moveDate, String moveTime,
 			String fromAddress, String fromDetail, String fromZipcode, String toAddress, String toDetail,
 			String toZipcode, List<RequestItem> items, EstimateCalculator.Site from, EstimateCalculator.Site to,
-			Integer storageDays) {
+			Integer storageDays, List<EstimateCalculator.OptionChoice> options, String memo) {
 
 		public RequestForm(String houseType, String packType, LocalDate moveDate, String moveTime, String fromAddress,
 				String fromDetail, String fromZipcode, String toAddress, String toDetail, String toZipcode,
 				List<RequestItem> items) {
 			this(houseType, packType, moveDate, moveTime, fromAddress, fromDetail, fromZipcode, toAddress, toDetail,
-					toZipcode, items, EstimateCalculator.Site.UNKNOWN, EstimateCalculator.Site.UNKNOWN, null);
+					toZipcode, items, EstimateCalculator.Site.UNKNOWN, EstimateCalculator.Site.UNKNOWN, null, null, null);
 		}
 	}
 
@@ -174,7 +174,8 @@ public class MoveService {
 		double cbm = f.items().stream().mapToDouble(i -> i.getVolume() == null ? 0 : i.getVolume()).sum();
 		r.setAiCbm(Math.round(cbm * 100) / 100.0);
 		EstimateCalculator.Conditions cond = new EstimateCalculator.Conditions(f.packType(),
-				distance.km(f.fromAddress(), f.toAddress()), f.moveDate(), f.from(), f.to(), f.storageDays());
+				distance.km(f.fromAddress(), f.toAddress()), f.moveDate(), f.from(), f.to(), f.storageDays(),
+				f.options());
 		EstimateCalculator.Estimate est = estimate(f.items(), cond);
 		r.setAiEstAmount(midpoint(est));
 		r.setAiEstMin(est.totalMin());
@@ -212,7 +213,7 @@ public class MoveService {
 		analysis.linkRequest(analysisId, r.getRequestId(), videoId);
 		Member m = members.findMember(memberId);
 		// 견적 관리: 고객 입력으로 AI가 만든 견적서 (견적 검토)
-		quotes.createForRequest(r, m.getMemberName(), m.getPhone(), f.items(), est, cond);
+		quotes.createForRequest(r, m.getMemberName(), m.getPhone(), f.items(), est, cond, f.memo());
 		notifications.toAdmin("01", "견적서 등록", m.getMemberName() + " 고객님의 신규 견적 요청이 접수되었습니다.", "/admin/estimates",
 				false);
 		// 예약 관리 · 예약 일정: 고객이 고른 이사 날짜로 예약 완료 (날짜 미정이면 견적 확정 때 만듦)
@@ -221,6 +222,7 @@ public class MoveService {
 			v.setRequestId(r.getRequestId());
 			v.setMoveDate(f.moveDate());
 			v.setMoveTime(f.moveTime());
+			v.setMoveMemo(f.memo()); // 귀중품 · 관리자에게 남긴 말
 			moves.insertReservation(v);
 			notifications.toAdmin("04", "이사 예약", m.getMemberName() + " 고객님의 이사 예약이 접수되었습니다. ("
 					+ Fmt.monthDay(f.moveDate()) + ")", "/admin/reservations", false);

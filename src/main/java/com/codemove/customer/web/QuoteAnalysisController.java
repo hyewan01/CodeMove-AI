@@ -46,7 +46,8 @@ public class QuoteAnalysisController {
 	/** 예상 견적 요청 (quote.js 6단계) */
 	public record EstimateRequest(String packType, String moveDate, List<EstimateItem> items, String fromAddress,
 			String toAddress, Integer fromFloor, String fromCarry, Integer toFloor, String toCarry,
-			Integer storageDays) {
+			Integer storageDays, String fromDetail, String toDetail,
+			List<CustomerPageController.QuoteOptionForm> options) {
 	}
 
 	public record EstimateItem(String name, String sizeCode, int count) {
@@ -63,9 +64,10 @@ public class QuoteAnalysisController {
 		Double km = distance.km(req.fromAddress(), req.toAddress());
 		EstimateCalculator.Estimate e = EstimateCalculator.estimate(lines,
 				new EstimateCalculator.Conditions(pack, km, Fmt.parseDate(req.moveDate()),
-						CustomerPageController.site(req.fromFloor(), req.fromCarry()),
-						CustomerPageController.site(req.toFloor(), req.toCarry()),
-						CustomerPageController.storageDays(pack, req.storageDays())));
+						CustomerPageController.site(req.fromFloor(), req.fromCarry(), req.fromDetail()),
+						CustomerPageController.site(req.toFloor(), req.toCarry(), req.toDetail()),
+						CustomerPageController.storageDays(pack, req.storageDays()),
+						req.options() == null ? null : CustomerPageController.options(req.options())));
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("distanceKm", km);
 		out.put("min", e.totalMin());
@@ -125,6 +127,9 @@ public class QuoteAnalysisController {
 			m.put("detectedName", i.detectedName());
 			m.put("room", i.room());
 			m.put("mapping", i.mappingType());
+			// 추가 작업 단계에서 벽걸이 TV 를 미리 골라 둠
+			m.put("wallMounted", i.wallMounted());
+			m.put("inch", i.inch());
 			if (VideoAnalysis.UNMAPPED.equals(i.mappingType())) {
 				m.put("baseCbm", 0);
 			}

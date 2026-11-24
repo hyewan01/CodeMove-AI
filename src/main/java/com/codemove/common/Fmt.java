@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 /** 화면 표시 · 입력 해석 공통 형식 (날짜, 금액, 휴대폰 번호) */
 public final class Fmt {
@@ -166,14 +165,9 @@ public final class Fmt {
 		return parts.length > 1 ? parts[0] + " " + parts[1] : parts[0];
 	}
 
-	/** 공휴일 (양력 고정 + 2026년 음력 명절·대체공휴일) */
-	private static final List<String> HOLIDAYS = List.of("01-01", "03-01", "05-05", "06-06", "08-15", "10-03", "10-09",
-			"12-25", "2026-02-16", "2026-02-17", "2026-02-18", "2026-03-02", "2026-05-24", "2026-05-25", "2026-08-17",
-			"2026-09-24", "2026-09-25", "2026-09-26", "2026-10-05");
-
+	/** 공휴일 (Holidays: 해마다 음력 명절 · 대체공휴일까지 계산) */
 	public static boolean isHoliday(LocalDate d) {
-		String md = String.format("%02d-%02d", d.getMonthValue(), d.getDayOfMonth());
-		return HOLIDAYS.contains(md) || HOLIDAYS.contains(d.toString());
+		return Holidays.is(d);
 	}
 
 	public static boolean isWeekend(LocalDate d) {

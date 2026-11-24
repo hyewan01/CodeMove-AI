@@ -78,14 +78,47 @@ public final class EstimateCalculator {
 	 * @param storageDays 보관이사의 보관 일수 (모르면 null → 하루 보관료만 안내)
 	 */
 	public record Conditions(String packType, Double distanceKm, LocalDate moveDate, Site from, Site to,
-			Integer storageDays) {
+			Integer storageDays, List<OptionChoice> options) {
+
+		/** 옵션을 고객이 고르지 않은 경우 (관리자 AI 테스트 · 예전 요청): 품목으로 짐작 */
+		public Conditions(String packType, Double distanceKm, LocalDate moveDate, Site from, Site to,
+				Integer storageDays) {
+			this(packType, distanceKm, moveDate, from, to, storageDays, null);
+		}
 
 		public static Conditions basic(String packType) {
 			return new Conditions(packType, null, null, Site.UNKNOWN, Site.UNKNOWN, null);
 		}
 
 		public Conditions withDistance(Double km) {
-			return new Conditions(packType, km, moveDate, from, to, storageDays);
+			return new Conditions(packType, km, moveDate, from, to, storageDays, options);
+		}
+	}
+
+	/**
+	 * 고객이 고른 옵션 작업 한 가지 (견적서 옵션 칸 = EstimateDoc.OPTION_ROWS, 코드 01~08).
+	 * first · second 는 칸의 두 선택(분해·조립, 탈착·설치 …; 피아노는 일반 · 그랜드 중 하나),
+	 * other 는 "다른 업체에 맡김"(요금 없이 견적서에 표시). 06 수작업은 나르는 방법(계단)으로 계산하므로 받지 않음.
+	 */
+	public record OptionChoice(String code, boolean first, boolean second, int count, boolean other) {
+
+		public String name() {
+			int i = index();
+			return i < 0 ? "" : com.codemove.move.EstimateDoc.OPTION_ROWS[i][0];
+		}
+
+		/** OPTION_ROWS 의 줄 (0~7), 모르는 코드면 -1 */
+		public int index() {
+			if (code == null || !code.matches("0[1-8]")) {
+				return -1;
+			}
+			return Integer.parseInt(code) - 1;
+		}
+
+		/** 고른 작업 이름 ("탈착·설치", "그랜드") */
+		public String work() {
+			String[] row = com.codemove.move.EstimateDoc.OPTION_ROWS[index()];
+			return first && second ? row[1] + "·" + row[2] : first ? row[1] : second ? row[2] : "";
 		}
 	}
 
@@ -250,14 +283,15 @@ public final class EstimateCalculator {
 		}
 
 		// ⑦ 옵션 (기술이 필요한 작업만 별도: 에어컨 · 안마의자 · 벽걸이 TV · 피아노 · 모션 침대)
-		fees.addAll(options(lines, t));
+		fees.addAll(cond.options() == null ? options(lines, t) : chosenOptions(cond.options(), lines, t, notes));
 
 		// ⑧ 날짜 할증
 		if (cond.moveDate() != null) {
 			int pct = surchargePct(cond.moveDate(), t);
 			if (pct > 0) {
+				// 근거(아정당): 평일 < 주말·월말 < 손 없는 날 < 손 없는 날 주말
 				fees.add(new Fee("날짜 할증 " + pct + "%", won(baseMin * pct / 100.0), won(baseMax * pct / 100.0),
-						"아정당: 평일 < 주말·월말 < 손 없는 날 < 손 없는 날 주말"));
+						dayLabel(cond.moveDate()) + "이라 이사가 몰리는 날이에요"));
 			}
 		}
 
@@ -408,6 +442,75 @@ public final class EstimateCalculator {
 		return out;
 	}
 
+	/**
+	 * 고객이 고른 옵션: 고른 작업 금액 합 × 수량 (fee-option.csv). 벽걸이 TV 설치는 인치별 표(fee-tv.csv),
+	 * 인치는 영상에서 찾은 벽걸이 TV 것. 다른 업체에 맡긴 것은 요금 없이 안내만.
+	 */
+	private static List<Fee> chosenOptions(List<OptionChoice> choices, List<Line> lines, Tables t, List<String> notes) {
+		List<Fee> out = new ArrayList<>();
+		List<String> others = new ArrayList<>();
+		for (OptionChoice c : choices) {
+			int i = c.index();
+			if (i < 0 || i == 5 || c.count() <= 0) {
+				continue;
+			}
+			if (c.other()) {
+				others.add(c.name());
+				continue;
+			}
+			if (!c.first() && !c.second()) {
+				continue;
+			}
+			int n = Math.min(c.count(), 20);
+			long min = 0, max = 0;
+			if (c.first()) {
+				long v = opt(t, c.code() + "-1");
+				min += v;
+				max += v;
+			}
+			if (c.second()) {
+				if (i == 3) {
+					Line tv = lines.stream().filter(l -> "TV".equals(l.name()) && l.wallMounted()).findFirst()
+							.orElse(null);
+					TvFee f = tvFee(tv == null ? null : tv.inch(), tv == null ? "02" : tv.sizeCode(), t);
+					min += f.min();
+					max += f.max();
+				} else {
+					long v = opt(t, c.code() + "-2");
+					min += v;
+					max += v;
+				}
+			}
+			String name = i == 3 ? "벽걸이 TV" : c.name();
+			out.add(new Fee(name + " " + c.work() + (n > 1 ? " × " + n : ""), min * n, max * n,
+					i == 7 ? "천장형은 이전 불가" : null));
+		}
+		if (!others.isEmpty()) {
+			String names = String.join(" · ", others);
+			notes.add(names + (hasBatchim(names) ? "은" : "는") + " 다른 업체에 맡기기로 하셔서 견적에서 뺐어요.");
+		}
+		return out;
+	}
+
+	/** 마지막 글자에 받침이 있으면 true (은/는 고르기) */
+	static boolean hasBatchim(String word) {
+		char c = word.isEmpty() ? 'a' : word.charAt(word.length() - 1);
+		return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 != 0;
+	}
+
+	/** 할증 이유: 손 없는 날 주말 · 손 없는 날 · 주말 · 월말 */
+	private static String dayLabel(LocalDate d) {
+		boolean noSon = LunarDays.isNoSonDay(d);
+		boolean weekend = d.getDayOfWeek() == DayOfWeek.SATURDAY || d.getDayOfWeek() == DayOfWeek.SUNDAY;
+		boolean holiday = com.codemove.common.Holidays.is(d);
+		if (noSon && weekend) return "손 없는 날 주말";
+		if (noSon && holiday) return "손 없는 날 공휴일";
+		if (noSon) return "손 없는 날";
+		if (holiday) return "공휴일";
+		if (weekend) return "주말";
+		return "월말";
+	}
+
 	/** 인치를 모르면 TV 크기 코드로 짐작 (01 ≤43 → 55인치 표, 02 50~65 → 65, 03 75↑ → 75) */
 	private static TvFee tvFee(Integer inch, String sizeCode, Tables t) {
 		int in = inch != null ? inch : "03".equals(sizeCode) ? 75 : "02".equals(sizeCode) ? 65 : 55;
@@ -424,7 +527,9 @@ public final class EstimateCalculator {
 		int pct = 0;
 		boolean noSon = LunarDays.isNoSonDay(date);
 		boolean weekend = date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY;
-		if (noSon && weekend) {
+		boolean holiday = com.codemove.common.Holidays.is(date);
+		// 공휴일은 주말과 같은 단계, 손 없는 날이면서 주말 · 공휴일이면 05
+		if (noSon && (weekend || holiday)) {
 			pct = Math.max(pct, t.surcharges().getOrDefault("05", 0));
 		}
 		if (noSon) {
@@ -432,6 +537,9 @@ public final class EstimateCalculator {
 		}
 		if (weekend) {
 			pct = Math.max(pct, t.surcharges().getOrDefault("02", 0));
+		}
+		if (holiday) {
+			pct = Math.max(pct, t.surcharges().getOrDefault("03", 0));
 		}
 		if (date.getDayOfMonth() > date.lengthOfMonth() - 3) {
 			pct = Math.max(pct, t.surcharges().getOrDefault("04", 0));

@@ -88,6 +88,46 @@ public class CustomerPageController {
 		/** 보관이사 보관 일수 */
 		private Integer storageDays;
 		private List<QuoteItemForm> items = new ArrayList<>();
+		/** 추가 작업(견적서 옵션 칸) · 관리자에게 남길 말 · 귀중품 */
+		private List<QuoteOptionForm> options = new ArrayList<>();
+		private String memo;
+		private String valuables;
+	}
+
+	/** 추가 작업 한 줄 (quote.js 3단계): 견적서 옵션 코드 01~08, 두 선택, 수량, 다른 업체에 맡김 */
+	@Data
+	public static class QuoteOptionForm {
+		private String code;
+		private boolean first;
+		private boolean second;
+		private int count;
+		private boolean other;
+	}
+
+	/** 화면 값 → 계산기 옵션 (모르는 코드 · 06 수작업 · 아무것도 안 고른 줄은 뺌) */
+	static List<com.codemove.estimate.EstimateCalculator.OptionChoice> options(List<QuoteOptionForm> rows) {
+		List<com.codemove.estimate.EstimateCalculator.OptionChoice> out = new ArrayList<>();
+		for (QuoteOptionForm f : rows == null ? List.<QuoteOptionForm>of() : rows) {
+			if (f == null) {
+				continue;
+			}
+			var c = new com.codemove.estimate.EstimateCalculator.OptionChoice(f.getCode(), f.isFirst(),
+					// 피아노는 일반 · 그랜드 중 하나
+					"01".equals(f.getCode()) && f.isFirst() ? false : f.isSecond(), Math.min(f.getCount(), 20),
+					f.isOther());
+			if (c.index() >= 0 && c.index() != 5 && c.count() > 0 && (c.other() || c.first() || c.second())) {
+				out.add(c);
+			}
+		}
+		return out;
+	}
+
+	/** 관리자에게 남길 말 + 귀중품 → 한 줄 (예약 메모 · 견적서 비고, 500자 칸) */
+	static String memo(String memo, String valuables) {
+		String m = memo == null ? "" : memo.strip(), v = valuables == null ? "" : valuables.strip();
+		String out = (v.isEmpty() ? "" : "[귀중품] " + v) + (!v.isEmpty() && !m.isEmpty() ? " / " : "")
+				+ (m.isEmpty() ? "" : "[요청] " + m);
+		return out.isEmpty() ? null : cut(out, 300);
 	}
 
 	/** 층수(1~80)와 나르는 방법 → 견적 조건 */
@@ -95,6 +135,11 @@ public class CustomerPageController {
 		Integer f = floor == null || floor < 1 || floor > 80 ? null : floor;
 		return new com.codemove.estimate.EstimateCalculator.Site(f,
 				com.codemove.estimate.EstimateCalculator.Carry.of(carry));
+	}
+
+	/** 층수를 따로 받지 않으면 상세주소("3층 301호")에서 읽음 */
+	static com.codemove.estimate.EstimateCalculator.Site site(Integer floor, String carry, String detail) {
+		return site(floor != null ? floor : com.codemove.estimate.Floors.of(detail), carry);
 	}
 
 	private static String cut(String s, int max) {
@@ -360,6 +405,18 @@ public class CustomerPageController {
 		model.addAttribute("blockedDates", blocked);
 		// 손 없는 날 (yyyy-MM-dd → 음 3.9): 이사가 몰려 비용이 오를 수 있다고 달력에 표시
 		model.addAttribute("noSonDays", LunarDays.noSonDays(today, today.plusYears(1)));
+		// 공휴일 (yyyy-MM-dd → 이름): 손 없는 날과 함께 빨간 날짜로
+		model.addAttribute("holidays", com.codemove.common.Holidays.between(today, today.plusYears(1)));
+		// 추가 작업 (견적서 옵션 칸, 06 수작업은 나르는 방법으로 계산하므로 뺌)
+		List<Map<String, String>> extras = new ArrayList<>();
+		String[][] rows = com.codemove.move.EstimateDoc.OPTION_ROWS;
+		for (int i = 0; i < rows.length; i++) {
+			if (i != 5) {
+				extras.add(Map.of("code", String.format("%02d", i + 1), "name", rows[i][0], "first", rows[i][1],
+						"second", rows[i][2]));
+			}
+		}
+		model.addAttribute("extras", extras);
 		return "customer/quote/quote";
 	}
 
@@ -411,8 +468,10 @@ public class CustomerPageController {
 		moves.request(memberId(session), new MoveService.RequestForm(house, pack, date, time, form.getFromAddress().trim(),
 				blank(form.getFromAddressDetail()), zip(form.getFromZipcode()), form.getToAddress().trim(),
 				blank(form.getToAddressDetail()), zip(form.getToZipcode()), items,
-				site(form.getFromFloor(), form.getFromCarry()), site(form.getToFloor(), form.getToCarry()),
-				storageDays(pack, form.getStorageDays())), video, savedUrl, savedName, sec, analysisId);
+				site(form.getFromFloor(), form.getFromCarry(), form.getFromAddressDetail()),
+				site(form.getToFloor(), form.getToCarry(), form.getToAddressDetail()),
+				storageDays(pack, form.getStorageDays()), options(form.getOptions()),
+				memo(form.getMemo(), form.getValuables())), video, savedUrl, savedName, sec, analysisId);
 		session.removeAttribute(QuoteAnalysisController.VIDEO_URL);
 		session.removeAttribute(QuoteAnalysisController.VIDEO_NAME);
 		session.removeAttribute(QuoteAnalysisController.ANALYSIS_SEC);

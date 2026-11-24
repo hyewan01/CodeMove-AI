@@ -10,20 +10,26 @@
 	const $$ = (sel, root = form) => Array.from(root.querySelectorAll(sel));
 
 	const STEPS = [
-		{ type: 'upload', title: '집 안을 촬영한 영상을 올려주세요', subtitle: 'AI가 가구와 짐을 찾아 부피를 계산해요.' },
-		{ type: 'analysis', title: 'AI가 영상을 분석하고 있어요', subtitle: '촬영한 영상을 바탕으로 짐의 종류와 부피를 확인합니다.',
+		{ type: 'upload', name: '영상 올리기', title: '집 안을 촬영한 영상을 올려주세요', subtitle: 'AI가 가구와 짐을 찾아 부피를 계산해요.' },
+		{ type: 'analysis', name: '짐 확인', title: 'AI가 영상을 분석하고 있어요', subtitle: '촬영한 영상을 바탕으로 짐의 종류와 부피를 확인합니다.',
 			doneTitle: '찾은 짐을 확인해주세요', doneSubtitle: '다른 부분이 있으면 눌러서 고칠 수 있어요.' },
-		{ type: 'options', title: '이사 정보를 알려주세요', subtitle: '주거 형태와 이사 방식을 선택해주세요.',
+		{ type: 'extras', name: '추가 작업', title: '따로 맡길 작업이 있나요?', subtitle: '영상에서 찾은 물건은 미리 골라 두었어요.' },
+		{ type: 'options', name: '이사 방식', title: '이사 정보를 알려주세요', subtitle: '주거 형태와 이사 방식을 선택해주세요.',
 			easyTitle: '이사 정보를 선택해주세요', easySubtitle: '집 종류와 포장 방법을 하나씩 선택해주세요.' },
-		{ type: 'address', title: '출발지와 도착지는 어디인가요?', subtitle: '정확한 주소를 입력해주세요.' },
-		{ type: 'calendar', title: '이사 날짜를 선택해주세요', subtitle: '정확한 견적을 위해 가능한 일정을 알려주세요.' },
-		{ type: 'summary', title: '예상 견적을 확인해주세요', subtitle: '영상 분석과 입력 정보를 바탕으로 계산했어요.' },
+		{ type: 'address', name: '주소', title: '출발지와 도착지는 어디인가요?', subtitle: '상세주소에 동·호수까지 적어주세요.' },
+		{ type: 'carry', name: '나르는 방법', title: '짐은 어떻게 옮기나요?', subtitle: '출발지와 도착지를 각각 골라주세요.' },
+		{ type: 'calendar', name: '날짜', title: '이사 날짜를 선택해주세요', subtitle: '정확한 견적을 위해 가능한 일정을 알려주세요.' },
+		{ type: 'memo', name: '요청 사항', title: '미리 알려주실 게 있나요?', subtitle: '귀중품이나 현장 사정을 적어 주시면 견적에 참고해요.' },
+		{ type: 'summary', name: '예상 견적', title: '예상 견적을 확인해주세요', subtitle: '영상 분석과 입력 정보를 바탕으로 계산했어요.' },
 	];
-	const EASY_NEXT = ['영상 분석하기', '인식 품목 확인', '주소 입력하기', '날짜 선택하기', '견적 확인하기', '이사 요청하기'];
+	const stepOf = (type) => STEPS.findIndex((s) => s.type === type);
+	const EASY_NEXT = ['영상 분석하기', '추가 작업 고르기', '이사 정보 고르기', '주소 입력하기', '나르는 방법 고르기',
+		'날짜 선택하기', '요청 사항 적기', '견적 확인하기', '이사 요청하기'];
 	/* 표준 품목표: 품목마다 크기 3단계(01 소형 · 02 중형 · 03 대형)와 기준 부피(CBM, 1개) */
 	const CATALOG = DATA.catalog || [];
 	const CATEGORY_NAME = Object.fromEntries((DATA.categories || []).map((c) => [c.code, c.name]));
 	const NO_SON = DATA.noSon || {};
+	const HOLIDAYS = DATA.holidays || {};
 
 	const state = {
 		step: 0,
@@ -59,12 +65,13 @@
 	const esc = (t) => String(t).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
 	const canProceed = () => {
-		switch (state.step) {
-			case 0: return state.videoReady;
-			case 1: return state.analysisDone;
-			case 2: return !!(state.options.houseType && state.options.packType);
-			case 3: return !!(state.address.from && state.address.to);
-			case 4: return !!state.date;
+		switch (STEPS[state.step].type) {
+			case 'upload': return state.videoReady;
+			case 'analysis': return state.analysisDone;
+			case 'options': return !!(state.options.houseType && state.options.packType);
+			case 'address': return !!(state.address.from && state.address.to);
+			case 'carry': return carryReady();
+			case 'calendar': return !!state.date;
 			default: return true;
 		}
 	};
@@ -83,10 +90,15 @@
 		const done = s.doneTitle && state.analysisDone;
 		$('[data-flow-title]').textContent = done ? s.doneTitle : easy && s.easyTitle ? s.easyTitle : s.title;
 		$('[data-flow-subtitle]').textContent = done ? s.doneSubtitle : easy && s.easySubtitle ? s.easySubtitle : s.subtitle;
-		$('[data-progress]').style.width = `${((state.step + 1) / STEPS.length) * 100}%`;
+		const kicker = $('[data-flow-kicker]');
+		if (kicker) kicker.textContent = s.name;
+		$('[data-step-dots]').innerHTML = STEPS.map((x, i) => `<li class="${i < state.step ? 'done' : i === state.step ? 'now' : ''}"${
+			i === state.step ? ' aria-current="step"' : ''}><span class="sr-only">${i + 1}. ${esc(x.name)}</span></li>`).join('');
 		$('[data-step-count]').textContent = `${state.step + 1}/${STEPS.length}`;
 		$$('[data-step]').forEach((sec) => (sec.hidden = sec.dataset.step !== s.type));
 		if (s.type === 'analysis' && !state.analysisDone) startAnalysis();
+		if (s.type === 'extras') renderExtras();
+		if (s.type === 'carry') renderCarry();
 		if (s.type === 'summary') renderSummary();
 		refreshNext();
 		speakStep();
@@ -103,10 +115,10 @@
 	});
 	nextBtn.addEventListener('click', () => {
 		if (!canProceed()) return;
-		if (state.step === STEPS.length - 1) { writeItemInputs(); form.submit(); return; }
+		if (state.step === STEPS.length - 1) { writeItemInputs(); writeExtraInputs(); form.submit(); return; }
 		goStep(state.step + 1);
 	});
-	$$('[data-go-step]').forEach((b) => b.addEventListener('click', () => goStep(Number(b.dataset.goStep))));
+	$$('[data-go-step]').forEach((b) => b.addEventListener('click', () => goStep(stepOf(b.dataset.goStep))));
 
 	/* ---------- 1. 영상 업로드 ---------- */
 	const videoInput = $('[data-video-input]');
@@ -142,10 +154,11 @@
 		$('[data-analysis-error]').hidden = view !== 'error';
 		$('[data-analysis-result]').hidden = view !== 'result';
 	}
-	function finishAnalysis(items, memo) {
+	function finishAnalysis(items, memo, cached) {
 		clearInterval(progressTimer);
 		state.items = items.map((it, i) => ({ id: it.id || `ai${i}`, ...it }));
 		state.analysisDone = true;
+		if (!cached) state.extras = null; // 새 분석이면 추가 작업을 다시 짐작
 		showAnalysis('result');
 		const memoEl = $('[data-ai-memo]');
 		memoEl.hidden = !memo;
@@ -165,7 +178,7 @@
 	function startAnalysis() {
 		const file = videoInput.files && videoInput.files[0];
 		if (state.analyzedFile && state.analyzedFile === file) {
-			finishAnalysis(state.items, $('[data-ai-memo]').textContent);
+			finishAnalysis(state.items, $('[data-ai-memo]').textContent, true);
 			return;
 		}
 		if (!file) { failAnalysis('영상 파일을 다시 선택해 주세요'); return; }
@@ -388,25 +401,134 @@
 		refreshNext();
 	}));
 
-	/* 층수 · 짐 나르는 방법 (엘리베이터 E / 사다리차 L / 계단 S) */
-	const sites = { from: { floor: null, carry: null }, to: { floor: null, carry: null } };
-	$$('[data-address]').forEach((wrap) => {
-		const key = wrap.dataset.address;
-		$('[data-addr-floor]', wrap).addEventListener('input', (e) => {
-			const n = parseInt(e.target.value, 10);
-			sites[key].floor = n >= 1 && n <= 80 ? n : null;
+	/* ---------- 3. 추가 작업 (견적서 옵션 칸) ---------- */
+	/* 코드 → 아이콘으로 쓸 품목 · 영상에서 찾는 방법 */
+	const EXTRA_ICON = { '01': '피아노', '02': '침대', '03': '옷장', '04': 'TV', '05': 'TV장', '07': '안마의자', '08': '에어컨' };
+	/* 이사박스 · 주방용품은 "TV장 속 사운드바" 같은 설명이 붙어도 따로 맡길 물건이 아님 */
+	const named = (re) => (it) => !['이사박스', '주방용품', '이불·침구', '옷·행거'].includes(it.name)
+		&& re.test(`${it.name} ${it.detectedName || ''}`);
+	const EXTRA_FIND = {
+		'01': (it) => it.name === '피아노',
+		'02': (it) => it.name === '침대' && /돌침대|흙침대|모션|안마/.test(it.detectedName || ''),
+		'03': named(/조립식|조립 ?장|시스템 ?행거/),
+		'04': (it) => it.name === 'TV' && !!it.wallMounted,
+		'05': named(/홈 ?[씨시]어터|사운드바/),
+		'07': (it) => it.name === '안마의자',
+		'08': (it) => it.name === '에어컨',
+	};
+	state.extras = null; // 코드 → { mode: none | ours | other, first, second, count, found }
+	function initExtras() {
+		state.extras = {};
+		$$('[data-extra]').forEach((li) => {
+			const code = li.dataset.extra;
+			const hits = state.items.filter(EXTRA_FIND[code] || (() => false));
+			// 2in1 에어컨은 스탠드 + 벽걸이 2대
+			const found = hits.reduce((s, it) => s + it.count * (code === '08' && it.sizeCode === '03' ? 2 : 1), 0);
+			const grand = code === '01' && hits.some((it) => it.sizeCode === '03');
+			state.extras[code] = { mode: found ? 'ours' : 'none', first: !grand, second: code === '01' ? grand : true,
+				count: Math.max(1, found), found };
 		});
-		$$('[data-carry]', wrap).forEach((b) => b.addEventListener('click', () => {
-			const on = sites[key].carry !== b.dataset.carry; // 다시 누르면 해제
-			sites[key].carry = on ? b.dataset.carry : null;
-			$('[data-addr-carry-value]', wrap).value = sites[key].carry || '';
-			$$('[data-carry]', wrap).forEach((x) => {
-				const sel = x === b && on;
-				x.classList.toggle('active', sel);
-				x.setAttribute('aria-checked', String(sel));
+	}
+	function renderExtras() {
+		if (!state.extras) initExtras();
+		$$('[data-extra]').forEach((li) => {
+			const x = state.extras[li.dataset.extra];
+			$('[data-extra-icon]', li).src = A + iconOf({ name: EXTRA_ICON[li.dataset.extra] });
+			const found = $('[data-extra-found]', li);
+			found.hidden = !x.found;
+			found.textContent = `영상에서 ${x.found}개 찾았어요`;
+			$$('[data-extra-mode]', li).forEach((b) => {
+				const on = b.dataset.extraMode === x.mode;
+				b.classList.toggle('active', on);
+				b.setAttribute('aria-checked', String(on));
 			});
+			li.classList.toggle('chosen', x.mode !== 'none');
+			$('[data-extra-detail]', li).hidden = x.mode !== 'ours';
+			$$('[data-extra-work]', li).forEach((b) => b.classList.toggle('active', !!x[b.dataset.extraWork]));
+			$('[data-extra-count-value]', li).textContent = `${x.count}${li.dataset.extra === '03' ? '개' : '대'}`;
+			$('[data-extra-count="-1"]', li).disabled = x.count <= 1;
+		});
+	}
+	$$('[data-extra]').forEach((li) => {
+		const x = () => state.extras[li.dataset.extra];
+		$$('[data-extra-mode]', li).forEach((b) => b.addEventListener('click', () => { x().mode = b.dataset.extraMode; renderExtras(); }));
+		$$('[data-extra-work]', li).forEach((b) => b.addEventListener('click', () => {
+			const v = x(), k = b.dataset.extraWork, other = k === 'first' ? 'second' : 'first';
+			if (li.dataset.extra === '01') { v[k] = true; v[other] = false; } // 피아노: 일반 · 그랜드 중 하나
+			else if (!v[k] || v[other]) v[k] = !v[k]; // 하나는 남김
+			renderExtras();
+		}));
+		$$('[data-extra-count]', li).forEach((b) => b.addEventListener('click', () => {
+			x().count = Math.min(20, Math.max(1, x().count + Number(b.dataset.extraCount)));
+			renderExtras();
 		}));
 	});
+	/* 계산 · 제출용: 고른 것만 (맡김 · 다른 업체) */
+	const chosenExtras = () => Object.entries(state.extras || {}).filter(([, v]) => v.mode !== 'none')
+		.map(([code, v]) => ({ code, first: v.mode === 'ours' && v.first, second: v.mode === 'ours' && v.second,
+			count: v.count, other: v.mode === 'other' }));
+	function writeExtraInputs() {
+		const box = $('[data-extra-inputs]');
+		box.innerHTML = '';
+		chosenExtras().forEach((o, i) => Object.entries(o).forEach(([k, v]) => {
+			const input = document.createElement('input');
+			input.type = 'hidden';
+			input.name = `options[${i}].${k}`;
+			input.value = v;
+			box.appendChild(input);
+		}));
+	}
+
+	/* ---------- 6. 짐 나르는 방법 (엘리베이터 E / 사다리차 L / 계단 S) ---------- */
+	/* 상세주소에서 층수: "3층" → 3, "1203호" → 12 (서버 Floors 와 같은 규칙) */
+	const floorOf = (detail) => {
+		if (!detail || /지하|\bB\s*\d/i.test(detail)) return null;
+		const valid = (n) => (n >= 1 && n <= 80 ? n : null);
+		let m = detail.match(/(?<![\dA-Za-z])(\d{1,2})\s*층/);
+		if (m) return valid(Number(m[1]));
+		m = detail.match(/(?<!\d)(\d{3,4})\s*호/);
+		return m ? valid(Math.floor(Number(m[1]) / 100)) : null;
+	};
+	const sites = { from: { floor: null, carry: null, asked: null }, to: { floor: null, carry: null, asked: null } };
+	const CARRY = { E: '엘리베이터', L: '사다리차', S: '계단' };
+	const detailOf = (key) => $(`[data-address="${key}"] [data-addr-detail]`).value.trim();
+	const carryReady = () => ['from', 'to'].every((k) => sites[k].carry && (sites[k].carry === 'E' || sites[k].floor));
+	function renderCarry() {
+		$$('[data-carry-site]').forEach((card) => {
+			const key = card.dataset.carrySite, s = sites[key];
+			const parsed = floorOf(detailOf(key));
+			s.floor = parsed || s.asked;
+			$('[data-carry-address]', card).textContent = [state.address[key], detailOf(key)].filter(Boolean).join(' ') || '—';
+			$('[data-carry-floor-text]', card).textContent = parsed ? `상세주소 기준 ${parsed}층` : '';
+			$('[data-carry-floor-ask]', card).hidden = !!parsed || !s.carry || s.carry === 'E';
+			$$('[data-carry]', card).forEach((b) => {
+				const on = b.dataset.carry === s.carry;
+				b.classList.toggle('active', on);
+				b.setAttribute('aria-checked', String(on));
+			});
+			$('[data-carry-floor-value]', card).value = s.floor || '';
+			$('[data-carry-value]', card).value = s.carry || '';
+		});
+		refreshNext();
+	}
+	$$('[data-carry-site]').forEach((card) => {
+		const s = sites[card.dataset.carrySite];
+		$$('[data-carry]', card).forEach((b) => b.addEventListener('click', () => { s.carry = b.dataset.carry; renderCarry(); }));
+		$('[data-carry-floor-input]', card).addEventListener('input', (e) => {
+			const n = parseInt(e.target.value, 10);
+			s.asked = n >= 1 && n <= 80 ? n : null;
+			renderCarry();
+		});
+	});
+
+	/* ---------- 8. 요청 사항: 자주 쓰는 말은 눌러서 넣기 ---------- */
+	$$('[data-memo-chip]').forEach((b) => b.addEventListener('click', () => {
+		const box = $('[data-memo-text]'), text = b.dataset.memoChip;
+		const parts = box.value.split(/\s*,\s*/).filter(Boolean);
+		const on = !parts.includes(text);
+		box.value = (on ? [...parts, text] : parts.filter((p) => p !== text)).join(', ').slice(0, 150);
+		b.classList.toggle('active', on);
+	}));
 
 	/* ---------- 4. 주소 검색 (카카오 우편번호 서비스, 불러오지 못하면 목업 주소로 대체) ---------- */
 	const addrSheet = $$('[data-addr-sheet]');
@@ -521,18 +643,22 @@
 				const d = i - firstDow + 1;
 				const iso = `${viewY}-${String(viewM + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 				const past = isCurrentMonth() && d < today.getDate();
-				/* 휴무 · 예약 불가 · 예약 마감인 날은 지난 날처럼 흐리게, 누를 수 없음 */
+				/* 업체 휴무일은 초록 글씨, 예약 불가 · 마감은 흐리게 (둘 다 누를 수 없음) */
 				const blocked = !past && BLOCKED[iso];
 				span.textContent = d;
-				span.className = state.date === iso ? 'picked' : past ? 'muted' : blocked ? 'muted blocked' : 'selectable';
-				if (!past && !blocked && NO_SON[iso]) {
-					span.classList.add('no-son');
-					span.title = `손 없는 날 (${NO_SON[iso]})`;
-					span.setAttribute('aria-label', `${viewM + 1}월 ${d}일 손 없는 날`);
+				span.className = state.date === iso ? 'picked' : past ? 'muted'
+					: blocked ? (blocked === '휴무' ? 'closed blocked' : 'muted blocked') : 'selectable';
+				/* 손 없는 날 · 공휴일은 빨간 글씨 (이사가 몰려 비용이 오를 수 있음) */
+				const holiday = HOLIDAYS[iso];
+				if (!past && !blocked && (NO_SON[iso] || holiday)) {
+					span.classList.add('red');
+					const why = [holiday, NO_SON[iso] ? `손 없는 날 ${NO_SON[iso]}` : ''].filter(Boolean).join(' · ');
+					span.title = why;
+					span.setAttribute('aria-label', `${viewM + 1}월 ${d}일 ${why}`);
 				}
 				if (blocked) {
 					span.dataset.reason = blocked;
-					span.setAttribute('aria-label', `${viewM + 1}월 ${d}일 ${blocked === '마감' ? '예약 마감' : blocked}`);
+					span.setAttribute('aria-label', `${viewM + 1}월 ${d}일 ${blocked === '마감' ? '예약 마감' : blocked === '휴무' ? '업체 휴무일' : blocked}`);
 					span.setAttribute('aria-disabled', 'true');
 				}
 				if (!past && !blocked) span.addEventListener('click', () => {
@@ -576,13 +702,14 @@
 		$('[data-date-undecided]').value = 'true';
 		closeModal('date-skip');
 		renderCalendar();
-		goStep(5);
+		goStep(stepOf('calendar') + 1);
 	});
 	renderCalendar();
 
-	/* ---------- 6. 예상 견적 ---------- */
-	/* 예상 견적: 서버 EstimateCalculator(대표님 견적 방식)로 계산. 이사 요청 때 저장되는 금액과 같은 식 */
+	/* ---------- 9. 예상 견적 (영수증) ---------- */
+	/* 서버 EstimateCalculator(대표님 견적 방식)로 계산. 이사 요청 때 저장되는 금액과 같은 식 */
 	let estimateRun = 0;
+	const won = (f) => (f.min === f.max ? fmtWon(f.min) : `${f.min.toLocaleString('ko-KR')}~${fmtWon(f.max)}`);
 	function renderEstimate() {
 		const run = ++estimateRun;
 		const amountEl = $('[data-est-amount]');
@@ -594,11 +721,14 @@
 			items: state.items.map((it) => ({ name: it.name, sizeCode: sizeOf(it).code, count: it.count })),
 			fromAddress: state.address.from,
 			toAddress: state.address.to,
+			fromDetail: detailOf('from'),
+			toDetail: detailOf('to'),
 			fromFloor: sites.from.floor,
 			fromCarry: sites.from.carry,
 			toFloor: sites.to.floor,
 			toCarry: sites.to.carry,
 			storageDays: state.options.packType === '03' ? Number($('[name=storageDays]').value) : null,
+			options: chosenExtras(),
 		};
 		fetch(DATA.estimateUrl || 'quote/estimate', {
 			method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -607,15 +737,15 @@
 			.then((est) => {
 				if (run !== estimateRun) return;
 				$('[data-est-kicker]').textContent = state.dateSkipped ? '예상 견적 범위' : 'AI 예상 견적';
-				amountEl.textContent = est.min === est.max ? fmtWon(est.min)
-					: `${est.min.toLocaleString('ko-KR')} ~ ${fmtWon(est.max)}`;
+				amountEl.textContent = won({ min: est.min, max: est.max });
 				$('[data-est-note]').textContent = state.dateSkipped
 					? '이사 날짜에 따라 비용이 달라질 수 있어요.'
 					: '선택한 일정과 영상 분석 결과를 반영했어요.';
-				$('[data-est-volume]').textContent = `짐 양 ${est.ton} (${est.trucks}) · 작업 ${est.workers}명`
-					+ (est.distanceKm != null ? ` · 거리 약 ${Math.round(est.distanceKm)}km` : '');
-				$('[data-est-fees]').innerHTML = est.fees.map((f) => `<li><span>${esc(f.label)}</span><b>${
-					f.min === f.max ? fmtWon(f.min) : `${f.min.toLocaleString('ko-KR')}~${fmtWon(f.max)}`}</b></li>`).join('');
+				$('[data-est-volume]').textContent = `${Number(est.itemCbm).toFixed(1)} CBM · ${est.ton} (${est.trucks})`;
+				$('[data-est-fees]').innerHTML = est.fees.map((f) => `<li><span>${esc(f.label)}${
+					f.note ? `<small>${esc(f.note)}</small>` : ''}</span><b>${won(f)}</b></li>`).join('');
+				$('[data-est-total]').textContent = won({ min: est.min, max: est.max });
+				$('[data-est-deposit]').textContent = `약 ${fmtWon(est.deposit)}`;
 				$('[data-est-notes]').innerHTML = est.notes.map((n) => `<li>${esc(n)}</li>`).join('');
 				$('[data-est-breakdown]').hidden = false;
 			})
@@ -628,28 +758,30 @@
 	function renderSummary() {
 		renderEstimate();
 		$('[data-sum="date"]').textContent = state.dateSkipped ? '일정 미정' : dateLabel() || '—';
-		const CARRY = { E: '엘리베이터', L: '사다리차', S: '계단' };
 		const siteText = (k) => [sites[k].floor ? `${sites[k].floor}층` : '', CARRY[sites[k].carry] || '']
 			.filter(Boolean).join(' · ');
-		$('[data-sum="from"]').textContent = state.address.from
-			? state.address.from + (siteText('from') ? ` (${siteText('from')})` : '') : '—';
-		$('[data-sum="to"]').textContent = state.address.to
-			? state.address.to + (siteText('to') ? ` (${siteText('to')})` : '') : '—';
+		['from', 'to'].forEach((k) => {
+			$(`[data-sum="${k}"]`).textContent = state.address[k]
+				? [state.address[k], detailOf(k)].filter(Boolean).join(' ') + (siteText(k) ? ` (${siteText(k)})` : '') : '—';
+		});
 		$('[data-sum="options"]').textContent = state.options.houseType && state.options.packType
 			? `${state.optionLabels.houseType} · ${state.optionLabels.packType}` : '—';
 	}
 
 	/* ---------- 쉬운 모드 음성 안내 ---------- */
-	const VOICE = [
-		() => '영상 올리기 단계입니다. 집 안 전체가 보이도록 촬영한 동영상을 올려주세요. 동영상 선택 버튼을 누르면 됩니다.',
-		() => state.analysisDone
+	const VOICE = {
+		upload: () => '영상 올리기 단계입니다. 집 안 전체가 보이도록 촬영한 동영상을 올려주세요. 동영상 선택 버튼을 누르면 됩니다.',
+		analysis: () => state.analysisDone
 			? '영상 분석이 끝났습니다. 찾은 짐 목록을 확인해주세요. 빠진 짐이 있거나 정보가 다르면 해당 품목을 눌러 수정할 수 있습니다.'
 			: '짐 확인 단계입니다. 올려주신 영상에서 가구와 짐을 찾고 있습니다. 잠시 기다려주세요.',
-		() => '이사 정보 단계입니다. 현재 사는 집의 종류와 원하는 포장 방식을 차례로 선택해주세요.',
-		() => '주소 입력 단계입니다. 출발할 곳과 도착할 곳의 주소를 차례로 입력해주세요.',
-		() => '날짜 선택 단계입니다. 달력에서 이사할 날짜를 고르고, 아래에서 시간을 선택해주세요. 날짜를 아직 모르면 날짜를 모르겠어요 버튼을 누르세요.',
-		() => '견적 확인 단계입니다. 예상 금액과 입력한 이사 정보를 확인해주세요. 바꿀 내용이 있으면 수정 버튼을 누르세요.',
-	];
+		extras: () => '추가 작업 단계입니다. 에어컨이나 안마의자처럼 설치가 필요한 물건을 업체에 맡길지, 다른 업체에 맡길지 골라주세요.',
+		options: () => '이사 정보 단계입니다. 현재 사는 집의 종류와 원하는 포장 방식을 차례로 선택해주세요.',
+		address: () => '주소 입력 단계입니다. 출발할 곳과 도착할 곳의 주소를 차례로 입력하고, 상세주소에 동과 호수를 적어주세요.',
+		carry: () => '나르는 방법 단계입니다. 출발지와 도착지에서 엘리베이터, 사다리차, 계단 중 하나를 골라주세요.',
+		calendar: () => '날짜 선택 단계입니다. 달력에서 이사할 날짜를 고르고, 아래에서 시간을 선택해주세요. 빨간 날짜는 비용이 오를 수 있습니다.',
+		memo: () => '요청 사항 단계입니다. 귀중품이나 담당자에게 남길 말이 있으면 적어주세요. 없으면 다음을 누르세요.',
+		summary: () => '견적 확인 단계입니다. 예상 금액과 입력한 이사 정보를 확인해주세요. 바꿀 내용이 있으면 수정 버튼을 누르세요.',
+	};
 	const voiceBtn = $('[data-voice-toggle]');
 	let voiceOn = false;
 	const setVoiceUi = (speaking) => {
@@ -662,7 +794,7 @@
 	function speakStep() {
 		if (!easy || !voiceOn || !window.speechSynthesis) return;
 		speechSynthesis.cancel();
-		const u = new SpeechSynthesisUtterance(VOICE[state.step]());
+		const u = new SpeechSynthesisUtterance(VOICE[STEPS[state.step].type]());
 		u.lang = 'ko-KR';
 		u.rate = 0.88;
 		u.onstart = () => setVoiceUi(true);

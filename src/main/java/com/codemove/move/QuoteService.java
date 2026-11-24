@@ -303,10 +303,18 @@ public class QuoteService {
 				EstimateCalculator.Conditions.basic(r.getPackType()));
 	}
 
-	/** @param cond 층수 · 나르는 방법 (견적서 운반방법 · 사다리 칸) */
-	@Transactional
 	public Quote createForRequest(MoveRequest r, String customerName, String customerPhone, List<RequestItem> items,
 			EstimateCalculator.Estimate est, EstimateCalculator.Conditions cond) {
+		return createForRequest(r, customerName, customerPhone, items, est, cond, null);
+	}
+
+	/**
+	 * @param cond 층수 · 나르는 방법 (견적서 운반방법 · 사다리 칸) · 고객이 고른 추가 작업 (옵션 칸)
+	 * @param memo 고객이 남긴 귀중품 · 요청 (견적서 비고)
+	 */
+	@Transactional
+	public Quote createForRequest(MoveRequest r, String customerName, String customerPhone, List<RequestItem> items,
+			EstimateCalculator.Estimate est, EstimateCalculator.Conditions cond, String memo) {
 		Quote q = new Quote();
 		q.setRequestId(r.getRequestId());
 		q.setMemberId(r.getMemberId());
@@ -327,9 +335,15 @@ public class QuoteService {
 		d.setDestination(join(r.getToAddress(), r.getToDetail()));
 		// 이사물량(톤) · 이사비용 · 옵션은 EstimateCalculator (대표님 방식: 적재 CBM → 5톤 + 1톤 조합 → 톤별 요금)
 		d.setVolume(est.tonText());
-		d.setNote("AI 예상: 물품 " + trimZero(est.itemCbm()) + " CBM → 적재 " + trimZero(est.loadCbm()) + " CBM → "
+		// 비고: 고객 메모(귀중품 · 요청)를 맨 앞에, 다른 업체에 맡긴 작업, AI 계산 요약 (500자 칸)
+		List<EstimateCalculator.OptionChoice> chosen = cond.options() == null ? List.of() : cond.options();
+		String others = String.join("·", chosen.stream().filter(c -> c.other()).map(c -> c.name()).toList());
+		String note = (memo == null || memo.isBlank() ? "" : memo.strip() + " / ")
+				+ (others.isEmpty() ? "" : "다른 업체: " + others + " / ")
+				+ "AI 예상: 물품 " + trimZero(est.itemCbm()) + " CBM → 적재 " + trimZero(est.loadCbm()) + " CBM → "
 				+ est.truckLabel() + ". 범위 " + Fmt.money(est.totalMin()) + "~" + Fmt.money(est.totalMax())
-				+ "원. 현장 여건에 따라 별도 비용이 발생할 수 있습니다.");
+				+ "원. 현장 여건에 따라 별도 비용이 발생할 수 있습니다.";
+		d.setNote(note.length() > 500 ? note.substring(0, 500) : note);
 		d.setWorkMethod(workMethod(r.getPackType()));
 		// 운반방법: 양식은 칸마다 전(출발)·후(도착) 하나만 고르므로 출발지를 먼저 표시
 		EstimateCalculator.Site from = cond.from() == null ? EstimateCalculator.Site.UNKNOWN : cond.from();
@@ -363,8 +377,12 @@ public class QuoteService {
 				options += mid;
 				long prev = Fmt.parseMoney(costs.get(idx)) == null ? 0 : Fmt.parseMoney(costs.get(idx));
 				costs.set(idx, Fmt.money(prev + mid));
-				// 피아노는 일반, 수작업은 계단, 나머지는 설치·조립 쪽
-				selections.set(idx, EstimateDoc.OPTION_ROWS[idx][idx == 0 || idx == 5 ? 1 : 2]);
+				// 양식은 한 가지만 표시: 고객이 고른 쪽 (둘 다면 두 번째), 고르지 않았으면 피아노 일반 · 수작업 계단 · 나머지 설치
+				final int row = idx;
+				EstimateCalculator.OptionChoice c = chosen.stream().filter(x -> x.index() == row).findFirst()
+						.orElse(null);
+				int pick = c != null ? (c.second() ? 2 : 1) : idx == 0 || idx == 5 ? 1 : 2;
+				selections.set(idx, EstimateDoc.OPTION_ROWS[idx][pick]);
 			}
 		}
 		long amount = moving + options + fromLadder + toLadder;
@@ -416,7 +434,10 @@ public class QuoteService {
 	/** 계산기 요금 이름 → 견적서 옵션 칸 (QUOTE_OPTION - 1), 옵션이 아니면 -1 */
 	private static int optionIndex(String label) {
 		if (label.startsWith("피아노")) return 0;
+		if (label.startsWith("돌침대")) return 1;
+		if (label.startsWith("조립장")) return 2;
 		if (label.startsWith("벽걸이 TV")) return 3;
+		if (label.startsWith("홈씨어터")) return 4;
 		if (label.startsWith("안마의자")) return 6;
 		if (label.startsWith("에어컨")) return 7;
 		return -1;

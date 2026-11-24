@@ -5,18 +5,20 @@
 <div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
 <!--
 	SCR-U-003~010 영상 견적
-	영상 업로드 → AI 분석(품목 수정) → 주거형태·포장방식 → 출발지·도착지 → 날짜·시간(미정 가능) → 예상 견적 → 이사 요청
+	영상 업로드 → AI 분석(품목 수정) → 추가 작업(옵션) → 주거형태·포장방식 → 출발지·도착지 → 짐 나르는 방법
+	→ 날짜·시간(미정 가능) → 요청 사항(귀중품) → 예상 견적(영수증) → 이사 요청
 -->
 <form class="screen flow-screen soft-page" th:classappend="${cs.easy} ? 'easy-quote'" method="post" enctype="multipart/form-data"
 	  th:action="@{/quote}" data-quote th:data-easy="${cs.easy}" th:data-back-url="@{/home}">
 	<div class="flow-head">
 		<button type="button" class="action back" aria-label="뒤로 가기" data-step-back><img alt="" th:src="@{/assets/4bbcf.svg}"></button>
-		<div class="progress"><i data-progress style="width: 16.6667%"></i></div>
-		<span data-step-count>1/6</span>
+		<!-- 단계 표시: 지난 단계 · 지금 단계(길게) · 남은 단계 -->
+		<ol class="step-dots" aria-label="견적 단계" data-step-dots></ol>
+		<span class="step-count" data-step-count>1/9</span>
 	</div>
 
 	<div class="flow-body">
-		<div class="flow-kicker" th:unless="${cs.easy}">이사 견적</div>
+		<div class="flow-kicker" th:unless="${cs.easy}" data-flow-kicker>영상 올리기</div>
 		<div class="easy-quote-utility" th:if="${cs.easy}">
 			<button type="button" class="action easy-voice-guide" data-voice-toggle aria-label="음성 안내 켜기">
 				<svg aria-hidden="true" fill="none" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
@@ -127,6 +129,39 @@
 			<div data-item-inputs></div>
 		</section>
 
+		<!-- 3. 추가 작업 (견적서 옵션 칸): 영상에서 찾은 것은 미리 골라 둠. 다른 업체에 맡기면 견적에서 빠짐 -->
+		<section data-step="extras" hidden>
+			<ul class="extra-list">
+				<li class="extra" th:each="x : ${extras}" th:data-extra="${x.code}" th:data-first="${x.first}" th:data-second="${x.second}">
+					<div class="extra-head">
+						<span class="extra-icon"><img alt="" data-extra-icon></span>
+						<div class="extra-name">
+							<strong th:text="${x.name}">에어컨</strong>
+							<small data-extra-found hidden></small>
+						</div>
+						<div class="extra-modes" role="radiogroup" th:aria-label="${x.name} + ' 작업'">
+							<button type="button" class="action" role="radio" data-extra-mode="none">없음</button>
+							<button type="button" class="action" role="radio" data-extra-mode="ours">맡기기</button>
+							<button type="button" class="action" role="radio" data-extra-mode="other">다른 업체</button>
+						</div>
+					</div>
+					<div class="extra-detail" data-extra-detail hidden>
+						<div class="extra-works">
+							<button type="button" class="action" data-extra-work="first" th:text="${x.first}">탈착</button>
+							<button type="button" class="action" data-extra-work="second" th:text="${x.second}">설치</button>
+						</div>
+						<div class="extra-count">
+							<button type="button" class="action" aria-label="수량 줄이기" data-extra-count="-1">−</button>
+							<b data-extra-count-value>1</b>
+							<button type="button" class="action" aria-label="수량 늘리기" data-extra-count="1">+</button>
+						</div>
+					</div>
+				</li>
+			</ul>
+			<p class="flow-help">설치나 분해가 필요한 물건만 골라주세요. 다른 업체에 맡기시면 견적에서 빼고 담당자에게 알려드려요.</p>
+			<div data-extra-inputs></div>
+		</section>
+
 		<!-- 3. 주거형태·포장방식 (SCR-U-006) -->
 		<section data-step="options" hidden>
 			<div class="option-groups" th:unless="${cs.easy}">
@@ -211,22 +246,7 @@
 					<div class="addr-detail-wrap" data-addr-detail-wrap hidden>
 						<input class="addr-detail-input" type="text" aria-label="상세주소" placeholder="상세주소 입력 (동, 호수 등)"
 							   th:name="${key} + 'AddressDetail'" data-addr-detail>
-						<div class="addr-detail-hint" data-addr-hint>예) 101동 202호, 2층</div>
-						<!-- 층수 · 짐 나르는 방법 (사다리차 요금 · 계단 인력 계산) -->
-						<div class="addr-carry" data-addr-carry>
-							<label class="addr-floor">
-								<span>층수</span>
-								<input type="number" inputmode="numeric" min="1" max="80" placeholder="예) 8"
-									   th:name="${key} + 'Floor'" th:aria-label="${label} + ' 층수'" data-addr-floor>
-								<span>층</span>
-							</label>
-							<div class="carry-options" role="radiogroup" th:aria-label="${label} + ' 짐 나르는 방법'">
-								<button type="button" class="action carry-option" th:each="c : ${ {'E:엘리베이터', 'L:사다리차', 'S:계단'} }"
-										role="radio" aria-checked="false" th:data-carry="${#strings.substringBefore(c, ':')}"
-										th:text="${#strings.substringAfter(c, ':')}">엘리베이터</button>
-							</div>
-							<input type="hidden" th:name="${key} + 'Carry'" data-addr-carry-value>
-						</div>
+						<div class="addr-detail-hint" data-addr-hint>예) 101동 1203호 · 층수는 호수로 알 수 있어요</div>
 					</div>
 					<input type="hidden" th:name="${key} + 'Address'" data-addr-value>
 					<input type="hidden" th:name="${key} + 'Zipcode'" data-addr-zip>
@@ -243,7 +263,35 @@
 			</div>
 		</section>
 
-		<!-- 5. 날짜·시간 (SCR-U-008) -->
+		<!-- 6. 짐 나르는 방법: 층수는 상세주소에서 읽고(3층 301호 → 3층), 못 읽으면 사다리차 · 계단일 때만 물어봄 -->
+		<section data-step="carry" hidden>
+			<div class="carry-card" th:each="a : ${ {'from:출발지', 'to:도착지'} }"
+				 th:with="key=${#strings.substringBefore(a, ':')}, label=${#strings.substringAfter(a, ':')}" th:data-carry-site="${key}">
+				<div class="carry-where">
+					<span th:text="${label}">출발지</span>
+					<strong data-carry-address>—</strong>
+					<small data-carry-floor-text></small>
+				</div>
+				<div class="carry-options" role="radiogroup" th:aria-label="${label} + ' 짐 나르는 방법'">
+					<button type="button" class="action carry-option" role="radio" aria-checked="false"
+							th:each="c : ${ { {'E', '엘리베이터', '건물 엘리베이터로'}, {'L', '사다리차', '창문으로 사다리차'}, {'S', '계단', '계단으로 직접'} } }"
+							th:data-carry="${c[0]}">
+						<strong th:text="${c[1]}">엘리베이터</strong>
+						<small th:text="${c[2]}">건물 엘리베이터로</small>
+					</button>
+				</div>
+				<label class="carry-floor" data-carry-floor-ask hidden>
+					<span>몇 층인가요?</span>
+					<input type="number" inputmode="numeric" min="1" max="80" placeholder="층" th:aria-label="${label} + ' 층수'" data-carry-floor-input>
+					<span>층</span>
+				</label>
+				<input type="hidden" th:name="${key} + 'Floor'" data-carry-floor-value>
+				<input type="hidden" th:name="${key} + 'Carry'" data-carry-value>
+			</div>
+			<p class="flow-help">사다리차는 층수에 따라, 계단은 3개 층마다 작업 인력이 더해져요. 엘리베이터 이용료는 관리사무소에 따로 내요.</p>
+		</section>
+
+		<!-- 7. 날짜·시간 (SCR-U-008) -->
 		<section data-step="calendar" hidden>
 			<div class="calendar" data-calendar>
 				<div class="calendar-head">
@@ -255,7 +303,10 @@
 				</div>
 				<div class="week"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
 				<div class="days" data-cal-days></div>
-				<p class="cal-legend"><i aria-hidden="true"></i>손 없는 날 · 이사가 몰려 비용이 오를 수 있어요</p>
+				<div class="cal-legend">
+					<span><i class="red" aria-hidden="true"></i>손 없는 날 · 공휴일 (비용이 오를 수 있어요)</span>
+					<span><i class="closed" aria-hidden="true"></i>업체 휴무일</span>
+				</div>
 				<button type="button" class="action time-row" aria-label="시간 변경" data-cal-time-open hidden>
 					<b data-cal-time-label>오전 10:00</b>
 					<span>시간 변경 <img th:replace="~{customer/fragments/common :: chevron}"></span>
@@ -287,48 +338,45 @@
 			<input type="hidden" name="dateUndecided" value="false" data-date-undecided>
 		</section>
 
-		<!-- 6. 예상 견적 (SCR-U-009) -->
+		<!-- 8. 요청 사항: 귀중품 · 담당자에게 남길 말 (예약 메모 · 견적서 비고로 감) -->
+		<section data-step="memo" hidden>
+			<label class="memo-field">
+				<span>귀중품 · 파손 주의 물건</span>
+				<textarea name="valuables" rows="3" maxlength="150" placeholder="예) 피아노, 도자기 2점, 대형 액자, 금고" data-memo-valuables></textarea>
+			</label>
+			<label class="memo-field">
+				<span>담당자에게 남길 말</span>
+				<textarea name="memo" rows="4" maxlength="150" placeholder="예) 주차 공간이 좁아요, 엘리베이터는 오전 9시부터 쓸 수 있어요" data-memo-text></textarea>
+			</label>
+			<div class="memo-chips" aria-label="자주 남기는 말">
+				<button type="button" class="action" th:each="c : ${ {'주차가 어려워요', '엘리베이터 예약이 필요해요', '반려동물이 있어요', '버릴 짐이 있어요', '도착지에 먼저 짐이 있어요'} }"
+						th:data-memo-chip="${c}" th:text="${c}">주차가 어려워요</button>
+			</div>
+			<p class="flow-help">적지 않아도 괜찮아요. 남겨 주시면 견적 확인 때 담당자가 함께 봐요.</p>
+		</section>
+
+		<!-- 9. 예상 견적 (SCR-U-009): 영수증 모양 -->
 		<section data-step="summary" hidden>
-			<div class="estimate-result-card">
-				<span data-est-kicker>AI 예상 견적</span>
-				<strong data-est-amount></strong>
-				<small data-est-note>선택한 일정과 영상 분석 결과를 반영했어요.</small>
-			</div>
-			<!-- 견적 근거: 짐 양(톤) · 요금 항목 · 안내 (EstimateCalculator) -->
-			<div class="estimate-breakdown" data-est-breakdown hidden>
-				<p class="estimate-volume" data-est-volume></p>
-				<ul class="estimate-fees" data-est-fees></ul>
-				<ul class="estimate-notes" data-est-notes></ul>
-			</div>
-			<div class="summary-card">
-				<div class="summary-row">
-					<div class="summary-row-left">
-						<span class="summary-icon"><svg fill="none" height="20" viewBox="0 0 20 20" width="20" xmlns="http://www.w3.org/2000/svg"><rect height="14" rx="2" stroke="currentColor" stroke-width="1.5" width="16" x="2" y="4"/><path d="M2 8h16" stroke="currentColor" stroke-width="1.5"/><path d="M6 2v2M14 2v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect fill="currentColor" height="2.5" rx="0.5" width="2.5" x="6" y="11"/><rect fill="currentColor" height="2.5" rx="0.5" width="2.5" x="10.5" y="11"/></svg></span>
-						<div class="summary-row-text"><span class="summary-label">이사일</span><b class="summary-value" data-sum="date">—</b></div>
-					</div>
-					<button type="button" class="action summary-edit" aria-label="이사일 수정" data-go-step="4">수정</button>
+			<div class="receipt" data-receipt>
+				<div class="receipt-head">
+					<span data-est-kicker>AI 예상 견적</span>
+					<strong data-est-amount></strong>
+					<small data-est-note>선택한 일정과 영상 분석 결과를 반영했어요.</small>
 				</div>
-				<div class="summary-row">
-					<div class="summary-row-left">
-						<span class="summary-icon"><svg fill="none" height="20" viewBox="0 0 20 20" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2C7.24 2 5 4.24 5 7c0 4 5 11 5 11s5-7 5-11c0-2.76-2.24-5-5-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="7" fill="currentColor" r="2"/><path d="M7 18h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
-						<div class="summary-row-text"><span class="summary-label">출발지</span><b class="summary-value" data-sum="from">—</b></div>
-					</div>
-					<button type="button" class="action summary-edit" aria-label="출발지 수정" data-go-step="3">수정</button>
+				<dl class="receipt-info">
+					<div><dt>이사 방식</dt><dd data-sum="options">—</dd><button type="button" class="action receipt-edit" data-go-step="options">수정</button></div>
+					<div><dt>이사 날짜</dt><dd data-sum="date">—</dd><button type="button" class="action receipt-edit" data-go-step="calendar">수정</button></div>
+					<div><dt>출발지</dt><dd data-sum="from">—</dd><button type="button" class="action receipt-edit" data-go-step="address">수정</button></div>
+					<div><dt>도착지</dt><dd data-sum="to">—</dd><button type="button" class="action receipt-edit" data-go-step="address">수정</button></div>
+					<div><dt>짐 양</dt><dd data-est-volume>—</dd><button type="button" class="action receipt-edit" data-go-step="analysis">수정</button></div>
+				</dl>
+				<!-- 견적 근거: 요금 항목 (EstimateCalculator) -->
+				<div class="receipt-lines" data-est-breakdown hidden>
+					<ul data-est-fees></ul>
+					<div class="receipt-total"><span>합계</span><b data-est-total></b></div>
+					<div class="receipt-sub"><span>계약금 (10%)</span><span data-est-deposit></span></div>
 				</div>
-				<div class="summary-row">
-					<div class="summary-row-left">
-						<span class="summary-icon"><svg fill="none" height="20" viewBox="0 0 20 20" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2C7.24 2 5 4.24 5 7c0 4 5 11 5 11s5-7 5-11c0-2.76-2.24-5-5-5z" stroke="var(--green)" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="7" fill="var(--green)" r="2"/><path d="M7 18h6" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round"/><path d="M14 6l3-3m0 0h-2m2 0v2" stroke="var(--green)" stroke-width="1.3" stroke-linecap="round"/></svg></span>
-						<div class="summary-row-text"><span class="summary-label">도착지</span><b class="summary-value" data-sum="to">—</b></div>
-					</div>
-					<button type="button" class="action summary-edit" aria-label="도착지 수정" data-go-step="3">수정</button>
-				</div>
-				<div class="summary-row">
-					<div class="summary-row-left">
-						<span class="summary-icon"><svg fill="none" height="20" viewBox="0 0 20 20" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M2 10L10 3l8 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect height="8" rx="1" stroke="currentColor" stroke-width="1.5" width="12" x="4" y="10"/><rect height="4" rx="0.5" stroke="currentColor" stroke-width="1.3" width="3.5" x="8.25" y="14"/></svg></span>
-						<div class="summary-row-text"><span class="summary-label">이사 유형</span><b class="summary-value" data-sum="options">—</b></div>
-					</div>
-					<button type="button" class="action summary-edit" aria-label="이사 유형 수정" data-go-step="2">수정</button>
-				</div>
+				<ul class="receipt-notes" data-est-notes></ul>
 			</div>
 		</section>
 	</div>
@@ -431,6 +479,8 @@
 		categories: /*[[${categories}]]*/ [],
 		/* 손 없는 날: yyyy-MM-dd → 음력 표시 */
 		noSon: /*[[${noSonDays}]]*/ {},
+		/* 공휴일: yyyy-MM-dd → 이름 (손 없는 날과 함께 빨간 날짜) */
+		holidays: /*[[${holidays}]]*/ {},
 		addresses: /*[[${addresses}]]*/ [],
 		/* 고를 수 없는 이사 날짜: yyyy-MM-dd → 휴무 · 불가 · 마감 (관리자 일정 관리 · 하루 최대 예약 수) */
 		blocked: /*[[${blockedDates}]]*/ {}

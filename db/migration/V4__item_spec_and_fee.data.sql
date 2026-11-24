@@ -352,7 +352,7 @@ INSERT INTO TBL_FEE_DISTANCE (FEE_ID, TON, FROM_KM, TO_KM, ADD_AMOUNT, PER_KM, B
 -- ---------- TBL_FEE_SURCHARGE ----------
 INSERT INTO TBL_FEE_SURCHARGE (SURCHARGE_CODE, RATE_PCT, BASIS_NOTE) VALUES ('01', 20, '음력 날짜 끝자리가 9 또는 0 (음력 9·10·19·20·29·30일) / 아정당: 평일 < 주말·월말 < 손 없는 날(평일) < 손 없는 날(주말). 미소: 손 없는 날 차이 평균 20~30만 원');
 INSERT INTO TBL_FEE_SURCHARGE (SURCHARGE_CODE, RATE_PCT, BASIS_NOTE) VALUES ('02', 10, '토요일·일요일 / 아정당: 주말은 평일보다 약 10%');
-INSERT INTO TBL_FEE_SURCHARGE (SURCHARGE_CODE, RATE_PCT, BASIS_NOTE) VALUES ('03', 10, '법정 공휴일(TBL_CLOSED_DAY와 별개로 공휴일 달력) / 주말과 같게 (공휴일 달력은 아직 없음)');
+INSERT INTO TBL_FEE_SURCHARGE (SURCHARGE_CODE, RATE_PCT, BASIS_NOTE) VALUES ('03', 10, '관공서 공휴일 + 대체공휴일 (Holidays: 음력 명절까지 해마다 계산) / 주말과 같게. 손 없는 날이면서 공휴일이면 05와 같게');
 INSERT INTO TBL_FEE_SURCHARGE (SURCHARGE_CODE, RATE_PCT, BASIS_NOTE) VALUES ('04', 10, '매월 마지막 3일(잔금·계약 만기 몰림) / 아정당: 주말·월말이 같은 단계');
 INSERT INTO TBL_FEE_SURCHARGE (SURCHARGE_CODE, RATE_PCT, BASIS_NOTE) VALUES ('05', 30, '손 없는 날이면서 토·일요일 / 아정당: 손 없는 날 주말은 20~50% 이상 오를 수 있음 → 30%');
 
