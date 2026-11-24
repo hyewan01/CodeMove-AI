@@ -33,6 +33,13 @@ class ChatRulesTest {
 	}
 
 	@Test
+	void dayRanges() {
+		assertEquals("1~3일, 5일, 7~8일", ChatService.ranges(java.util.List.of(1, 2, 3, 5, 7, 8)));
+		assertEquals("25~30일", ChatService.ranges(java.util.List.of(25, 26, 27, 28, 29, 30)));
+		assertEquals("", ChatService.ranges(java.util.List.of()));
+	}
+
+	@Test
 	void whoAnswers() {
 		ChatRoomLine room = new ChatRoomLine();
 		room.setStatus(ChatService.BOT);

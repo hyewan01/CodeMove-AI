@@ -37,12 +37,76 @@ public class ChatService {
 	private final NotificationService notifications;
 	private final FileStore files;
 
+	private final com.codemove.schedule.BookingService booking;
+
 	public ChatService(ChatMapper chats, MemberMapper members, NotificationService notifications,
-			FileStore files) {
+			FileStore files, com.codemove.schedule.BookingService booking) {
 		this.chats = chats;
 		this.members = members;
 		this.notifications = notifications;
 		this.files = files;
+		this.booking = booking;
+	}
+
+	/* ---------- 로어북 안의 실시간 값 ---------- */
+
+	/** 로어북 내용에 넣으면 답할 때 실제 예약 현황으로 바뀜 */
+	public static final String AVAILABLE_DATES = "{예약가능날짜}";
+
+	/** 질문에 "다음 달"이 있으면 다음 달, 아니면 이번 달(오늘부터). 이번 달에 남은 날이 3일보다 적으면 다음 달도 */
+	String availableDates(String question) {
+		java.time.LocalDate today = java.time.LocalDate.now();
+		boolean next = normalize(question).contains("다음달");
+		java.time.LocalDate first = next ? today.withDayOfMonth(1).plusMonths(1) : today;
+		StringBuilder out = new StringBuilder();
+		int shown = monthLine(out, first);
+		if (!next && shown < 3) {
+			out.append("\n\n");
+			monthLine(out, today.withDayOfMonth(1).plusMonths(1));
+		}
+		return out.toString();
+	}
+
+	/** [1,2,3,5,7,8] → "1~3일, 5일, 7~8일" */
+	static String ranges(List<Integer> days) {
+		List<String> parts = new ArrayList<>();
+		for (int i = 0; i < days.size();) {
+			int j = i;
+			while (j + 1 < days.size() && days.get(j + 1) == days.get(j) + 1) j++;
+			parts.add(i == j ? days.get(i) + "일" : days.get(i) + "~" + days.get(j) + "일");
+			i = j + 1;
+		}
+		return String.join(", ", parts);
+	}
+
+	/** 한 달치 "11월 예약 가능한 날" 줄을 붙이고, 가능한 날 수를 돌려줌 */
+	private int monthLine(StringBuilder out, java.time.LocalDate from) {
+		java.time.LocalDate to = from.withDayOfMonth(1).plusMonths(1);
+		Map<java.time.LocalDate, String> blocked = booking.blockedDates(from, to);
+		List<Integer> open = new ArrayList<>();
+		List<Integer> busy = new ArrayList<>();
+		List<String> closed = new ArrayList<>();
+		for (java.time.LocalDate d = from; d.isBefore(to); d = d.plusDays(1)) {
+			String reason = blocked.get(d);
+			if (reason != null) {
+				closed.add(d.getDayOfMonth() + "일(" + com.codemove.schedule.BookingService.label(reason) + ")");
+			} else {
+				open.add(d.getDayOfMonth());
+				if (com.codemove.common.LunarDays.isNoSonDay(d) || com.codemove.common.Holidays.is(d)) {
+					busy.add(d.getDayOfMonth());
+				}
+			}
+		}
+		out.append(from.getMonthValue()).append("월 예약 가능한 날\n");
+		out.append(open.isEmpty() ? "· 남은 날이 모두 마감됐어요." : "· " + ranges(open));
+		if (!closed.isEmpty()) {
+			out.append("\n· 예약이 어려운 날: ").append(String.join(", ", closed));
+		}
+		if (!busy.isEmpty()) {
+			out.append("\n· 비용이 오를 수 있는 날: ")
+					.append(String.join(", ", busy.stream().map(String::valueOf).toList())).append("일 (손 없는 날·공휴일)");
+		}
+		return open.size();
 	}
 
 	/* ---------- 설정 · 주제 · 퀵메뉴 ---------- */
@@ -484,7 +548,14 @@ public class ChatService {
 		} else {
 			Lorebook hit = "Y".equals(s.getBotEnabled()) ? matchLorebook(value) : null;
 			if (hit != null) {
-				reply = new Reply(hit.getContent(), List.of(action(CONSULT_MENU, CONSULT_MENU, null)), hit.getTopicId());
+				String content = hit.getContent();
+				if (content != null && content.contains(AVAILABLE_DATES)) {
+					// 실시간 예약 현황 (관리자가 로어북 문구는 고칠 수 있음)
+					reply = new Reply(content.replace(AVAILABLE_DATES, availableDates(value)),
+							List.of(action("날짜 골라 견적 받기", null, "quote"), action(CONSULT_MENU, CONSULT_MENU, null)), hit.getTopicId());
+				} else {
+					reply = new Reply(content, List.of(action(CONSULT_MENU, CONSULT_MENU, null)), hit.getTopicId());
+				}
 			} else if (isGreeting(value)) {
 				reply = new Reply("안녕하세요" + (name == null ? "" : ", " + name + " 고객님") + "! 명품익스프레스 AI 이사 도우미예요.\n"
 						+ "견적, 예약, 이사 준비처럼 궁금한 걸 편하게 물어보세요.",
