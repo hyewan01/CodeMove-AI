@@ -25,7 +25,7 @@
 			<div class="booking-summary-pay" th:if="${summary.active}">
 				<span>계약금 10%</span>
 				<b th:text="${summary.deposit}">220,000원</b>
-				<em th:text="${summary.payStatus}">결제 대기</em>
+				<em th:text="${summary.payStatus}" th:classappend="${summary.payStatus == '결제 완료'} ? 'paid'">결제 대기</em>
 			</div>
 			<!-- 계약금: 견적을 확정하면 온라인 결제 (토스페이먼츠), 낸 뒤에는 수단 · 영수증 -->
 			<a class="action booking-pay" th:if="${payable and payReady}" th:href="@{/move/booking/{id}/pay(id=${summary.reservationId})}"

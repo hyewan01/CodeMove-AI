@@ -22,10 +22,15 @@ public class PaymentController {
 
 	private final PaymentService payments;
 	private final TossPayments toss;
+	private final CustomerViews views;
+	private final com.codemove.move.MoveService moves;
 
-	public PaymentController(PaymentService payments, TossPayments toss) {
+	public PaymentController(PaymentService payments, TossPayments toss, CustomerViews views,
+			com.codemove.move.MoveService moves) {
 		this.payments = payments;
 		this.toss = toss;
+		this.views = views;
+		this.moves = moves;
 	}
 
 	/** 결제 화면: 주문을 만들고 결제위젯을 띄움 */
@@ -41,6 +46,8 @@ public class PaymentController {
 			return "redirect:/move/booking/" + reservationId;
 		}
 		String base = ServletUriComponentsBuilder.fromCurrentContextPath().toUriString();
+		// 고객 화면 공통 값 (쉬운 모드 · 이름 등, CustomerPageController.common 과 같게)
+		model.addAttribute("cs", views.view(CustomerSession.of(session), moves.current(memberId(session))));
 		model.addAttribute("checkout", co);
 		model.addAttribute("reservationId", reservationId);
 		model.addAttribute("clientKey", toss.clientKey());
