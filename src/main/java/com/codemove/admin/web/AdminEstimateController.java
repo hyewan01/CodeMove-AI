@@ -31,11 +31,7 @@ public class AdminEstimateController {
 	private final NotificationService notifications;
 	private final FileStore files;
 
-	private final com.codemove.checklist.ChecklistService checklist;
-
-	public AdminEstimateController(QuoteService quotes, NotificationService notifications, FileStore files,
-			com.codemove.checklist.ChecklistService checklist) {
-		this.checklist = checklist;
+	public AdminEstimateController(QuoteService quotes, NotificationService notifications, FileStore files) {
 		this.quotes = quotes;
 		this.notifications = notifications;
 		this.files = files;
@@ -51,7 +47,9 @@ public class AdminEstimateController {
 	public String list(@RequestParam(defaultValue = "전체") String status, @RequestParam(defaultValue = "") String date,
 			@RequestParam(defaultValue = "1") int page, @RequestParam(required = false) Long id,
 			@RequestParam(defaultValue = "form") String tab, @RequestParam(defaultValue = "false") boolean editing,
-			@RequestParam(required = false) Long del, Model model) {
+			@RequestParam(required = false) Long del, @RequestParam(defaultValue = "") String back, Model model) {
+		/* 다른 화면(체크리스트 등)에서 열었으면 닫기(X)로 그 화면에 돌아감 */
+		model.addAttribute("returnTo", AdminPageController.safeBack(back, null));
 		List<EstimateRecord> all = records();
 		String digits = date.replaceAll("\\D", "");
 		List<EstimateRecord> filtered = all.stream()
@@ -72,9 +70,6 @@ public class AdminEstimateController {
 			all.stream().filter(e -> e.getId() == id).findFirst().ifPresent(e -> model.addAttribute("editingRecord", e));
 			if (q != null) {
 				model.addAttribute("doc", quotes.toDoc(q));
-				if (q.getMemberId() != null) {
-					model.addAttribute("checklist", checklist.progressOf(q.getMemberId()));
-				}
 			}
 			model.addAttribute("tab", tab);
 			model.addAttribute("editing", editing);

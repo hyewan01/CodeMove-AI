@@ -76,7 +76,7 @@
 	</section>
 
 	<!-- 견적 수정 (SCR-A-002) -->
-	<div th:if="${editingRecord}" th:with="r=${editingRecord}, editUrl=${listUrl} + '&id=' + ${editingRecord.id}"
+	<div th:if="${editingRecord}" th:with="r=${editingRecord}, editUrl=${listUrl} + '&id=' + ${editingRecord.id} + (${returnTo} != null ? '&back=' + ${#uris.escapeQueryParam(returnTo)} : '')"
 		 class="absolute inset-x-0 my-0 bottom-[82px] top-[68px] z-40 overflow-y-auto bg-[#f5f6f8] p-4">
 		<div class="mb-4 flex items-center justify-between">
 			<div>
@@ -88,11 +88,10 @@
 						  th:text="${r.approvedDate != null} ? '승인일 ' + ${r.approvedDate} : '승인 전'"></span>
 				</div>
 			</div>
-			<a aria-label="수정 닫기" class="grid h-9 w-9 place-items-center rounded-full bg-white text-[#59615b]" th:href="${listUrl}">
+			<a aria-label="수정 닫기" class="grid h-9 w-9 place-items-center rounded-full bg-white text-[#59615b]" th:href="${returnTo} ?: ${listUrl}">
 				<svg th:replace="~{admin/fragments/icon :: icon('x', 17, '')}"></svg>
 			</a>
 		</div>
-		<div class="mb-3" th:if="${checklist}"><a th:replace="~{admin/fragments/checklist :: row(${checklist})}"></a></div>
 		<div class="mb-4 grid grid-cols-2 rounded-xl bg-white p-1 shadow-[0_4px_14px_rgba(36,58,39,.07)]">
 			<a th:aria-pressed="${tab != 'video'}" class="flex h-10 items-center justify-center gap-2 rounded-lg text-[15px] font-extrabold"
 			   th:classappend="${tab != 'video'} ? 'bg-[#346538] text-white' : 'text-[#747c76]'" th:href="${editUrl} + '&tab=form'">
@@ -190,7 +189,7 @@
 <th:block th:fragment="docAction">
 	<button th:if="${editing}" class="h-8 justify-self-end rounded-lg bg-[#346538] px-3 text-[14px] font-extrabold text-white" type="button" data-confirm-open="save">저장</button>
 	<a th:unless="${editing}" class="grid h-8 place-items-center justify-self-end rounded-lg bg-[#edf3ed] px-3 text-[14px] font-extrabold text-[#346538]"
-	   th:href="${listUrl} + '&id=' + ${editingRecord.id} + '&tab=form&editing=true'">수정</a>
+	   th:href="${listUrl} + '&id=' + ${editingRecord.id} + '&tab=form&editing=true' + (${returnTo} != null ? '&back=' + ${#uris.escapeQueryParam(returnTo)} : '')">수정</a>
 </th:block>
 </body>
 </html>

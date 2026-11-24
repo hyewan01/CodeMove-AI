@@ -334,11 +334,6 @@ public class ChecklistService {
 		return out;
 	}
 
-	/** 예약 상세 · 견적 수정 화면의 "체크리스트" 줄 */
-	public Progress progressOf(long memberId) {
-		return progressOf(memberId, "", "", "");
-	}
-
 	private Progress progressOf(long memberId, String name, String phone, String lastAt) {
 		CurrentMove c = moves.current(memberId);
 		var r = c == null ? null : c.reservation();

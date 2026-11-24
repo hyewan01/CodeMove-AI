@@ -42,12 +42,12 @@
 				<!-- 지금 이사의 예약 · 견적으로 바로 -->
 				<div class="mb-2 grid grid-cols-2 gap-1.5" th:if="${p.reservationId != null or p.quoteId != null}">
 					<a th:if="${p.reservationId != null}" class="flex min-w-0 flex-col rounded-xl bg-white px-3 py-2 shadow-[0_2px_8px_rgba(36,58,39,.05)]"
-					   th:href="@{/admin/reservations(id=${p.reservationId})}">
+					   th:href="@{/admin/reservations(id=${p.reservationId},back='/admin/checklist/customers?open=' + ${p.memberId})}">
 						<span class="text-[12px] font-bold text-[#8a918c]">예약 상세 ›</span>
 						<span class="truncate text-[13.5px] font-bold text-[#303832]" th:text="${p.reservationNo}">R-001</span>
 					</a>
 					<a th:if="${p.quoteId != null}" class="flex min-w-0 flex-col rounded-xl bg-white px-3 py-2 shadow-[0_2px_8px_rgba(36,58,39,.05)]"
-					   th:href="@{/admin/estimates(id=${p.quoteId})}">
+					   th:href="@{/admin/estimates(id=${p.quoteId},back='/admin/checklist/customers?open=' + ${p.memberId})}">
 						<span class="text-[12px] font-bold text-[#8a918c]">견적서 ›</span>
 						<span class="truncate text-[13.5px] font-bold text-[#303832]" th:text="${p.quoteNo}">Q-001</span>
 					</a>

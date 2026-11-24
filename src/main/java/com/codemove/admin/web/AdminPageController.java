@@ -38,13 +38,9 @@ public class AdminPageController {
 	private final NotificationService notifications;
 	private final com.codemove.move.MoveService moveService;
 
-	private final com.codemove.checklist.ChecklistService checklist;
-
 	public AdminPageController(AdminViews views, MoveMapper moves, MemberService members, QuoteService quotes,
-			NotificationService notifications, com.codemove.move.MoveService moveService,
-			com.codemove.checklist.ChecklistService checklist) {
+			NotificationService notifications, com.codemove.move.MoveService moveService) {
 		this.moveService = moveService;
-		this.checklist = checklist;
 		this.views = views;
 		this.moves = moves;
 		this.members = members;
@@ -82,7 +78,9 @@ public class AdminPageController {
 	@GetMapping("/reservations")
 	public String reservations(@RequestParam(defaultValue = "전체") String status,
 			@RequestParam(defaultValue = "") String q, @RequestParam(defaultValue = "1") int page,
-			@RequestParam(required = false) Long id, Model model) {
+			@RequestParam(required = false) Long id, @RequestParam(defaultValue = "") String back, Model model) {
+		/* 다른 화면(체크리스트 등)에서 열었으면 닫기(X)로 그 화면에 돌아감 */
+		model.addAttribute("returnTo", safeBack(back, null));
 		List<ReservationRow> all = views.reservations().stream()
 				.map(r -> new ReservationRow(r, r.displayStatus(), r.paymentStatus()))
 				.toList();
@@ -103,14 +101,8 @@ public class AdminPageController {
 				new long[] { done, Math.round(done * 100.0 / size) },
 				new long[] { all.size() - done, Math.round((all.size() - done) * 100.0 / size) }));
 		if (id != null) {
-			all.stream().filter(row -> row.record().id() == id).findFirst().ifPresent(row -> {
-				model.addAttribute("selected", row);
-				try {
-					model.addAttribute("checklist", checklist.progressOf(Long.parseLong(row.record().userId())));
-				} catch (NumberFormatException ignored) {
-					// 회원 번호가 없으면 체크리스트 줄을 빼고 보여 줌
-				}
-			});
+			all.stream().filter(row -> row.record().id() == id).findFirst()
+					.ifPresent(row -> model.addAttribute("selected", row));
 		}
 		return "admin/reservations";
 	}
