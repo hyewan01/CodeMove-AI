@@ -320,17 +320,31 @@ public class ChecklistService {
 
 	/* ---------- 관리자: 고객별 진행 현황 ---------- */
 
-	public record Progress(long memberId, String name, String phone, String lastAt, View view) {
+	/** 고객 한 명의 진행 현황 + 지금 이사의 예약 · 견적 (관리자 화면에서 서로 바로 이동) */
+	public record Progress(long memberId, String name, String phone, String lastAt, View view, Long reservationId,
+			String reservationNo, Long quoteId, String quoteNo) {
 	}
 
 	public List<Progress> progress() {
 		List<Progress> out = new ArrayList<>();
 		for (ChecklistMember m : mapper.members()) {
-			out.add(new Progress(m.getMemberId(), nz(m.getMemberName()), nz(m.getPhone()),
-					m.getLastAt() == null ? "" : com.codemove.common.Fmt.dot(m.getLastAt().toLocalDate()),
-					view(m.getMemberId())));
+			out.add(progressOf(m.getMemberId(), nz(m.getMemberName()), nz(m.getPhone()),
+					m.getLastAt() == null ? "" : com.codemove.common.Fmt.dot(m.getLastAt().toLocalDate())));
 		}
 		return out;
+	}
+
+	/** 예약 상세 · 견적 수정 화면의 "체크리스트" 줄 */
+	public Progress progressOf(long memberId) {
+		return progressOf(memberId, "", "", "");
+	}
+
+	private Progress progressOf(long memberId, String name, String phone, String lastAt) {
+		CurrentMove c = moves.current(memberId);
+		var r = c == null ? null : c.reservation();
+		var q = c == null ? null : c.quote();
+		return new Progress(memberId, name, phone, lastAt, view(memberId, c), r == null ? null : r.getReservationId(),
+				r == null ? "" : nz(r.getReservationNo()), q == null ? null : q.getQuoteId(), q == null ? "" : nz(q.getQuoteNo()));
 	}
 
 	private static String nz(String s) {

@@ -38,9 +38,13 @@ public class AdminPageController {
 	private final NotificationService notifications;
 	private final com.codemove.move.MoveService moveService;
 
+	private final com.codemove.checklist.ChecklistService checklist;
+
 	public AdminPageController(AdminViews views, MoveMapper moves, MemberService members, QuoteService quotes,
-			NotificationService notifications, com.codemove.move.MoveService moveService) {
+			NotificationService notifications, com.codemove.move.MoveService moveService,
+			com.codemove.checklist.ChecklistService checklist) {
 		this.moveService = moveService;
+		this.checklist = checklist;
 		this.views = views;
 		this.moves = moves;
 		this.members = members;
@@ -99,8 +103,14 @@ public class AdminPageController {
 				new long[] { done, Math.round(done * 100.0 / size) },
 				new long[] { all.size() - done, Math.round((all.size() - done) * 100.0 / size) }));
 		if (id != null) {
-			all.stream().filter(row -> row.record().id() == id).findFirst()
-					.ifPresent(row -> model.addAttribute("selected", row));
+			all.stream().filter(row -> row.record().id() == id).findFirst().ifPresent(row -> {
+				model.addAttribute("selected", row);
+				try {
+					model.addAttribute("checklist", checklist.progressOf(Long.parseLong(row.record().userId())));
+				} catch (NumberFormatException ignored) {
+					// 회원 번호가 없으면 체크리스트 줄을 빼고 보여 줌
+				}
+			});
 		}
 		return "admin/reservations";
 	}

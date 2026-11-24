@@ -20,13 +20,13 @@
 				  th:class="${it.index == 0} ? 'text-[#c85f57]' : (${it.index == 6} ? 'text-[#557fa3]' : 'text-[#858d87]')"></span>
 		</div>
 		<!-- 달력 칸: 옅은 칸 + 가운데 날짜, 일정은 왼쪽 색 막대 + 한 줄 글씨(넘치면 잘림). 휴무·불가·마감은 옅은 색 띠. 자세한 내용은 아래 날짜 상세 -->
-		<div class="mt-2 grid grid-cols-7 gap-[3px]">
+		<div class="mt-2 grid grid-cols-7 gap-x-[2px] gap-y-[2px]">
 			<th:block th:each="c : ${cells}">
 				<span th:if="${c.day == null}" class="min-h-[84px]"></span>
 				<a th:unless="${c.day == null}" th:href="@{/admin/schedule(y=${y},m=${m},d=${c.day})}"
 				   th:with="n=${(c.managed != null ? 1 : 0) + (c.full ? 1 : 0) + (c.event != null ? 1 : 0) + (c.manual != null ? 1 : 0)}"
-				   class="flex min-h-[84px] min-w-0 flex-col gap-[3px] overflow-hidden rounded-[10px] border-[1.5px] px-[2px] pb-1.5 pt-1.5 text-left"
-				   th:classappend="${c.day == d} ? 'border-[#346538] bg-white' : (${c.key == todayKey} ? 'border-transparent bg-[#eef4ee]' : 'border-transparent bg-[#f7f8f7]')">
+				   class="flex min-h-[84px] min-w-0 flex-col gap-[3px] overflow-hidden rounded-[10px] px-[2px] pb-1.5 pt-1.5 text-left transition hover:bg-[#f5f7f5]"
+				   th:classappend="${c.day == d} ? 'bg-[#edf3ed]' : ''">
 					<span class="relative flex h-[22px] items-center justify-center">
 						<span class="grid h-[22px] min-w-[22px] place-items-center rounded-full px-1 text-[14px] font-semibold leading-none"
 							  th:classappend="${c.key == todayKey} ? 'bg-[#346538] text-white' : (${c.holiday or c.weekday == 0} ? 'text-[#c85f57]' : (${c.weekday == 6} ? 'text-[#4f80ac]' : 'text-[#3f4741]'))"

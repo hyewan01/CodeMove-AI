@@ -31,7 +31,11 @@ public class AdminEstimateController {
 	private final NotificationService notifications;
 	private final FileStore files;
 
-	public AdminEstimateController(QuoteService quotes, NotificationService notifications, FileStore files) {
+	private final com.codemove.checklist.ChecklistService checklist;
+
+	public AdminEstimateController(QuoteService quotes, NotificationService notifications, FileStore files,
+			com.codemove.checklist.ChecklistService checklist) {
+		this.checklist = checklist;
 		this.quotes = quotes;
 		this.notifications = notifications;
 		this.files = files;
@@ -68,6 +72,9 @@ public class AdminEstimateController {
 			all.stream().filter(e -> e.getId() == id).findFirst().ifPresent(e -> model.addAttribute("editingRecord", e));
 			if (q != null) {
 				model.addAttribute("doc", quotes.toDoc(q));
+				if (q.getMemberId() != null) {
+					model.addAttribute("checklist", checklist.progressOf(q.getMemberId()));
+				}
 			}
 			model.addAttribute("tab", tab);
 			model.addAttribute("editing", editing);

@@ -39,6 +39,19 @@
 			<!-- 단계별로 나눠서 -->
 			<div class="border-t border-[#edf0ed] bg-[#fafbfa] px-3 py-3" th:hidden="${p.memberId != openId}" data-person-body>
 				<p class="px-1 pb-2 text-[13px] text-[#8a918c]" th:text="(${#strings.isEmpty(v.moveDate)} ? '이사 날짜 미정' : '이사 ' + ${v.moveDate}) + (${#strings.isEmpty(p.phone)} ? '' : ' · ' + ${p.phone})">이사 2026.12.01</p>
+				<!-- 지금 이사의 예약 · 견적으로 바로 -->
+				<div class="mb-2 grid grid-cols-2 gap-1.5" th:if="${p.reservationId != null or p.quoteId != null}">
+					<a th:if="${p.reservationId != null}" class="flex min-w-0 flex-col rounded-xl bg-white px-3 py-2 shadow-[0_2px_8px_rgba(36,58,39,.05)]"
+					   th:href="@{/admin/reservations(id=${p.reservationId})}">
+						<span class="text-[12px] font-bold text-[#8a918c]">예약 상세 ›</span>
+						<span class="truncate text-[13.5px] font-bold text-[#303832]" th:text="${p.reservationNo}">R-001</span>
+					</a>
+					<a th:if="${p.quoteId != null}" class="flex min-w-0 flex-col rounded-xl bg-white px-3 py-2 shadow-[0_2px_8px_rgba(36,58,39,.05)]"
+					   th:href="@{/admin/estimates(id=${p.quoteId})}">
+						<span class="text-[12px] font-bold text-[#8a918c]">견적서 ›</span>
+						<span class="truncate text-[13.5px] font-bold text-[#303832]" th:text="${p.quoteNo}">Q-001</span>
+					</a>
+				</div>
 				<details th:each="ph : ${v.phases}" class="group mb-1.5 overflow-hidden rounded-xl bg-white" th:open="${ph.now}">
 					<summary class="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5">
 						<span class="text-[14px] font-bold text-[#303832]" th:text="${ph.label}">한 달 전</span>

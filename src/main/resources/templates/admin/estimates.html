@@ -92,6 +92,7 @@
 				<svg th:replace="~{admin/fragments/icon :: icon('x', 17, '')}"></svg>
 			</a>
 		</div>
+		<div class="mb-3" th:if="${checklist}"><a th:replace="~{admin/fragments/checklist :: row(${checklist})}"></a></div>
 		<div class="mb-4 grid grid-cols-2 rounded-xl bg-white p-1 shadow-[0_4px_14px_rgba(36,58,39,.07)]">
 			<a th:aria-pressed="${tab != 'video'}" class="flex h-10 items-center justify-center gap-2 rounded-lg text-[15px] font-extrabold"
 			   th:classappend="${tab != 'video'} ? 'bg-[#346538] text-white' : 'text-[#747c76]'" th:href="${editUrl} + '&tab=form'">
