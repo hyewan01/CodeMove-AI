@@ -180,11 +180,13 @@
 	const UPLOAD_SHARE = 30;
 	function setProgress(pct) {
 		const v = Math.max(0, Math.min(100, Math.round(pct)));
-		$('[data-analysis-bar]').style.width = `${v}%`;
+		$('[data-analysis-bar]').style.strokeDashoffset = String(100 - v);
 		$('[data-analysis-pct]').textContent = `${v}%`;
 		$('[data-analysis-meter]').setAttribute('aria-valuenow', String(v));
 		const msg = v < UPLOAD_SHARE ? 0 : v < 50 ? 1 : v < 70 ? 2 : v < 88 ? 3 : 4;
 		$('[data-analysis-progress]').textContent = v >= 100 ? '분석이 끝났어요' : PROGRESS[msg];
+		const stage = v >= 100 ? 5 : msg;
+		$('[data-analysis-stages]').querySelectorAll('li').forEach((d, i) => { d.classList.toggle('done', i < stage); d.classList.toggle('now', i === stage); });
 	}
 	function startAnalysis() {
 		const file = videoInput.files && videoInput.files[0];
@@ -753,15 +755,49 @@
 	}
 	const changeMonth = (delta) => {
 		if (delta < 0 && isCurrentMonth()) return;
-		viewM += delta;
-		if (viewM < 0) { viewM = 11; viewY--; }
-		if (viewM > 11) { viewM = 0; viewY++; }
+		const n = viewY * 12 + viewM + delta;
+		viewY = Math.floor(n / 12);
+		viewM = n % 12;
 		state.date = null;
 		$('[data-move-date]').value = '';
 		$('[data-cal-time-open]').hidden = true;
 		renderCalendar();
 		refreshNext();
 	};
+	/* 제목(2026년 11월)을 누르면 년 · 월을 바로 고름: 올해 ~ 내년, 지난 달은 막음 */
+	let pickY = viewY;
+	function renderMonthPicker() {
+		const years = $('[data-cal-years]');
+		years.innerHTML = '';
+		[today.getFullYear(), today.getFullYear() + 1].forEach((y) => {
+			const b = document.createElement('button');
+			b.type = 'button';
+			b.className = `action${y === pickY ? ' active' : ''}`;
+			b.setAttribute('role', 'tab');
+			b.setAttribute('aria-selected', String(y === pickY));
+			b.textContent = `${y}년`;
+			b.addEventListener('click', () => { pickY = y; renderMonthPicker(); });
+			years.appendChild(b);
+		});
+		const grid = $('[data-cal-months]');
+		grid.innerHTML = '';
+		for (let m = 0; m < 12; m++) {
+			const b = document.createElement('button');
+			b.type = 'button';
+			const past = pickY === today.getFullYear() && m < today.getMonth();
+			const now = pickY === viewY && m === viewM;
+			b.className = `action${now ? ' active' : ''}${pickY === today.getFullYear() && m === today.getMonth() ? ' this' : ''}`;
+			b.textContent = `${m + 1}월`;
+			b.disabled = past;
+			b.addEventListener('click', () => {
+				closeModal('month');
+				if (pickY === viewY && m === viewM) return;
+				changeMonth((pickY - viewY) * 12 + (m - viewM));
+			});
+			grid.appendChild(b);
+		}
+	}
+	$('[data-cal-title-open]').addEventListener('click', () => { pickY = viewY; renderMonthPicker(); openModal('month'); });
 	$('[data-cal-prev]').addEventListener('click', () => changeMonth(-1));
 	$('[data-cal-next]').addEventListener('click', () => changeMonth(1));
 	$('[data-cal-time-open]').addEventListener('click', () => openModal('time'));

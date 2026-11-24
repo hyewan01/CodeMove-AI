@@ -86,13 +86,18 @@
 		<!-- 2. AI 분석 / 인식 품목 확인·수정 (SCR-U-004~005) -->
 		<section data-step="analysis" hidden>
 			<div class="analysis-card" data-analysis-loading>
-				<div class="scan-box"><img alt="" th:src="@{/assets/91e58.svg}"><i></i></div>
-				<strong>영상 속 가구와 짐을 찾고 있어요</strong>
 				<!-- 진행률: 업로드는 실제 보낸 양, 분석은 보통 걸리는 시간 기준으로 어림 (끝나면 100%) -->
-				<div class="analysis-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="분석 진행률" data-analysis-meter>
-					<i data-analysis-bar></i>
+				<div class="analysis-ring" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="분석 진행률" data-analysis-meter>
+					<svg viewBox="0 0 220 220" aria-hidden="true">
+						<circle class="ring-track" cx="110" cy="110" r="100"></circle>
+						<circle class="ring-arc" cx="110" cy="110" r="100" pathLength="100" data-analysis-bar></circle>
+					</svg>
+					<div class="analysis-ring-inner"><img alt="" th:src="@{/assets/91e58.svg}"><i></i></div>
+					<b class="analysis-ring-pct" data-analysis-pct>0%</b>
 				</div>
-				<div class="analysis-meter-text"><span data-analysis-progress>잠시만 기다려주세요</span><b data-analysis-pct>0%</b></div>
+				<strong>영상 속 가구와 짐을 찾고 있어요</strong>
+				<span class="analysis-stage-text" data-analysis-progress>잠시만 기다려주세요</span>
+				<ol class="step-dots analysis-stages" aria-hidden="true" data-analysis-stages><li></li><li></li><li></li><li></li><li></li></ol>
 			</div>
 			<div class="analysis-card analysis-error" data-analysis-error hidden>
 				<i aria-hidden="true">!</i>
@@ -300,7 +305,9 @@
 		<section data-step="calendar" hidden>
 			<div class="calendar" data-calendar>
 				<div class="calendar-head">
-					<b data-cal-title></b>
+					<button type="button" class="action cal-title" aria-label="년 · 월 고르기" aria-haspopup="dialog" data-cal-title-open>
+						<b data-cal-title></b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+					</button>
 					<div class="calendar-arrows">
 						<button type="button" class="action previous" aria-label="이전 달" data-cal-prev><img th:replace="~{customer/fragments/common :: chevron}"></button>
 						<button type="button" class="action" aria-label="다음 달" data-cal-next><img th:replace="~{customer/fragments/common :: chevron}"></button>
@@ -316,6 +323,16 @@
 					<b data-cal-time-label>오전 10:00</b>
 					<span>시간 변경 <img th:replace="~{customer/fragments/common :: chevron}"></span>
 				</button>
+				<!-- 년 · 월 바로 가기 (지난 달은 고를 수 없음) -->
+				<div class="cal-scrim" data-modal="month" data-modal-close hidden></div>
+				<div class="cal-time-sheet cal-month-sheet" role="dialog" aria-label="년 · 월 고르기" data-modal="month" hidden>
+					<div class="cal-time-head">
+						<strong>언제로 이동할까요?</strong>
+						<button type="button" class="action" aria-label="닫기" data-modal-close>×</button>
+					</div>
+					<div class="cal-month-years" role="tablist" data-cal-years></div>
+					<div class="cal-month-grid" data-cal-months></div>
+				</div>
 				<div class="cal-scrim" data-modal="time" data-modal-close hidden></div>
 				<div class="cal-time-sheet" data-modal="time" hidden>
 					<div class="cal-time-head">

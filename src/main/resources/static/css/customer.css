@@ -2485,3 +2485,35 @@ a.chat-file-message { color: inherit; text-decoration: none; }
 .chat-edit-sheet small { color: var(--muted); font-size: 12px; line-height: 1.5; }
 .chat-edit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .chat-edit-actions .action { min-height: 46px; border-radius: 14px; font-family: "Pretendard:Bold"; font-size: 15px; }
+
+/* ==================================================
+   분석 진행률: 위쪽 초록 머리 + 노란 포인트와 같은 느낌 (2026-11-25)
+   ================================================== */
+.analysis-ring { position: relative; width: 212px; height: 212px; display: grid; place-items: center; }
+.analysis-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.analysis-ring circle { fill: none; stroke-width: 9; }
+.analysis-ring .ring-track { stroke: #e8eee8; }
+.analysis-ring .ring-arc { stroke: var(--green); stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset .45s ease; }
+.analysis-ring-inner { position: relative; width: 168px; height: 168px; border-radius: 50%; background: var(--green-pale); display: grid; place-items: center; overflow: hidden; }
+.analysis-ring-inner img { width: 112px; height: 112px; }
+.analysis-ring-inner i { position: absolute; left: 22px; right: 22px; top: 30%; height: 2px; border-radius: 2px; background: #ffd25e; box-shadow: 0 0 10px rgb(255 210 94 / .9); animation: scan 2s ease-in-out infinite alternate; }
+.analysis-ring-pct { position: absolute; left: 50%; bottom: -14px; transform: translateX(-50%); min-width: 64px; height: 32px; padding: 0 14px; box-sizing: border-box; border-radius: 999px; background: var(--green); color: #ffe08a; display: grid; place-items: center; font-family: "Pretendard:Bold"; font-size: 16px; font-variant-numeric: tabular-nums; box-shadow: 0 6px 14px rgb(52 101 56 / .28); border: 3px solid var(--white); }
+.analysis-card[data-analysis-loading] strong { margin-top: 34px; }
+.analysis-card[data-analysis-loading] .analysis-stage-text { min-height: 20px; color: var(--muted); font-size: 13.5px; text-align: center; }
+.analysis-stages { margin-top: 10px; }
+.analysis-stages li.now { background: var(--green); }
+.easy-quote .analysis-ring-pct { font-size: 19px; height: 36px; }
+.easy-quote .analysis-card[data-analysis-loading] .analysis-stage-text { font-size: 16px; }
+
+/* 달력 제목 → 년 · 월 고르기 */
+.calendar-head .cal-title { display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px 6px 0; color: var(--ink); }
+.calendar-head .cal-title svg { width: 18px; height: 18px; fill: none; stroke: var(--green); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.cal-month-years { display: flex; gap: 8px; padding: 16px 20px 4px; }
+.cal-month-years .action { flex: 1; display: grid; place-items: center; padding: 0; height: 44px; border-radius: 14px; background: var(--surface); color: var(--muted); font-family: "Pretendard:Bold"; font-size: 15px; }
+.cal-month-years .action.active { background: var(--green); color: #ffe08a; }
+.cal-month-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 14px 20px 8px; }
+.cal-month-grid .action { display: grid; place-items: center; padding: 0; height: 52px; border-radius: 14px; border: 1.5px solid #e6ebe6; background: var(--white); color: var(--ink); font-family: "Pretendard:SemiBold"; font-size: 15px; }
+.cal-month-grid .action.this { border-color: var(--green-soft); }
+.cal-month-grid .action.active { border-color: var(--green); background: var(--green); color: var(--white); font-family: "Pretendard:Bold"; }
+.cal-month-grid .action:disabled { border-color: transparent; background: var(--surface); color: #c3c8c4; }
+.easy-quote .cal-month-grid .action { height: 60px; font-size: 18px; }
