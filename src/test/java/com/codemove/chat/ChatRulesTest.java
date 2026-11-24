@@ -33,6 +33,24 @@ class ChatRulesTest {
 	}
 
 	@Test
+	void datesInQuestions() {
+		java.time.LocalDate today = java.time.LocalDate.of(2026, 11, 25);
+		assertEquals(java.time.LocalDate.of(2026, 11, 26), ChatService.askedDate("11월 26일에 예약 가능해?", today));
+		assertEquals(java.time.LocalDate.of(2026, 11, 28), ChatService.askedDate("28일에 이사 가능해?", today));
+		assertEquals(java.time.LocalDate.of(2026, 12, 3), ChatService.askedDate("3일에 예약 돼?", today)); // 지났으면 다음 달
+		assertEquals(java.time.LocalDate.of(2027, 2, 14), ChatService.askedDate("2월 14일 가능해요?", today)); // 지난 달이면 내년
+		assertEquals(java.time.LocalDate.of(2026, 11, 26), ChatService.askedDate("내일 이사 가능해?", today));
+		assertEquals(null, ChatService.askedDate("11월에 예약 가능한 날짜 언제야?", today));
+		assertEquals(null, ChatService.askedDate("2월 30일 가능해?", today));
+
+		assertEquals(java.time.LocalDate.of(2026, 12, 1), ChatService.askedMonth("다음달에 예약 가능한 날짜 언제야?", today));
+		assertEquals(java.time.LocalDate.of(2027, 1, 1), ChatService.askedMonth("다다음 달은?", today));
+		assertEquals(java.time.LocalDate.of(2026, 11, 1), ChatService.askedMonth("11월에 예약 가능한 날짜 언제야?", today));
+		assertEquals(java.time.LocalDate.of(2027, 3, 1), ChatService.askedMonth("3월에 이사 가능해?", today));
+		assertEquals(java.time.LocalDate.of(2026, 11, 1), ChatService.askedMonth("예약 가능한 날 알려줘", today));
+	}
+
+	@Test
 	void dayRanges() {
 		assertEquals("1~3일, 5일, 7~8일", ChatService.ranges(java.util.List.of(1, 2, 3, 5, 7, 8)));
 		assertEquals("25~30일", ChatService.ranges(java.util.List.of(25, 26, 27, 28, 29, 30)));

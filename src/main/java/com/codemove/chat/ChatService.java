@@ -56,15 +56,96 @@ public class ChatService {
 	/** 질문에 "다음 달"이 있으면 다음 달, 아니면 이번 달(오늘부터). 이번 달에 남은 날이 3일보다 적으면 다음 달도 */
 	String availableDates(String question) {
 		java.time.LocalDate today = java.time.LocalDate.now();
-		boolean next = normalize(question).contains("다음달");
-		java.time.LocalDate first = next ? today.withDayOfMonth(1).plusMonths(1) : today;
+		// 특정 날짜를 물었으면 그날 답 (어느 로어북이 맞든 질문 속 날짜를 따름)
+		java.time.LocalDate day = askedDate(question, today);
+		if (day != null) {
+			return dateAnswer(day, today);
+		}
+		java.time.LocalDate month = askedMonth(question, today);
+		boolean thisMonth = month.getYear() == today.getYear() && month.getMonthValue() == today.getMonthValue();
 		StringBuilder out = new StringBuilder();
-		int shown = monthLine(out, first);
-		if (!next && shown < 3) {
+		int shown = monthLine(out, thisMonth ? today : month);
+		if (thisMonth && shown < 3) {
 			out.append("\n\n");
-			monthLine(out, today.withDayOfMonth(1).plusMonths(1));
+			monthLine(out, month.plusMonths(1));
 		}
 		return out.toString();
+	}
+
+	/** 그날 예약 여부 (막혀 있으면 가까운 가능한 날 3개) */
+	private String dateAnswer(java.time.LocalDate day, java.time.LocalDate today) {
+		String label = day.getMonthValue() + "월 " + day.getDayOfMonth() + "일(" + "일월화수목금토".charAt(day.getDayOfWeek().getValue() % 7) + ")";
+		if (day.isBefore(today)) {
+			return label + "은 이미 지난 날짜예요. 오늘 이후 날짜로 물어봐 주세요.";
+		}
+		String reason = booking.blockedDates(day, day.plusDays(1)).get(day);
+		if (reason == null) {
+			boolean busy = com.codemove.common.LunarDays.isNoSonDay(day) || com.codemove.common.Holidays.is(day);
+			return label + "은 예약할 수 있어요." + (busy ? "\n이날은 손 없는 날·공휴일이라 이사가 몰려 비용이 오를 수 있어요." : "");
+		}
+		Map<java.time.LocalDate, String> around = booking.blockedDates(day.minusDays(7).isBefore(today) ? today : day.minusDays(7), day.plusDays(15));
+		List<java.time.LocalDate> near = new ArrayList<>();
+		for (int i = 1; i <= 7 && near.size() < 3; i++) {
+			for (java.time.LocalDate d : List.of(day.plusDays(i), day.minusDays(i))) {
+				if (near.size() < 3 && !d.isBefore(today) && !around.containsKey(d)) near.add(d);
+			}
+		}
+		near.sort(null);
+		String why = switch (reason) {
+			case com.codemove.schedule.BookingService.FULL -> "예약이 모두 찼어요";
+			case com.codemove.schedule.BookingService.UNAVAILABLE -> "예약을 받지 않는 날이에요";
+			default -> "업체 휴무일이에요";
+		};
+		return label + "은 " + why + "."
+				+ (near.isEmpty() ? "" : "\n가까운 예약 가능한 날: " + String.join(", ",
+						near.stream().map(d -> d.getMonthValue() + "월 " + d.getDayOfMonth() + "일").toList()));
+	}
+
+	private static final java.util.regex.Pattern MONTH_DAY = java.util.regex.Pattern.compile("(\\d{1,2})\\s*월\\s*(\\d{1,2})\\s*일");
+	private static final java.util.regex.Pattern DAY_ONLY = java.util.regex.Pattern.compile("(?<![\\d~])(\\d{1,2})\\s*일");
+	private static final java.util.regex.Pattern MONTH_ONLY = java.util.regex.Pattern.compile("(\\d{1,2})\\s*월");
+
+	/** "11월 26일" · "26일"(이번 달, 지났으면 다음 달) · 오늘 · 내일 · 모레. 없으면 null */
+	static java.time.LocalDate askedDate(String question, java.time.LocalDate today) {
+		String q = question == null ? "" : question;
+		String n = q.replace(" ", "");
+		if (n.contains("오늘")) return today;
+		if (n.contains("내일")) return today.plusDays(1);
+		if (n.contains("모레")) return today.plusDays(2);
+		try {
+			java.util.regex.Matcher md = MONTH_DAY.matcher(q);
+			if (md.find()) {
+				int m = Integer.parseInt(md.group(1)), d = Integer.parseInt(md.group(2));
+				int year = m < today.getMonthValue() ? today.getYear() + 1 : today.getYear();
+				return java.time.LocalDate.of(year, m, d);
+			}
+			java.util.regex.Matcher dm = DAY_ONLY.matcher(q);
+			if (dm.find() && !MONTH_ONLY.matcher(q).find()) {
+				int d = Integer.parseInt(dm.group(1));
+				java.time.LocalDate first = today.withDayOfMonth(1);
+				java.time.LocalDate base = d < today.getDayOfMonth() ? first.plusMonths(1) : first;
+				return d <= base.lengthOfMonth() ? base.withDayOfMonth(d) : null;
+			}
+		} catch (java.time.DateTimeException | NumberFormatException e) {
+			return null; // "2월 30일" 같은 없는 날짜
+		}
+		return null;
+	}
+
+	/** "다음 달" · "다다음 달" · "11월"(지난 달이면 내년). 없으면 이번 달 1일 */
+	static java.time.LocalDate askedMonth(String question, java.time.LocalDate today) {
+		java.time.LocalDate first = today.withDayOfMonth(1);
+		String n = question == null ? "" : question.replace(" ", "");
+		if (n.contains("다다음달")) return first.plusMonths(2);
+		if (n.contains("다음달") || n.contains("담달")) return first.plusMonths(1);
+		java.util.regex.Matcher m = MONTH_ONLY.matcher(question == null ? "" : question);
+		if (m.find()) {
+			int month = Integer.parseInt(m.group(1));
+			if (month >= 1 && month <= 12) {
+				return java.time.LocalDate.of(month < today.getMonthValue() ? today.getYear() + 1 : today.getYear(), month, 1);
+			}
+		}
+		return first;
 	}
 
 	/** [1,2,3,5,7,8] → "1~3일, 5일, 7~8일" */
