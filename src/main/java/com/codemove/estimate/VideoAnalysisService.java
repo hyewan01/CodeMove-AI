@@ -86,19 +86,25 @@ public class VideoAnalysisService {
 	}
 
 	public Result analyze(Path video) {
+		return analyze(video, AnalysisPrompt.VERSION);
+	}
+
+	/** @param promptVersion AnalysisPrompt.VERSIONS 중 하나 (관리자 테스트에서 버전끼리 비교) */
+	public Result analyze(Path video, String promptVersion) {
+		String version = AnalysisPrompt.VERSIONS.contains(promptVersion) ? promptVersion : AnalysisPrompt.VERSION;
 		String id = UUID.randomUUID().toString().substring(0, 8);
 		long t0 = System.currentTimeMillis();
 		String name = video.getFileName().toString().toLowerCase(Locale.ROOT);
 		String mime = MIME.get(name.contains(".") ? name.substring(name.lastIndexOf('.')) : "");
 		if (mime == null) {
-			return save(fail(id, VideoAnalysis.ERR_FORMAT, "동영상 파일(mp4·mov·webm)만 올릴 수 있어요", t0, 0), video);
+			return save(fail(id, VideoAnalysis.ERR_FORMAT, "동영상 파일(mp4·mov·webm)만 올릴 수 있어요", t0, 0, version), video);
 		}
-		String prompt = AnalysisPrompt.text();
+		String prompt = AnalysisPrompt.text(version);
 		int retries = 0;
 		while (true) {
 			try {
 				GeminiVideoAnalyzer.Response res = ai.analyze(video, mime, prompt, AnalysisPrompt.schema());
-				return save(interpret(id, res, t0, retries), video);
+				return save(interpret(id, res, t0, retries, version), video);
 			} catch (AnalyzerException e) {
 				boolean busy = VideoAnalysis.ERR_BUSY.equals(e.code());
 				boolean retryable = busy || VideoAnalysis.ERR_TIMEOUT.equals(e.code())
@@ -112,7 +118,7 @@ public class VideoAnalysisService {
 					}
 					continue;
 				}
-				return save(fail(id, e.code(), e.getMessage(), t0, retries), video);
+				return save(fail(id, e.code(), e.getMessage(), t0, retries, version), video);
 			}
 		}
 	}
@@ -129,7 +135,7 @@ public class VideoAnalysisService {
 	}
 
 	/** 모델 응답 글자 → 검사 · 매핑 */
-	Result interpret(String id, GeminiVideoAnalyzer.Response res, long t0, int retries) {
+	Result interpret(String id, GeminiVideoAnalyzer.Response res, long t0, int retries, String version) {
 		RawResult raw;
 		try {
 			raw = parse(res.text());
@@ -145,10 +151,10 @@ public class VideoAnalysisService {
 			String msg = VideoAnalysis.ERR_DARK.equals(code) ? "영상이 어둡거나 흔들려서 짐을 알아보기 어려워요"
 					: "집 안 가구·가전이 보이게 다시 찍어 주세요";
 			return new Result(id, false, code, msg + (reason.isBlank() ? "" : " (" + reason + ")"), res.model(),
-					AnalysisPrompt.VERSION, List.of(), raw.rooms(), raw.memo(), res.usage(), cost, res.uploadMs(),
+					version, List.of(), raw.rooms(), raw.memo(), res.usage(), cost, res.uploadMs(),
 					res.apiMs(), total, retries, res.text());
 		}
-		return new Result(id, true, null, null, res.model(), AnalysisPrompt.VERSION, ItemMatcher.map(raw.items()),
+		return new Result(id, true, null, null, res.model(), version, ItemMatcher.map(raw.items()),
 				raw.rooms(), raw.memo(), res.usage(), cost, res.uploadMs(), res.apiMs(), total, retries, res.text());
 	}
 
@@ -297,8 +303,8 @@ public class VideoAnalysisService {
 		return (u.inputTokens() * priceIn + (u.outputTokens() + u.thoughtTokens()) * priceOut) / 1_000_000.0;
 	}
 
-	private Result fail(String id, String code, String message, long t0, int retries) {
-		return new Result(id, false, code, message, ai.model(), AnalysisPrompt.VERSION, List.of(), List.of(), null,
+	private Result fail(String id, String code, String message, long t0, int retries, String version) {
+		return new Result(id, false, code, message, ai.model(), version, List.of(), List.of(), null,
 				Usage.NONE, 0, 0, 0, System.currentTimeMillis() - t0, retries, null);
 	}
 

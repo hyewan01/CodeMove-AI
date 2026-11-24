@@ -38,9 +38,11 @@ class VideoAnalysisLiveTest {
 		VideoAnalysisService service = new VideoAnalysisService(ai, new FileStore(out.toString()), json, 1.50, 7.50,
 				"2026-11-23", out.resolve("ai-logs").toString());
 
-		VideoAnalysis.Result r = service.analyze(Path.of(System.getenv("CODEMOVE_TEST_VIDEO")));
+		String prompt = System.getenv().getOrDefault("GEMINI_PROMPT", AnalysisPrompt.VERSION);
+		VideoAnalysis.Result r = service.analyze(Path.of(System.getenv("CODEMOVE_TEST_VIDEO")), prompt);
 
 		System.out.printf("성공=%s 오류=%s %s%n", r.success(), r.errorCode(), r.message());
+		System.out.printf("프롬프트=%s ", r.promptVersion());
 		System.out.printf("모델=%s 토큰 입력=%d 출력=%d 생각=%d 비용=$%.4f 시간=%dms%n", r.model(), r.usage().inputTokens(),
 				r.usage().outputTokens(), r.usage().thoughtTokens(), r.costUsd(), r.totalMs());
 		for (VideoAnalysis.MappedItem i : r.items()) {

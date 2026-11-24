@@ -42,6 +42,7 @@ public class AdminAiTestController {
 		model.addAttribute("configured", ai.configured());
 		model.addAttribute("model", ai.model());
 		model.addAttribute("promptVersion", AnalysisPrompt.VERSION);
+		model.addAttribute("promptVersions", AnalysisPrompt.VERSIONS);
 		model.addAttribute("sets", GroundTruth.SETS);
 		model.addAttribute("history", analysis.history(30));
 		return "admin/ai-test";
@@ -49,13 +50,13 @@ public class AdminAiTestController {
 
 	@PostMapping
 	public String run(@RequestParam MultipartFile video, @RequestParam(defaultValue = "") String truth,
-			RedirectAttributes ra) {
+			@RequestParam(defaultValue = "") String prompt, RedirectAttributes ra) {
 		if (video == null || video.isEmpty()) {
 			ra.addFlashAttribute("error", "영상 파일을 골라 주세요");
 			return "redirect:/admin/ai-test";
 		}
 		String url = files.save("ai-test", video);
-		VideoAnalysis.Result r = analysis.analyze(analysis.pathOf(url));
+		VideoAnalysis.Result r = analysis.analyze(analysis.pathOf(url), prompt);
 		return "redirect:/admin/ai-test/" + r.analysisId() + (truth.isBlank() ? "" : "?truth=" + truth);
 	}
 

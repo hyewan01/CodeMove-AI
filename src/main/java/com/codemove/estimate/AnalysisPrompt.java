@@ -17,16 +17,30 @@ import com.codemove.move.ItemCatalog;
  */
 public final class AnalysisPrompt {
 
-	/** v1: 품목표 + 세는 규칙. v2: 대표님 견적 방식(바구니 환산 · 서랍 속 짐 · 렌탈 · 고가품 · 벽걸이 TV 인치) */
-	public static final String VERSION = "v2";
+	/**
+	 * v1: 품목표 + 세는 규칙. v2: 대표님 견적 방식(바구니 환산 · 서랍 속 짐 · 렌탈 · 고가품 · 벽걸이 TV 인치).
+	 * v3: 놓친 짐 줄이기(선반 칸 세기 · 어두운 방 · 의자 하나씩 · 방마다 다시 훑기 · 비슷한 가전 구분).
+	 */
+	public static final String VERSION = "v3";
 
-	private static volatile String template;
+	/** 관리자 테스트 화면에서 고를 수 있는 버전 (최신이 먼저) */
+	public static final List<String> VERSIONS = List.of("v3", "v2", "v1");
+
+	private static final Map<String, String> TEMPLATES = new java.util.concurrent.ConcurrentHashMap<>();
 
 	private AnalysisPrompt() {
 	}
 
 	public static String text() {
-		return template().replace("{{CATALOG}}", catalogTable());
+		return text(VERSION);
+	}
+
+	/** 없는 버전이면 IllegalArgumentException */
+	public static String text(String version) {
+		if (!VERSIONS.contains(version)) {
+			throw new IllegalArgumentException("없는 프롬프트 버전: " + version);
+		}
+		return TEMPLATES.computeIfAbsent(version, v -> load(v)).replace("{{CATALOG}}", catalogTable());
 	}
 
 	/** 품목명 | 분류 | 01 | 02 | 03 (크기명: 판정기준) */
@@ -76,17 +90,14 @@ public final class AnalysisPrompt {
 		return Map.of("type", "STRING", "description", description);
 	}
 
-	private static String template() {
-		if (template == null) {
-			try (InputStream in = AnalysisPrompt.class.getResourceAsStream("/estimate/prompt-" + VERSION + ".txt")) {
-				if (in == null) {
-					throw new IllegalStateException("estimate/prompt-" + VERSION + ".txt 가 없습니다");
-				}
-				template = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-			} catch (IOException e) {
-				throw new UncheckedIOException(e);
+	private static String load(String version) {
+		try (InputStream in = AnalysisPrompt.class.getResourceAsStream("/estimate/prompt-" + version + ".txt")) {
+			if (in == null) {
+				throw new IllegalStateException("estimate/prompt-" + version + ".txt 가 없습니다");
 			}
+			return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
 		}
-		return template;
 	}
 }

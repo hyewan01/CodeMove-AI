@@ -22,6 +22,12 @@
 		<p class="rounded-xl bg-[#fff4e8] px-3 py-2 text-[13px] font-semibold text-[#9a4f14]" th:if="${error}" th:text="${error}">오류</p>
 		<input class="block w-full text-[14px] text-[#535b55]" type="file" name="video" accept="video/*" required>
 		<label class="flex items-center justify-between gap-3 text-[14px] text-[#535b55]">
+			<span>프롬프트 버전</span>
+			<select class="h-9 rounded-lg border border-[#dfe4df] bg-white px-3 text-[14px] font-semibold text-[#535b55]" name="prompt">
+				<option th:each="v : ${promptVersions}" th:value="${v}" th:text="${v == promptVersion} ? ${v} + ' (기본)' : ${v}">v3</option>
+			</select>
+		</label>
+		<label class="flex items-center justify-between gap-3 text-[14px] text-[#535b55]">
 			<span>정답 목록과 비교</span>
 			<select class="h-9 rounded-lg border border-[#dfe4df] bg-white px-3 text-[14px] font-semibold text-[#535b55]" name="truth">
 				<option value="">비교 안 함</option>
