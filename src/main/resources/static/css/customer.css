@@ -2273,3 +2273,67 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 .ntf-chat-chevron { flex: none; color: #9aa29c; }
 .ntf-chat > i { position: absolute; left: 6px; top: 12px; width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
 .ntf-chat.unread .ntf-chat-top strong { color: var(--green); }
+
+/* ==================================================
+   홈과 같은 초록 상단 (2026-11-24)
+   홈(.hm)의 초록 상단 + 흰 카드 형태를 내 이사 · 더보기 · 내역 · 알림 · 이사 견적 · 상담에도.
+   상단(로고 · 뒤로 · 제목 · 탭)만 초록, 아래 모서리 둥글게, 내용은 연한 바탕 위 흰 카드. 쉬운 모드는 그대로
+   ================================================== */
+.app-shell:not(.easy-mode) .soft-page { --pad: max(20px, calc(var(--safe-left) + 16px)); }
+.app-shell:not(.easy-mode) .soft-page:is(.form-page, .flow-screen) { padding-left: var(--pad); padding-right: var(--pad); }
+
+/* 초록 상단 조각들 */
+.app-shell:not(.easy-mode) .soft-page :is(.app-header, .form-head, .notification-header, .flow-head, .move-sticky-nav),
+.app-shell:not(.easy-mode) .chat-screen .chat-header {
+	background: var(--green); backdrop-filter: none; -webkit-backdrop-filter: none; color: var(--white); border-bottom: 0;
+}
+/* 폼 · 이사 견적 화면은 좌우 여백 밖까지 초록이 닿게 */
+.app-shell:not(.easy-mode) .soft-page :is(.form-head, .flow-head) { margin-left: calc(-1 * var(--pad)); margin-right: calc(-1 * var(--pad)); padding-left: calc(var(--pad) - 4px); padding-right: var(--pad); }
+/* 마지막 조각은 아래 모서리를 둥글게 (홈 상단과 같은 모양) */
+.app-shell:not(.easy-mode) .soft-page :is(.form-head, .notification-header, .flow-head, .move-sticky-nav),
+.app-shell:not(.easy-mode) .chat-screen .chat-header { border-radius: 0 0 26px 26px; box-shadow: 0 6px 18px rgb(26 58 30 / .12); }
+.app-shell:not(.easy-mode) .soft-page :is(.form-head, .notification-header),
+.app-shell:not(.easy-mode) .chat-screen .chat-header { height: calc(64px + max(59px, env(safe-area-inset-top))); padding-bottom: 8px; }
+.app-shell:not(.easy-mode) .soft-page .flow-head { padding-bottom: 10px; }
+
+/* 로고 · 모드 · 알림 · 뒤로 · 제목을 흰색으로 (홈과 같은 규칙) */
+.app-shell:not(.easy-mode) .soft-page .header-brand-mark { --brand-mark-fill: var(--white); --brand-mark-smile: var(--green); }
+.app-shell:not(.easy-mode) .soft-page .mode-toggle { background: rgb(255 255 255 / .14); color: rgb(255 255 255 / .78); }
+.app-shell:not(.easy-mode) .soft-page .mode-toggle .mode-active { background: var(--white); color: var(--green); box-shadow: none; }
+.app-shell:not(.easy-mode) .soft-page .notification-button .bell { filter: brightness(0) invert(1); }
+.app-shell:not(.easy-mode) .soft-page .notification-dot { border-color: var(--green); }
+.app-shell:not(.easy-mode) :is(.soft-page, .chat-screen) :is(.form-head, .notification-header, .flow-head, .chat-header) .back img { filter: brightness(0) invert(1); }
+.app-shell:not(.easy-mode) .soft-page .form-title,
+.app-shell:not(.easy-mode) .soft-page .notification-header > div:nth-child(2),
+.app-shell:not(.easy-mode) .chat-screen .chat-header-title strong { color: var(--white); }
+.app-shell:not(.easy-mode) .chat-screen .chat-header-title span { color: rgb(255 255 255 / .72); font-size: 11px; }
+.app-shell:not(.easy-mode) .soft-page .notification-header form .action { color: rgb(255 255 255 / .85); }
+.app-shell:not(.easy-mode) .soft-page .notification-header form .action:hover { color: var(--white); }
+
+/* 내 이사: 제목 · 탭도 초록 안에, 탭은 흰 글씨 + 노란 밑줄(홈의 강조색) */
+.app-shell:not(.easy-mode) .soft-page .move-sticky-nav .page-title { color: var(--white); padding-top: 6px; }
+.app-shell:not(.easy-mode) .soft-page .move-sticky-nav .tabs { padding-bottom: 6px; border-bottom: 0; }
+.app-shell:not(.easy-mode) .soft-page .move-sticky-nav .tabs .action { color: rgb(255 255 255 / .62); }
+.app-shell:not(.easy-mode) .soft-page .move-sticky-nav .tabs .tab-active { color: var(--white); border-bottom-color: #ffe08a; }
+
+/* 더보기: 제목까지 초록, 내 정보 카드가 겹쳐 올라옴 (홈 진행 카드처럼) */
+.app-shell:not(.easy-mode) .soft-page .profile-content { padding: 0 20px; }
+.app-shell:not(.easy-mode) .soft-page .profile-content > .page-title {
+	margin: 0 -20px; padding: 6px 24px 52px; background: var(--green); color: var(--white); border-radius: 0 0 26px 26px;
+}
+.app-shell:not(.easy-mode) .soft-page .profile-content > .profile-card {
+	position: relative; margin-top: -38px; background: var(--white); color: var(--ink); box-shadow: 0 12px 32px rgb(26 58 30 / .12);
+}
+.app-shell:not(.easy-mode) .soft-page .profile-content > .profile-card span { color: var(--muted); }
+.app-shell:not(.easy-mode) .soft-page .profile-content > .profile-card .avatar { background: var(--green-pale); color: var(--green); }
+.app-shell:not(.easy-mode) .soft-page .profile-content > .profile-card .chevron { filter: none; opacity: .6; }
+
+/* 알림: 읽지 않은 수 줄은 연한 바탕 그대로 */
+.app-shell:not(.easy-mode) .soft-page .notification-controls { margin-top: 6px; }
+
+/* 이사 견적: 단계 점 · 숫자를 초록 위에서 보이게 */
+.app-shell:not(.easy-mode) .soft-page .flow-head .step-dots li { background: rgb(255 255 255 / .28); }
+.app-shell:not(.easy-mode) .soft-page .flow-head .step-dots li.done { background: rgb(255 255 255 / .62); }
+.app-shell:not(.easy-mode) .soft-page .flow-head .step-dots li.now { background: #ffe08a; }
+.app-shell:not(.easy-mode) .soft-page .flow-head .step-count { color: rgb(255 255 255 / .82); }
+.app-shell:not(.easy-mode) .soft-page .flow-head { min-height: 60px; padding-top: max(10px, env(safe-area-inset-top)); }
