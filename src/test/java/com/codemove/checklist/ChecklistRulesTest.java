@@ -15,7 +15,7 @@ class ChecklistRulesTest {
 
 	@Test
 	void templatesLoadForEveryPhaseWithUniqueCodes() {
-		List<ChecklistService.Template> t = ChecklistService.templates();
+		List<ChecklistService.Template> t = ChecklistService.load();
 		assertTrue(t.size() >= 30, "기본 할 일 " + t.size());
 		Set<String> codes = new HashSet<>();
 		for (ChecklistService.Template x : t) {

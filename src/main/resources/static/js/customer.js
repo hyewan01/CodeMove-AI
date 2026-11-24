@@ -388,3 +388,25 @@
 		refresh();
 	}
 })();
+
+
+/* 하단 채팅 점 · 종 알림 점: 화면을 열어 둔 채여도 상담 답변이 오면 바로 표시 (15초마다 + 화면으로 돌아올 때) */
+(() => {
+	const nav = document.querySelector('[data-badges-url]');
+	if (!nav) return;
+	const url = nav.dataset.badgesUrl;
+	const check = () => {
+		if (document.hidden) return;
+		fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+			.then((r) => (r.ok ? r.json() : null))
+			.then((b) => {
+				if (!b) return;
+				document.querySelectorAll('[data-badge-chat]').forEach((d) => (d.hidden = !b.chat));
+				document.querySelectorAll('[data-badge-notifications]').forEach((d) => (d.hidden = !b.notifications));
+			})
+			.catch(() => {});
+	};
+	setInterval(check, 15000);
+	document.addEventListener('visibilitychange', check);
+	window.addEventListener('pageshow', (e) => { if (e.persisted) check(); });
+})();

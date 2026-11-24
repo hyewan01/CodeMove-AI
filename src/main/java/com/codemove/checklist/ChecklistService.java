@@ -22,7 +22,8 @@ import com.codemove.move.MoveService.CurrentMove;
 /**
  * 이사 준비 체크리스트.
  * <ul>
- * <li>기본 할 일: checklist/move-checklist.csv (코드 · 단계 · 할 일 · 설명 · 어디서 · 바로가기). 글은 우리 말로 새로 씀
+ * <li>기본 할 일: TBL_CHECKLIST_ITEM (관리자가 고침). 처음 비어 있으면 checklist/move-checklist.csv 를 한 번 넣음.
+ * CSV 열: 코드 · 단계 · 할 일 · 설명 · 어디서 · 바로가기. 글은 우리 말로 새로 씀
  * (아정당 체크리스트는 어떤 일이 필요한지만 참고, 문구 · 이미지는 저작권이 있어 옮기지 않음)</li>
  * <li>고객이 체크한 상태와 직접 넣은 할 일은 TBL_MOVE_CHECKLIST 에, 이사(요청)마다 따로</li>
  * <li>이사 날짜가 있으면 D-day 로 "지금 할 일" 단계를 표시</li>
@@ -67,7 +68,8 @@ public class ChecklistService {
 		}
 	}
 
-	private static volatile List<Template> templates;
+	/** 고객 화면에 쓰는 기본 항목 (숨긴 항목 제외). 관리자가 고치면 비움 */
+	private volatile List<Template> templates;
 
 	private final ChecklistMapper mapper;
 	private final MoveService moves;
@@ -79,6 +81,10 @@ public class ChecklistService {
 
 	public View view(long memberId) {
 		CurrentMove c = moves.current(memberId);
+		return view(memberId, c);
+	}
+
+	private View view(long memberId, CurrentMove c) {
 		long requestId = requestId(c);
 		LocalDate date = moveDate(c);
 		Map<String, ChecklistRow> byCode = new LinkedHashMap<>();
@@ -203,14 +209,145 @@ public class ChecklistService {
 		return c.request().getMoveDate();
 	}
 
-	public static List<Template> templates() {
-		if (templates == null) {
-			templates = load();
+	public List<Template> templates() {
+		List<Template> t = templates;
+		if (t == null) {
+			t = items().stream().filter(ChecklistItem::isUsed)
+					.map(i -> new Template(i.getItemCode(), i.getPhase(), i.getTitle(), nz(i.getDetail()), nz(i.getWhereText()),
+							nz(i.getLinkUrl())))
+					.toList();
+			templates = t;
 		}
-		return templates;
+		return t;
 	}
 
-	private static List<Template> load() {
+	/* ---------- 관리자: 기본 항목 고치기 ---------- */
+
+	/** 모든 기본 항목 (숨긴 것 포함). 표가 비어 있으면 CSV 로 채움 */
+	public List<ChecklistItem> items() {
+		if (mapper.countItems() == 0) {
+			seed();
+		}
+		return mapper.items();
+	}
+
+	@Transactional
+	synchronized void seed() {
+		if (mapper.countItems() > 0) {
+			return;
+		}
+		int n = 0;
+		for (Template t : load()) {
+			ChecklistItem i = new ChecklistItem();
+			i.setItemCode(t.code());
+			i.setPhase(t.phase());
+			i.setTitle(t.title());
+			i.setDetail(blankToNull(t.detail()));
+			i.setWhereText(blankToNull(t.where()));
+			i.setLinkUrl(blankToNull(t.link()));
+			i.setSortNo(n += 10);
+			i.setUseYn("Y");
+			mapper.insertItem(i);
+		}
+	}
+
+	public ChecklistItem item(String code) {
+		return items().stream().filter(i -> i.getItemCode().equals(code)).findFirst().orElse(null);
+	}
+
+	/** 저장 (code 가 비면 새 항목). 문제가 있으면 IllegalArgumentException (한국어 이유) */
+	@Transactional
+	public String save(String code, String phase, String title, String detail, String where, String link) {
+		String t = title == null ? "" : title.strip();
+		if (t.isEmpty()) {
+			throw new IllegalArgumentException("할 일을 적어 주세요.");
+		}
+		if (!PHASES.containsKey(phase)) {
+			throw new IllegalArgumentException("언제 할 일인지 골라 주세요.");
+		}
+		String l = link == null ? "" : link.strip();
+		if (!l.isEmpty() && !(l.startsWith("/") && !l.startsWith("//")) && !l.startsWith("https://")) {
+			throw new IllegalArgumentException("바로가기는 앱 안 경로(/로 시작)나 https 주소만 넣을 수 있어요.");
+		}
+		List<ChecklistItem> all = items();
+		ChecklistItem i = code == null || code.isBlank() ? null
+				: all.stream().filter(x -> x.getItemCode().equals(code)).findFirst().orElse(null);
+		boolean isNew = i == null;
+		if (isNew) {
+			i = new ChecklistItem();
+			int max = all.stream().map(ChecklistItem::getItemCode).filter(c -> c.matches("M\\d+"))
+					.mapToInt(c -> Integer.parseInt(c.substring(1))).max().orElse(0);
+			i.setItemCode(String.format("M%02d", max + 1));
+			i.setUseYn("Y");
+			i.setSortNo(all.stream().filter(x -> x.getPhase().equals(phase)).mapToInt(x -> x.getSortNo() == null ? 0 : x.getSortNo())
+					.max().orElse(0) + 10);
+		} else if (!i.getPhase().equals(phase)) {
+			i.setSortNo(all.stream().filter(x -> x.getPhase().equals(phase)).mapToInt(x -> x.getSortNo() == null ? 0 : x.getSortNo())
+					.max().orElse(0) + 10);
+		}
+		i.setPhase(phase);
+		i.setTitle(cut(t, 100));
+		i.setDetail(blankToNull(cut(detail, 500)));
+		i.setWhereText(blankToNull(cut(where, 100)));
+		i.setLinkUrl(blankToNull(cut(l, 200)));
+		if (isNew) {
+			mapper.insertItem(i);
+		} else {
+			mapper.updateItem(i);
+		}
+		templates = null;
+		return i.getItemCode();
+	}
+
+	/** 고객 화면에서 숨기기 / 다시 보이기. 바뀐 뒤 보이면 true */
+	@Transactional
+	public boolean toggleUse(String code) {
+		ChecklistItem i = item(code);
+		if (i == null) {
+			return false;
+		}
+		mapper.setItemUse(code, i.isUsed() ? "N" : "Y");
+		templates = null;
+		return !i.isUsed();
+	}
+
+	/** 삭제 (고객이 이미 체크한 기록은 남아도 화면에는 안 나옴) */
+	@Transactional
+	public void deleteItem(String code) {
+		mapper.deleteItem(code);
+		templates = null;
+	}
+
+	/* ---------- 관리자: 고객별 진행 현황 ---------- */
+
+	public record Progress(long memberId, String name, String phone, String lastAt, View view) {
+	}
+
+	public List<Progress> progress() {
+		List<Progress> out = new ArrayList<>();
+		for (ChecklistMember m : mapper.members()) {
+			out.add(new Progress(m.getMemberId(), nz(m.getMemberName()), nz(m.getPhone()),
+					m.getLastAt() == null ? "" : com.codemove.common.Fmt.dot(m.getLastAt().toLocalDate()),
+					view(m.getMemberId())));
+		}
+		return out;
+	}
+
+	private static String nz(String s) {
+		return s == null ? "" : s;
+	}
+
+	private static String blankToNull(String s) {
+		return s == null || s.isBlank() ? null : s.strip();
+	}
+
+	private static String cut(String s, int max) {
+		if (s == null) return null;
+		String t = s.strip();
+		return t.length() > max ? t.substring(0, max) : t;
+	}
+
+	static List<Template> load() {
 		InputStream in = ChecklistService.class.getResourceAsStream("/checklist/move-checklist.csv");
 		if (in == null) {
 			throw new IllegalStateException("checklist/move-checklist.csv 가 없습니다");

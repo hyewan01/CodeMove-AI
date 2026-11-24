@@ -26,4 +26,41 @@
 	<delete id="deleteCustom">
 		DELETE FROM TBL_MOVE_CHECKLIST WHERE CHECK_ID = #{checkId} AND MEMBER_ID = #{memberId} AND ITEM_CODE IS NULL
 	</delete>
+
+	<!-- 기본 항목 (관리자 수정) -->
+	<select id="items" resultType="com.codemove.checklist.ChecklistItem">
+		SELECT * FROM TBL_CHECKLIST_ITEM ORDER BY PHASE, SORT_NO, ITEM_CODE
+	</select>
+
+	<select id="countItems" resultType="int">
+		SELECT COUNT(*) FROM TBL_CHECKLIST_ITEM
+	</select>
+
+	<insert id="insertItem" parameterType="com.codemove.checklist.ChecklistItem">
+		INSERT INTO TBL_CHECKLIST_ITEM (ITEM_CODE, PHASE, TITLE, DETAIL, WHERE_TEXT, LINK_URL, SORT_NO, USE_YN, UPDATED_AT)
+		VALUES (#{itemCode}, #{phase}, #{title}, #{detail,jdbcType=VARCHAR}, #{whereText,jdbcType=VARCHAR},
+		        #{linkUrl,jdbcType=VARCHAR}, #{sortNo}, #{useYn}, SYSDATE)
+	</insert>
+
+	<update id="updateItem" parameterType="com.codemove.checklist.ChecklistItem">
+		UPDATE TBL_CHECKLIST_ITEM
+		   SET PHASE = #{phase}, TITLE = #{title}, DETAIL = #{detail,jdbcType=VARCHAR}, WHERE_TEXT = #{whereText,jdbcType=VARCHAR},
+		       LINK_URL = #{linkUrl,jdbcType=VARCHAR}, SORT_NO = #{sortNo}, UPDATED_AT = SYSDATE
+		 WHERE ITEM_CODE = #{itemCode}
+	</update>
+
+	<update id="setItemUse">
+		UPDATE TBL_CHECKLIST_ITEM SET USE_YN = #{use}, UPDATED_AT = SYSDATE WHERE ITEM_CODE = #{code}
+	</update>
+
+	<delete id="deleteItem">
+		DELETE FROM TBL_CHECKLIST_ITEM WHERE ITEM_CODE = #{code}
+	</delete>
+
+	<select id="members" resultType="com.codemove.checklist.ChecklistMember">
+		SELECT c.MEMBER_ID, m.MEMBER_NAME, m.PHONE, MAX(NVL(c.DONE_AT, c.CREATED_AT)) AS LAST_AT
+		  FROM TBL_MOVE_CHECKLIST c JOIN TBL_MEMBER m ON m.MEMBER_ID = c.MEMBER_ID
+		 GROUP BY c.MEMBER_ID, m.MEMBER_NAME, m.PHONE
+		 ORDER BY LAST_AT DESC
+	</select>
 </mapper>

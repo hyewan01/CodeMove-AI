@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html th:replace="~{admin/fragments/layout :: layout('고객별 체크리스트', '', true, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 고객별 체크리스트 진행 현황: 고객을 누르면 단계별로 나눠서 체크한 할 일을 봄 -->
+<th:block th:fragment="content">
+<div class="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#f5f6f8]" data-progress>
+	<header class="relative flex h-14 shrink-0 items-center justify-center border-b border-[#e5e9e5] bg-white">
+		<a aria-label="체크리스트 관리로" class="absolute left-3 grid h-10 w-10 place-items-center rounded-full" th:href="@{/admin/checklist}">
+			<span class="rotate-180"><svg th:replace="~{admin/fragments/icon :: icon2('arrowRight', 20, '')}"></svg></span></a>
+		<h1 class="text-[17px] font-extrabold text-[#29322b]">고객별 진행 현황</h1>
+	</header>
+	<div class="p-4 pb-2">
+		<label class="flex items-center gap-2 rounded-full bg-white px-4 py-3 shadow-[0_3px_12px_rgba(36,58,39,.05)]">
+			<svg th:replace="~{admin/fragments/icon :: icon2('search', 17, 'text-[#8b928d]')}"></svg>
+			<input class="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#9ca29e]" placeholder="이름이나 전화번호로 찾기" data-person-query>
+		</label>
+	</div>
+	<div class="flex-1 space-y-2 overflow-y-auto p-4 pt-2">
+		<section th:each="p : ${people}" th:with="v=${p.view}" class="overflow-hidden rounded-2xl border border-white bg-white shadow-[0_3px_12px_rgba(36,58,39,.05)]"
+				 th:data-search="${p.name} + ' ' + ${p.phone}" data-person>
+			<div th:aria-expanded="${p.memberId == openId}" class="flex w-full cursor-pointer items-center gap-3 p-4 text-left" role="button" tabindex="0" data-person-toggle>
+				<span class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#edf3ed] text-[16px] font-extrabold text-[#346538]"
+					  th:text="${#strings.isEmpty(p.name)} ? '?' : ${#strings.substring(p.name, 0, 1)}">홍</span>
+				<span class="min-w-0 flex-1">
+					<span class="flex items-center gap-2">
+						<strong class="truncate text-[15px] text-[#303832]" th:text="${p.name}">홍길동</strong>
+						<span th:unless="${#strings.isEmpty(v.dday)}" class="shrink-0 rounded-full bg-[#fff6dc] px-2 py-[1px] text-[12px] font-bold text-[#9a7413]" th:text="${v.dday}">D-3</span>
+					</span>
+					<span class="mt-1.5 flex items-center gap-2">
+						<span class="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[#e8eee8]">
+							<i class="block h-full rounded-full" th:classappend="${v.percent() == 100} ? 'bg-[#4f8b55]' : 'bg-[#346538]'" th:style="'width:' + ${v.percent()} + '%'"></i></span>
+						<b class="w-10 shrink-0 text-right text-[14px] font-extrabold text-[#346538]" th:text="${v.percent()} + '%'">40%</b>
+					</span>
+					<span class="mt-1 block truncate text-[13px] text-[#8a918c]"
+						  th:text="${v.done} + ' / ' + ${v.total} + '개 완료' + (${#strings.isEmpty(v.nowLabel())} ? '' : ' · 지금 ' + ${v.nowLabel()}) + (${#strings.isEmpty(p.lastAt)} ? '' : ' · 최근 ' + ${p.lastAt})">3 / 36개 완료</span>
+				</span>
+				<span class="shrink-0 text-[#9aa19b] transition" data-person-chevron><svg th:replace="~{admin/fragments/icon :: icon2('chevron', 18, '')}"></svg></span>
+			</div>
+			<!-- 단계별로 나눠서 -->
+			<div class="border-t border-[#edf0ed] bg-[#fafbfa] px-3 py-3" th:hidden="${p.memberId != openId}" data-person-body>
+				<p class="px-1 pb-2 text-[13px] text-[#8a918c]" th:text="(${#strings.isEmpty(v.moveDate)} ? '이사 날짜 미정' : '이사 ' + ${v.moveDate}) + (${#strings.isEmpty(p.phone)} ? '' : ' · ' + ${p.phone})">이사 2026.12.01</p>
+				<details th:each="ph : ${v.phases}" class="group mb-1.5 overflow-hidden rounded-xl bg-white" th:open="${ph.now}">
+					<summary class="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5">
+						<span class="text-[14px] font-bold text-[#303832]" th:text="${ph.label}">한 달 전</span>
+						<span class="text-[12px] text-[#9aa29c]" th:text="${ph.when}">D-30</span>
+						<span th:if="${ph.now}" class="rounded-full bg-[#346538] px-1.5 py-[1px] text-[11px] font-bold text-[#ffe08a]">지금</span>
+						<span class="ml-auto text-[13px] font-bold" th:classappend="${ph.done == #lists.size(ph.items)} ? 'text-[#4f8b55]' : 'text-[#7d867f]'"
+							  th:text="${ph.done} + '/' + ${#lists.size(ph.items)}">2/5</span>
+						<span class="text-[#a3aaa5] transition group-open:rotate-180"><svg th:replace="~{admin/fragments/icon :: icon2('chevron', 15, '')}"></svg></span>
+					</summary>
+					<ul class="border-t border-[#f0f2f0] px-3 py-1.5">
+						<li th:each="it : ${ph.items}" class="flex items-start gap-2 py-1.5 text-[14px] leading-5">
+							<span class="mt-[2px] grid h-4 w-4 shrink-0 place-items-center rounded-[5px]"
+								  th:classappend="${it.done} ? 'bg-[#346538] text-white' : 'border border-[#cfd6cf]'">
+								<th:block th:if="${it.done}"><svg th:replace="~{admin/fragments/icon :: icon2('check', 11, '')}"></svg></th:block></span>
+							<span th:classappend="${it.done} ? 'text-[#8a918c] line-through decoration-[#b7beb9]' : 'text-[#3a423c]'" th:text="${it.title}">할 일</span>
+							<span th:if="${it.custom}" class="ml-auto shrink-0 rounded-full bg-[#f1eefa] px-1.5 text-[11px] font-bold text-[#6457a0]">고객 추가</span>
+						</li>
+					</ul>
+				</details>
+			</div>
+		</section>
+		<p class="py-16 text-center text-[15px] leading-6 text-[#858d87]" data-person-empty th:hidden="${!#lists.isEmpty(people)}"
+		   th:utext="${#lists.isEmpty(people)} ? '아직 체크리스트를 쓴 고객이 없어요.<br>고객이 한 항목이라도 체크하면 여기에 보여요.' : '찾는 고객이 없어요.'">아직 없어요</p>
+	</div>
+</div>
+<script>
+	(function () {
+		const root = document.querySelector('[data-progress]');
+		const people = [...root.querySelectorAll('[data-person]')];
+		root.querySelector('[data-person-query]').addEventListener('input', (e) => {
+			const q = e.target.value.trim().replace(/-/g, '').toLocaleLowerCase();
+			let n = 0;
+			people.forEach((p) => { const show = !q || p.dataset.search.replace(/-/g, '').toLocaleLowerCase().includes(q); p.hidden = !show; if (show) n++; });
+			const empty = root.querySelector('[data-person-empty]');
+			empty.hidden = n > 0;
+			if (people.length) empty.textContent = '찾는 고객이 없어요.';
+		});
+		people.forEach((p) => {
+			const head = p.querySelector('[data-person-toggle]');
+			const body = p.querySelector('[data-person-body]');
+			const paint = () => p.querySelector('[data-person-chevron]').classList.toggle('rotate-180', !body.hidden);
+			const toggle = () => {
+				body.hidden = !body.hidden;
+				head.setAttribute('aria-expanded', String(!body.hidden));
+				paint();
+			};
+			paint();
+			head.addEventListener('click', toggle);
+			head.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+		});
+	})();
+</script>
+</th:block>
+</body>
+</html>

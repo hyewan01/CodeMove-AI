@@ -126,6 +126,7 @@ public class AdminScheduleController {
 		model.addAttribute("prev", first.minusMonths(1));
 		model.addAttribute("next", first.plusMonths(1));
 		model.addAttribute("cells", cells);
+		model.addAttribute("todayKey", dateKey(today));
 		model.addAttribute("daySchedules", active.stream().filter(r -> selectedKey.equals(r.movingDate()))
 				.sorted((a, b) -> String.valueOf(a.movingTime()).compareTo(String.valueOf(b.movingTime()))).toList());
 		model.addAttribute("dayManuals", manuals.stream().filter(s -> s.date().equals(selectedKey)).toList());

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html th:replace="~{admin/fragments/layout :: layout('체크리스트 항목 관리', '', true, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 체크리스트 항목 관리: 단계별로 나눠서 기본 할 일 고치기 · 더하기 · 숨기기 · 지우기 -->
+<th:block th:fragment="content">
+<div class="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#f5f6f8]" data-items>
+	<header class="relative flex h-14 shrink-0 items-center justify-center border-b border-[#e5e9e5] bg-white">
+		<a aria-label="체크리스트 관리로" class="absolute left-3 grid h-10 w-10 place-items-center rounded-full" th:href="@{/admin/checklist}">
+			<span class="rotate-180"><svg th:replace="~{admin/fragments/icon :: icon2('arrowRight', 20, '')}"></svg></span></a>
+		<h1 class="text-[17px] font-extrabold text-[#29322b]">체크리스트 항목 관리</h1>
+	</header>
+	<p th:if="${notice}" class="mx-4 mt-3 rounded-xl bg-[#edf3ed] px-3 py-2.5 text-[14px] font-semibold text-[#346538]" th:text="${notice}">저장했어요</p>
+	<p class="px-5 pt-3 text-[13px] leading-5 text-[#8a918c]">고친 내용은 고객 체크리스트에 바로 보여요. 숨긴 항목은 고객 화면에서 빠지고, 고객이 체크한 기록은 남아요.</p>
+	<div class="flex-1 space-y-2 overflow-y-auto p-4 pt-3">
+		<section th:each="ph : ${phases}" class="overflow-hidden rounded-2xl border border-white bg-white shadow-[0_3px_12px_rgba(36,58,39,.05)]" data-phase>
+			<div th:aria-expanded="${ph.code == openPhase}" class="flex w-full cursor-pointer items-center gap-3 p-4 text-left" role="button" tabindex="0" data-phase-toggle>
+				<span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#edf3ed] text-[13px] font-extrabold text-[#346538]" th:text="${ph.when}">D-30</span>
+				<span class="min-w-0 flex-1">
+					<strong class="block text-[15px] text-[#303832]" th:text="${ph.label}">한 달 전</strong>
+					<span class="mt-0.5 block text-[13px] text-[#8a918c]"
+						  th:text="'할 일 ' + ${#lists.size(ph.items) - ph.hidden()} + '개' + (${ph.hidden()} > 0 ? ' · 숨김 ' + ${ph.hidden()} + '개' : '')">할 일 5개</span>
+				</span>
+				<span class="shrink-0 text-[#9aa19b] transition" data-phase-chevron><svg th:replace="~{admin/fragments/icon :: icon2('chevron', 18, '')}"></svg></span>
+			</div>
+			<div class="border-t border-[#edf0ed] bg-[#fafbfa] px-3 py-2" th:hidden="${ph.code != openPhase}" data-phase-body>
+				<div th:each="i : ${ph.items}" class="flex items-start gap-2 border-b border-[#eef0ee] px-1 py-3 last:border-0"
+					 th:classappend="${!i.used} ? 'opacity-55'">
+					<span class="min-w-0 flex-1">
+						<span class="flex items-center gap-1.5">
+							<strong class="text-[14.5px] leading-5 text-[#303832]" th:text="${i.title}">할 일</strong>
+							<span th:unless="${i.used}" class="shrink-0 rounded-full bg-[#eceeec] px-1.5 text-[11px] font-bold text-[#6f7871]">숨김</span>
+						</span>
+						<span th:unless="${#strings.isEmpty(i.detail)}" class="mt-1 line-clamp-2 block text-[13px] leading-[18px] text-[#7d867f]" th:text="${i.detail}"></span>
+						<span th:unless="${#strings.isEmpty(i.whereText) and #strings.isEmpty(i.linkUrl)}" class="mt-1 block text-[12px] text-[#9aa29c]"
+							  th:text="${i.whereText} + (${#strings.isEmpty(i.whereText) or #strings.isEmpty(i.linkUrl)} ? '' : ' · ') + (${#strings.isEmpty(i.linkUrl)} ? '' : '바로가기 ' + ${i.linkUrl})"></span>
+					</span>
+					<a th:aria-label="${i.title} + ' 수정'" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#f2f5f2] text-[#346538]"
+					   th:href="@{/admin/checklist/items(edit=${i.itemCode})}"><svg th:replace="~{admin/fragments/icon :: icon2('edit', 15, '')}"></svg></a>
+					<form method="post" th:action="@{/admin/checklist/items/{c}/use(c=${i.itemCode})}">
+						<button class="h-8 shrink-0 rounded-lg bg-[#f2f5f2] px-2 text-[12px] font-bold text-[#5d6b5f]" type="submit"
+								th:aria-label="${i.title} + (${i.used} ? ' 숨기기' : ' 보이기')" th:text="${i.used} ? '숨기기' : '보이기'">숨기기</button>
+					</form>
+					<button th:aria-label="${i.title} + ' 삭제'" class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#fff0ee] text-[#b64b42]" type="button"
+							th:data-delete-item="@{/admin/checklist/items/{c}/delete(c=${i.itemCode})}"><svg th:replace="~{admin/fragments/icon :: icon2('trash', 15, '')}"></svg></button>
+				</div>
+				<a class="mx-1 my-2 flex h-11 items-center justify-center rounded-xl border border-dashed border-[#b9c7ba] text-[14px] font-bold text-[#346538]"
+				   th:href="@{/admin/checklist/items(edit='new',phase=${ph.code})}">+ 이 단계에 할 일 더하기</a>
+			</div>
+		</section>
+	</div>
+
+	<!-- 항목 등록 / 수정 -->
+	<form th:if="${draft}" class="absolute inset-0 z-40 flex flex-col bg-[#f5f6f8]" method="post" th:action="@{/admin/checklist/items}" data-item-editor>
+		<input type="hidden" name="code" th:value="${draft.itemCode}">
+		<header class="relative flex h-14 shrink-0 items-center justify-center border-b border-[#e5e9e5] bg-white">
+			<h2 class="text-[17px] font-extrabold text-[#303832]" th:text="${isNew} ? '할 일 더하기' : '할 일 수정'">할 일 수정</h2>
+			<a aria-label="편집 닫기" class="absolute right-3 grid h-10 w-10 place-items-center rounded-full" th:href="@{/admin/checklist/items(open=${draft.phase})}">
+				<svg th:replace="~{admin/fragments/icon :: icon2('x', 20, '')}"></svg></a>
+		</header>
+		<div class="flex-1 space-y-4 overflow-y-auto p-4">
+			<p th:if="${formError}" class="rounded-xl bg-[#fff0ee] px-3 py-2.5 text-[14px] font-semibold text-[#b64b42]" th:text="${formError}"></p>
+			<section class="space-y-4 rounded-[18px] bg-white p-4">
+				<label class="block">
+					<span class="mb-2 block text-[14px] font-bold text-[#59615b]">언제 할 일인가요</span>
+					<select class="h-12 w-full rounded-xl border border-[#dfe4df] bg-[#f7f8f7] px-3 text-[15px] font-semibold outline-none focus:border-[#89a18b]" name="phase">
+						<option th:each="p : ${phaseNames}" th:value="${p.key}" th:selected="${p.key == draft.phase}" th:text="${p.value[0]} + ' (' + ${p.value[1]} + ')'">한 달 전</option>
+					</select>
+				</label>
+				<label class="block">
+					<span class="mb-2 block text-[14px] font-bold text-[#59615b]">할 일 <em class="not-italic text-[#c65249]">*</em></span>
+					<input class="h-12 w-full rounded-xl border border-[#dfe4df] bg-[#f7f8f7] px-3 text-[15px] font-semibold outline-none focus:border-[#89a18b]"
+						   name="title" maxlength="100" th:value="${draft.title}" placeholder="예: 인터넷 · TV 이전 신청하기" required data-required>
+				</label>
+				<label class="block">
+					<span class="mb-2 block text-[14px] font-bold text-[#59615b]">설명</span>
+					<textarea class="h-28 w-full resize-none rounded-xl border border-[#dfe4df] bg-[#f7f8f7] p-3 text-[15px] leading-5 outline-none focus:border-[#89a18b]"
+							  name="detail" maxlength="500" th:text="${draft.detail}" placeholder="고객이 무엇을, 왜 해야 하는지 짧게 적어 주세요"></textarea>
+				</label>
+				<label class="block">
+					<span class="mb-2 block text-[14px] font-bold text-[#59615b]">어디서</span>
+					<input class="h-12 w-full rounded-xl border border-[#dfe4df] bg-[#f7f8f7] px-3 text-[15px] outline-none focus:border-[#89a18b]"
+						   name="whereText" maxlength="100" th:value="${draft.whereText}" placeholder="예: 주민센터 · 정부24">
+				</label>
+				<label class="block">
+					<span class="mb-2 block text-[14px] font-bold text-[#59615b]">바로가기 (선택)</span>
+					<input class="h-12 w-full rounded-xl border border-[#dfe4df] bg-[#f7f8f7] px-3 text-[15px] outline-none focus:border-[#89a18b]"
+						   name="linkUrl" maxlength="200" th:value="${draft.linkUrl}" placeholder="앱 안 경로(/quote) 또는 https:// 주소">
+				</label>
+			</section>
+		</div>
+		<div class="shrink-0 border-t border-[#e5e9e5] bg-white p-3">
+			<button class="h-12 w-full rounded-xl bg-[#346538] text-[15px] font-extrabold text-white disabled:bg-[#bcc5bd]" type="submit" data-item-submit th:text="${isNew} ? '더하기' : '저장'">저장</button>
+		</div>
+	</form>
+
+	<!-- 삭제 확인 -->
+	<form class="absolute inset-0 z-50 grid place-items-center bg-[#1f2d21]/45 p-6 backdrop-blur-[2px]" method="post" data-item-delete hidden>
+		<div class="w-full rounded-[22px] bg-white p-5 text-center shadow-[0_20px_50px_rgba(25,42,28,.24)]">
+			<span class="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#fff0ee] text-[#b64b42]"><svg th:replace="~{admin/fragments/icon :: icon2('trash', 21, '')}"></svg></span>
+			<h2 class="mt-4 text-[17px] font-extrabold text-[#303832]">이 할 일을 지울까요?</h2>
+			<p class="mt-2 text-[14px] leading-5 text-[#8a918c]">다시 쓸 수도 있다면 '숨기기'를 권해요.<br>지운 항목은 되돌릴 수 없어요.</p>
+			<div class="mt-5 grid grid-cols-2 gap-2">
+				<button class="h-11 rounded-xl bg-[#f0f2f0] text-[15px] font-bold text-[#646c66]" type="button" data-item-delete-cancel>취소</button>
+				<button class="h-11 rounded-xl bg-[#c65249] text-[15px] font-bold text-white" type="submit">삭제</button>
+			</div>
+		</div>
+	</form>
+</div>
+<script>
+	(function () {
+		const root = document.querySelector('[data-items]');
+		root.querySelectorAll('[data-phase]').forEach((p) => {
+			const head = p.querySelector('[data-phase-toggle]');
+			const body = p.querySelector('[data-phase-body]');
+			const paint = () => p.querySelector('[data-phase-chevron]').classList.toggle('rotate-180', !body.hidden);
+			const toggle = () => { body.hidden = !body.hidden; head.setAttribute('aria-expanded', String(!body.hidden)); paint(); };
+			paint();
+			head.addEventListener('click', toggle);
+			head.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+		});
+		const del = root.querySelector('[data-item-delete]');
+		root.querySelectorAll('[data-delete-item]').forEach((b) => b.addEventListener('click', () => { del.action = b.dataset.deleteItem; del.hidden = false; }));
+		root.querySelector('[data-item-delete-cancel]').addEventListener('click', () => (del.hidden = true));
+		const editor = root.querySelector('[data-item-editor]');
+		if (!editor) return;
+		const title = editor.querySelector('[data-required]');
+		const submit = editor.querySelector('[data-item-submit]');
+		const refresh = () => (submit.disabled = !title.value.trim());
+		title.addEventListener('input', refresh);
+		refresh();
+	})();
+</script>
+</th:block>
+</body>
+</html>

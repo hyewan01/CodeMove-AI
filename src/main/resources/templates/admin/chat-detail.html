@@ -73,10 +73,7 @@
 				<div th:if="${m.deleted}" class="rounded-2xl border border-dashed border-[#cfd6cf] px-3 py-2 text-[15px] italic text-[#9aa29c]">삭제된 메시지예요</div>
 				<th:block th:unless="${m.deleted}">
 					<div th:unless="${#strings.isEmpty(m.text)}" class="whitespace-pre-line rounded-2xl p-3 text-[16px] leading-5 shadow-sm" data-msg-bubble
-						 th:classappend="${m.waiting} ? 'border border-[#efc4bf] bg-[#fff0ee] text-[#a44038]' : (${isCustomer} ? 'rounded-tl-md bg-white text-[#343b36]' : (${m.role == 'ai'} ? 'rounded-tr-md bg-[#e8efe8] text-[#355639]' : 'rounded-tr-md bg-[#346538] text-white'))">
-						<span th:if="${m.replyTo}" class="mb-2 block rounded-lg border-l-2 border-[#d8b65d] bg-white/20 px-2 py-1 text-[15px] opacity-90" th:text="${m.replyTo}"></span>
-						<th:block th:text="${m.text}"></th:block>
-					</div>
+						 th:classappend="${m.waiting} ? 'border border-[#efc4bf] bg-[#fff0ee] text-[#a44038]' : (${isCustomer} ? 'rounded-tl-md bg-white text-[#343b36]' : (${m.role == 'ai'} ? 'rounded-tr-md bg-[#e8efe8] text-[#355639]' : 'rounded-tr-md bg-[#346538] text-white'))"><span th:if="${m.replyTo}" class="mb-2 block rounded-lg border-l-2 border-[#d8b65d] bg-white/20 px-2 py-1 text-[15px] opacity-90" th:text="${m.replyTo}"></span><th:block th:text="${m.text}"></th:block></div>
 					<!-- 첨부: 사진 · 동영상은 바로 보이게, PDF 는 파일 이름 -->
 					<a th:if="${m.fileKind == 'image'}" th:href="@{${m.file}}" target="_blank" rel="noopener" class="block max-w-[240px] overflow-hidden rounded-2xl shadow-sm" data-msg-bubble>
 						<img class="block max-h-[280px] w-full object-cover" th:src="@{${m.file}}" th:alt="${m.fileName}" loading="lazy"></a>

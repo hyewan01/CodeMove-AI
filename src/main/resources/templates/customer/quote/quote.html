@@ -298,7 +298,7 @@
 				<input type="hidden" th:name="${key} + 'Floor'" data-carry-floor-value>
 				<input type="hidden" th:name="${key} + 'Carry'" data-carry-value>
 			</div>
-			<p class="flow-help">여러 개를 고를 수 있어요(예: 큰 짐은 사다리차, 나머지는 엘리베이터). 한 번 더 누르면 취소돼요. 사다리차는 층수에 따라, 계단은 3개 층마다 작업 인력이 더해져요.</p>
+			<p class="flow-help">여러 개를 고를 수 있어요(예: 큰 짐은 사다리차, 나머지는 엘리베이터). 한 번 더 누르면 취소돼요. 아직 모르면 고르지 않고 넘어가도 돼요. 사다리차는 층수에 따라, 계단은 3개 층마다 작업 인력이 더해져요.</p>
 		</section>
 
 		<!-- 7. 날짜·시간 (SCR-U-008) -->
@@ -323,15 +323,32 @@
 					<b data-cal-time-label>오전 10:00</b>
 					<span>시간 변경 <img th:replace="~{customer/fragments/common :: chevron}"></span>
 				</button>
-				<!-- 년 · 월 바로 가기 (지난 달은 고를 수 없음) -->
-				<div class="cal-scrim" data-modal="month" data-modal-close hidden></div>
-				<div class="cal-time-sheet cal-month-sheet" role="dialog" aria-label="년 · 월 고르기" data-modal="month" hidden>
-					<div class="cal-time-head">
-						<strong>언제로 이동할까요?</strong>
-						<button type="button" class="action" aria-label="닫기" data-modal-close>×</button>
+				<!-- 년 · 월 · 일 바로 가기 (관리자 일정 캘린더와 같은 휠). 지난 날짜는 오늘로 맞춤 -->
+				<div class="ymd-scrim" data-modal="month" hidden>
+					<div class="ymd-dialog" role="dialog" aria-modal="true" aria-label="날짜 바로 가기">
+						<p class="ymd-label" aria-live="polite" data-ymd-label></p>
+						<div class="ymd-wheel"><span class="ymd-band" aria-hidden="true"></span>
+						<div class="ymd-col" data-ymd-col="y">
+							<button type="button" class="action ymd-step" aria-label="연도 올리기" data-ymd-step="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
+							<div class="ymd-viewport" role="spinbutton" tabindex="0" aria-label="연도" data-ymd-viewport><div class="ymd-strip" data-ymd-strip></div></div>
+							<button type="button" class="action ymd-step down" aria-label="연도 내리기" data-ymd-step="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
+						</div>
+						<div class="ymd-col" data-ymd-col="m">
+							<button type="button" class="action ymd-step" aria-label="월 올리기" data-ymd-step="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
+							<div class="ymd-viewport" role="spinbutton" tabindex="0" aria-label="월" data-ymd-viewport><div class="ymd-strip" data-ymd-strip></div></div>
+							<button type="button" class="action ymd-step down" aria-label="월 내리기" data-ymd-step="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
+						</div>
+						<div class="ymd-col" data-ymd-col="d">
+							<button type="button" class="action ymd-step" aria-label="일 올리기" data-ymd-step="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
+							<div class="ymd-viewport" role="spinbutton" tabindex="0" aria-label="일" data-ymd-viewport><div class="ymd-strip" data-ymd-strip></div></div>
+							<button type="button" class="action ymd-step down" aria-label="일 내리기" data-ymd-step="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
+						</div>
+						</div>
+						<div class="ymd-actions">
+							<button type="button" class="action ymd-cancel" data-ymd-cancel>취소</button>
+							<button type="button" class="action ymd-done" data-ymd-done>완료</button>
+						</div>
 					</div>
-					<div class="cal-month-years" role="tablist" data-cal-years></div>
-					<div class="cal-month-grid" data-cal-months></div>
 				</div>
 				<div class="cal-scrim" data-modal="time" data-modal-close hidden></div>
 				<div class="cal-time-sheet" data-modal="time" hidden>

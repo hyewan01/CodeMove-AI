@@ -2508,12 +2508,29 @@ a.chat-file-message { color: inherit; text-decoration: none; }
 /* 달력 제목 → 년 · 월 고르기 */
 .calendar-head .cal-title { display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px 6px 0; color: var(--ink); }
 .calendar-head .cal-title svg { width: 18px; height: 18px; fill: none; stroke: var(--green); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
-.cal-month-years { display: flex; gap: 8px; padding: 16px 20px 4px; }
-.cal-month-years .action { flex: 1; display: grid; place-items: center; padding: 0; height: 44px; border-radius: 14px; background: var(--surface); color: var(--muted); font-family: "Pretendard:Bold"; font-size: 15px; }
-.cal-month-years .action.active { background: var(--green); color: #ffe08a; }
-.cal-month-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 14px 20px 8px; }
-.cal-month-grid .action { display: grid; place-items: center; padding: 0; height: 52px; border-radius: 14px; border: 1.5px solid #e6ebe6; background: var(--white); color: var(--ink); font-family: "Pretendard:SemiBold"; font-size: 15px; }
-.cal-month-grid .action.this { border-color: var(--green-soft); }
-.cal-month-grid .action.active { border-color: var(--green); background: var(--green); color: var(--white); font-family: "Pretendard:Bold"; }
-.cal-month-grid .action:disabled { border-color: transparent; background: var(--surface); color: #c3c8c4; }
-.easy-quote .cal-month-grid .action { height: 60px; font-size: 18px; }
+/* 년 · 월 · 일 휠 (관리자 일정 캘린더와 같은 모양) */
+.ymd-scrim { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 20px; background: rgb(31 45 33 / .45); backdrop-filter: blur(2px); }
+.ymd-scrim[hidden] { display: none; }
+.ymd-dialog { width: min(360px, 100%); padding: 22px 18px 18px; box-sizing: border-box; border-radius: 22px; background: var(--white); box-shadow: 0 24px 64px rgb(0 0 0 / .22); }
+.ymd-label { margin: 0; text-align: center; color: #29312b; font-family: "Pretendard:Bold"; font-size: 18px; }
+.ymd-wheel { position: relative; margin-top: 12px; display: grid; grid-template-columns: repeat(3, 1fr); user-select: none; }
+.ymd-band { position: absolute; left: 4px; right: 4px; top: 50%; height: 48px; transform: translateY(-50%); border-radius: 12px; background: #f1f4f1; pointer-events: none; }
+.ymd-col { position: relative; display: flex; flex-direction: column; align-items: center; }
+.ymd-step { width: 56px; height: 32px; display: grid; place-items: center; border-radius: 999px; color: #9aa29c; }
+.ymd-step:hover { background: #edf3ed; color: var(--green); }
+.ymd-step svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.ymd-step.down svg { transform: rotate(180deg); }
+.ymd-viewport { position: relative; width: 100%; height: 144px; overflow: hidden; touch-action: none; cursor: grab; outline: none; border-radius: 12px;
+  -webkit-mask-image: linear-gradient(transparent, #000 28%, #000 72%, transparent); mask-image: linear-gradient(transparent, #000 28%, #000 72%, transparent); }
+.ymd-viewport:focus-visible { box-shadow: 0 0 0 2px rgb(52 101 56 / .4); }
+.ymd-strip { will-change: transform; }
+.ymd-strip div { height: 48px; display: grid; place-items: center; color: #b7beb9; font-family: "Pretendard:Bold"; font-size: 18px; }
+.ymd-strip div.past { color: #dde1de; }
+.ymd-strip div.now { color: #222a24; font-family: "Pretendard:ExtraBold", "Pretendard:Bold"; font-size: 22px; }
+.ymd-actions { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ymd-actions .action { display: grid; place-items: center; padding: 0; height: 46px; border-radius: 14px; font-family: "Pretendard:Bold"; font-size: 15px; }
+.ymd-cancel { border: 1px solid #d9ded9; background: var(--white); color: #303832; }
+.ymd-done { background: var(--green); color: var(--white); }
+.easy-quote .ymd-strip div.now { font-size: 25px; }
+
+.nav-dot[hidden], .notification-dot[hidden] { display: none; }

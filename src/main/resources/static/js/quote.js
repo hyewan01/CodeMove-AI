@@ -540,7 +540,8 @@
 	/* 사다리차 · 계단이면 층수가 필요 */
 	const needsFloor = (k) => sites[k].carries.has('L') || sites[k].carries.has('S');
 	const detailOf = (key) => $(`[data-address="${key}"] [data-addr-detail]`).value.trim();
-	const carryReady = () => ['from', 'to'].every((k) => sites[k].carries.size > 0 && (!needsFloor(k) || sites[k].floor));
+	/* 고르지 않아도 넘어갈 수 있음(모르면 비워 두고 상담 때 정함). 사다리차 · 계단을 골랐으면 층수만 필요 */
+	const carryReady = () => ['from', 'to'].every((k) => !needsFloor(k) || sites[k].floor);
 	function renderCarry() {
 		$$('[data-carry-site]').forEach((card) => {
 			const key = card.dataset.carrySite, s = sites[key];
@@ -764,40 +765,114 @@
 		renderCalendar();
 		refreshNext();
 	};
-	/* 제목(2026년 11월)을 누르면 년 · 월을 바로 고름: 올해 ~ 내년, 지난 달은 막음 */
-	let pickY = viewY;
-	function renderMonthPicker() {
-		const years = $('[data-cal-years]');
-		years.innerHTML = '';
-		[today.getFullYear(), today.getFullYear() + 1].forEach((y) => {
-			const b = document.createElement('button');
-			b.type = 'button';
-			b.className = `action${y === pickY ? ' active' : ''}`;
-			b.setAttribute('role', 'tab');
-			b.setAttribute('aria-selected', String(y === pickY));
-			b.textContent = `${y}년`;
-			b.addEventListener('click', () => { pickY = y; renderMonthPicker(); });
-			years.appendChild(b);
-		});
-		const grid = $('[data-cal-months]');
-		grid.innerHTML = '';
-		for (let m = 0; m < 12; m++) {
-			const b = document.createElement('button');
-			b.type = 'button';
-			const past = pickY === today.getFullYear() && m < today.getMonth();
-			const now = pickY === viewY && m === viewM;
-			b.className = `action${now ? ' active' : ''}${pickY === today.getFullYear() && m === today.getMonth() ? ' this' : ''}`;
-			b.textContent = `${m + 1}월`;
-			b.disabled = past;
-			b.addEventListener('click', () => {
-				closeModal('month');
-				if (pickY === viewY && m === viewM) return;
-				changeMonth((pickY - viewY) * 12 + (m - viewM));
-			});
-			grid.appendChild(b);
+	/* 제목(2026년 11월)을 누르면 년 · 월 · 일 휠 (관리자 일정 캘린더와 같은 조작): 쓸기 · ▲▼ · 마우스 휠 · ↑↓ 키 */
+	const ROW = 48;
+	const ymd = { y: viewY, m: viewM + 1, d: 1 };
+	const firstY = today.getFullYear(), lastY = today.getFullYear() + 1;
+	const daysOf = (y, m) => new Date(y, m, 0).getDate();
+	const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+	const ymdCols = {};
+	const ymdAt = (k, n) => {
+		if (k === 'y') return n < firstY || n > lastY ? null : n;
+		const top = k === 'm' ? 12 : daysOf(ymd.y, ymd.m);
+		return ((n - 1) % top + top) % top + 1;
+	};
+	const ymdText = (k, n) => (k === 'y' ? `${n}년` : `${n}${k === 'm' ? '월' : '일'}`);
+	/* 오늘보다 앞이면 흐리게 (완료하면 오늘로 맞춤) */
+	const ymdPast = (k, n) => {
+		if (k === 'y') return false;
+		if (k === 'm') return ymd.y === firstY && n < today.getMonth() + 1;
+		return new Date(ymd.y, ymd.m - 1, n) < startOfToday;
+	};
+	function ymdDraw(k, offset = 0, animate = false) {
+		const { strip, viewport } = ymdCols[k];
+		strip.innerHTML = [-3, -2, -1, 0, 1, 2, 3].map((i) => {
+			const n = ymdAt(k, ymd[k] + i);
+			const cls = i === 0 ? 'now' : n != null && ymdPast(k, n) ? 'past' : '';
+			return `<div class="${cls}">${n == null ? '' : ymdText(k, n)}</div>`;
+		}).join('');
+		strip.style.transition = 'none';
+		strip.style.transform = `translateY(${offset - 2 * ROW}px)`;
+		if (animate) {
+			void strip.offsetHeight;
+			strip.style.transition = 'transform .22s cubic-bezier(.2,.8,.3,1)';
+			strip.style.transform = `translateY(${-2 * ROW}px)`;
 		}
+		viewport.setAttribute('aria-valuenow', ymd[k]);
+		viewport.setAttribute('aria-valuetext', ymdText(k, ymd[k]));
 	}
-	$('[data-cal-title-open]').addEventListener('click', () => { pickY = viewY; renderMonthPicker(); openModal('month'); });
+	const ymdLabel = () => {
+		$('[data-ymd-label]').textContent = `${ymd.y}년 ${ymd.m}월 ${ymd.d}일 (${'일월화수목금토'[new Date(ymd.y, ymd.m - 1, ymd.d).getDay()]})`;
+	};
+	function ymdStep(k, s, dy = 0) {
+		const before = ymd[k];
+		ymd[k] = k === 'y' ? Math.min(lastY, Math.max(firstY, ymd.y + s)) : ymdAt(k, ymd[k] + s);
+		ymdDraw(k, dy + (k === 'y' ? ymd.y - before : s) * ROW, true);
+		ymd.d = Math.min(ymd.d, daysOf(ymd.y, ymd.m));
+		['y', 'm', 'd'].filter((x) => x !== k).forEach((x) => ymdDraw(x));
+		ymdLabel();
+	}
+	$$('[data-ymd-col]').forEach((col) => {
+		const k = col.dataset.ymdCol;
+		const viewport = $('[data-ymd-viewport]', col), strip = $('[data-ymd-strip]', col);
+		ymdCols[k] = { viewport, strip };
+		$$('[data-ymd-step]', col).forEach((b) => b.addEventListener('click', () => ymdStep(k, Number(b.dataset.ymdStep))));
+		let drag = null;
+		viewport.addEventListener('pointerdown', (e) => { drag = { y: e.clientY, dy: 0 }; viewport.setPointerCapture(e.pointerId); strip.style.transition = 'none'; });
+		viewport.addEventListener('pointermove', (e) => {
+			if (!drag) return;
+			drag.dy = Math.max(-2.5 * ROW, Math.min(2.5 * ROW, e.clientY - drag.y));
+			strip.style.transform = `translateY(${drag.dy - 2 * ROW}px)`;
+		});
+		const end = (e) => {
+			if (!drag) return;
+			const { dy } = drag;
+			drag = null;
+			const st = Math.round(-dy / ROW);
+			if (st) ymdStep(k, st, dy);
+			else if (Math.abs(dy) < 4 && e.type === 'pointerup') {
+				/* 흐린 위 · 아래 값을 누르면 그 값으로 */
+				const y = e.clientY - viewport.getBoundingClientRect().top;
+				if (y < ROW) ymdStep(k, -1);
+				else if (y > 2 * ROW) ymdStep(k, 1);
+				else ymdDraw(k, dy, true);
+			} else ymdDraw(k, dy, true);
+		};
+		viewport.addEventListener('pointerup', end);
+		viewport.addEventListener('pointercancel', end);
+		let acc = 0;
+		viewport.addEventListener('wheel', (e) => {
+			e.preventDefault();
+			acc += e.deltaY;
+			if (Math.abs(acc) >= 40) { ymdStep(k, acc > 0 ? 1 : -1); acc = 0; }
+		}, { passive: false });
+		viewport.addEventListener('keydown', (e) => {
+			if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+			e.preventDefault();
+			ymdStep(k, e.key === 'ArrowUp' ? 1 : -1);
+		});
+	});
+	$('[data-cal-title-open]').addEventListener('click', () => {
+		const [py, pm, pd] = state.date ? state.date.split('-').map(Number) : [];
+		Object.assign(ymd, state.date && py === viewY && pm === viewM + 1 ? { y: py, m: pm, d: pd }
+			: { y: viewY, m: viewM + 1, d: isCurrentMonth() ? today.getDate() : 1 });
+		openModal('month');
+		['y', 'm', 'd'].forEach((k) => ymdDraw(k));
+		ymdLabel();
+	});
+	$('[data-ymd-cancel]').addEventListener('click', () => closeModal('month'));
+	$('[data-ymd-done]').addEventListener('click', () => {
+		closeModal('month');
+		let { y, m, d } = ymd;
+		if (new Date(y, m - 1, d) < startOfToday) {
+			y = today.getFullYear(); m = today.getMonth() + 1; d = today.getDate();
+		}
+		const delta = (y - viewY) * 12 + (m - 1 - viewM);
+		if (delta) changeMonth(delta);
+		/* 그 날을 고를 수 있으면 바로 선택 (휴무 · 마감이면 달만 이동) */
+		const day = [...daysBox.querySelectorAll('span.selectable, span.picked')].find((x) => Number(x.textContent) === d);
+		if (day) day.click();
+	});
 	$('[data-cal-prev]').addEventListener('click', () => changeMonth(-1));
 	$('[data-cal-next]').addEventListener('click', () => changeMonth(1));
 	$('[data-cal-time-open]').addEventListener('click', () => openModal('time'));
@@ -871,7 +946,7 @@
 	function renderSummary() {
 		renderEstimate();
 		$('[data-sum="date"]').textContent = state.dateSkipped ? '일정 미정' : dateLabel() || '—';
-		const siteText = (k) => [sites[k].floor ? `${sites[k].floor}층` : '', carryNames(k)]
+		const siteText = (k) => [sites[k].floor ? `${sites[k].floor}층` : '', carryNames(k) || '나르는 방법 미정']
 			.filter(Boolean).join(' · ');
 		['from', 'to'].forEach((k) => {
 			$(`[data-sum="${k}"]`).textContent = state.address[k]
@@ -890,7 +965,7 @@
 		extras: () => '추가 작업 단계입니다. 에어컨이나 안마의자처럼 설치가 필요한 물건을 업체에 맡길지, 다른 업체에 맡길지 골라주세요.',
 		options: () => '이사 정보 단계입니다. 현재 사는 집의 종류와 원하는 포장 방식을 차례로 선택해주세요.',
 		address: () => '주소 입력 단계입니다. 출발할 곳과 도착할 곳의 주소를 차례로 입력하고, 상세주소에 동과 호수를 적어주세요.',
-		carry: () => '나르는 방법 단계입니다. 출발지와 도착지에서 엘리베이터, 사다리차, 계단 중 하나를 골라주세요.',
+		carry: () => '나르는 방법 단계입니다. 출발지와 도착지에서 엘리베이터, 사다리차, 계단 중 골라주세요. 모르면 고르지 않고 다음으로 넘어가도 돼요.',
 		calendar: () => '날짜 선택 단계입니다. 달력에서 이사할 날짜를 고르고, 아래에서 시간을 선택해주세요. 빨간 날짜는 비용이 오를 수 있습니다.',
 		memo: () => '요청 사항 단계입니다. 귀중품이나 담당자에게 남길 말이 있으면 적어주세요. 없으면 다음을 누르세요.',
 		summary: () => '견적 확인 단계입니다. 예상 금액과 입력한 이사 정보를 확인해주세요. 바꿀 내용이 있으면 수정 버튼을 누르세요.',

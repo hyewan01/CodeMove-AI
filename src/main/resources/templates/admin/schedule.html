@@ -19,44 +19,51 @@
 			<span th:each="w, it : ${ {'일', '월', '화', '수', '목', '금', '토'} }" th:text="${w}"
 				  th:class="${it.index == 0} ? 'text-[#c85f57]' : (${it.index == 6} ? 'text-[#557fa3]' : 'text-[#858d87]')"></span>
 		</div>
-		<!-- 달력 칸: 날짜 + (손 없는 날·공휴일 점은 날짜 옆) + 일정 막대 최대 2개, 넘치면 +N. 자세한 내용은 아래 날짜 상세 -->
-		<div class="mt-2 grid grid-cols-7">
+		<!-- 달력 칸: 옅은 칸 + 가운데 날짜, 일정은 왼쪽 색 막대 + 한 줄 글씨(넘치면 잘림). 휴무·불가·마감은 옅은 색 띠. 자세한 내용은 아래 날짜 상세 -->
+		<div class="mt-2 grid grid-cols-7 gap-[3px]">
 			<th:block th:each="c : ${cells}">
-				<span th:if="${c.day == null}" class="min-h-[78px]"></span>
+				<span th:if="${c.day == null}" class="min-h-[84px]"></span>
 				<a th:unless="${c.day == null}" th:href="@{/admin/schedule(y=${y},m=${m},d=${c.day})}"
 				   th:with="n=${(c.managed != null ? 1 : 0) + (c.full ? 1 : 0) + (c.event != null ? 1 : 0) + (c.manual != null ? 1 : 0)}"
-				   class="flex min-h-[78px] min-w-0 flex-col gap-[3px] border-t border-[#f0f2f0] px-[3px] pb-1.5 pt-1.5 text-left"
-				   th:classappend="${c.day == d} ? 'rounded-lg bg-[#edf3ed]'">
-					<span class="flex items-center gap-1 pl-0.5">
-						<span class="text-[15px] font-bold leading-none" th:classappend="${c.holiday or c.weekday == 0} ? 'text-[#c85f57]' : (${c.weekday == 6} ? 'text-[#557fa3]' : 'text-[#3f4741]')" th:text="${c.day}">1</span>
-						<span th:if="${c.noMove}" class="h-1.5 w-1.5 shrink-0 rounded-full bg-[#4f80ac]" title="손 없는 날"></span>
-						<span th:if="${c.holiday}" class="h-1.5 w-1.5 shrink-0 rounded-full bg-[#c85f57]" title="공휴일"></span>
+				   class="flex min-h-[84px] min-w-0 flex-col gap-[3px] overflow-hidden rounded-[10px] border-[1.5px] px-[2px] pb-1.5 pt-1.5 text-left"
+				   th:classappend="${c.day == d} ? 'border-[#346538] bg-white' : (${c.key == todayKey} ? 'border-transparent bg-[#eef4ee]' : 'border-transparent bg-[#f7f8f7]')">
+					<span class="relative flex h-[22px] items-center justify-center">
+						<span class="grid h-[22px] min-w-[22px] place-items-center rounded-full px-1 text-[14px] font-semibold leading-none"
+							  th:classappend="${c.key == todayKey} ? 'bg-[#346538] text-white' : (${c.holiday or c.weekday == 0} ? 'text-[#c85f57]' : (${c.weekday == 6} ? 'text-[#4f80ac]' : 'text-[#3f4741]'))"
+							  th:text="${c.day}">1</span>
+						<span class="absolute right-[3px] top-[2px] flex gap-[2px]">
+							<span th:if="${c.noMove}" class="h-[5px] w-[5px] rounded-full bg-[#4f80ac]" title="손 없는 날"></span>
+							<span th:if="${c.holiday}" class="h-[5px] w-[5px] rounded-full bg-[#c85f57]" title="공휴일"></span>
+						</span>
 					</span>
-					<!-- 상태(휴무·불가·마감)는 짧은 진한 표시로 눈에 띄게, 일정 이름은 옅은 바탕 + 색 글씨로 한 줄 (자세한 건 아래 날짜 상세) -->
-					<span th:if="${c.managed}" class="block w-full rounded-[5px] py-[2px] text-center text-[12px] font-bold leading-[1.3] text-white"
-						  th:classappend="${c.managed == 'closed'} ? 'bg-[#343a35]' : 'bg-[#E8740C]'"
+					<span th:if="${c.managed}" class="block w-full rounded-[4px] py-[2px] text-center text-[11px] font-semibold leading-[1.3]"
+						  th:classappend="${c.managed == 'closed'} ? 'bg-[#e4e6e4] text-[#343a35]' : 'bg-[#fdebd9] text-[#b4590b]'"
 						  th:title="${c.managed == 'closed'} ? '업체 휴무' : '예약 불가'"
 						  th:text="${c.managed == 'closed'} ? '휴무' : '불가'"></span>
-					<span th:if="${c.full}" class="block w-full rounded-[5px] bg-[#c34f45] py-[2px] text-center text-[12px] font-bold leading-[1.3] text-white" title="예약 마감">마감</span>
-					<span th:if="${c.event != null and (c.managed == null and !c.full or n &lt;= 2)}" class="line-clamp-2 w-full break-keep rounded-[5px] px-[3px] py-[2px] text-center text-[12px] font-semibold leading-[1.3]"
-						  th:classappend="${c.event.status == '승인 대기'} ? 'bg-[#e4edf6] text-[#3a6890]' : (${c.event.status == '예약 확정'} ? 'bg-[#e2efe3] text-[#2f6b35]' : 'bg-[#eceeec] text-[#59635b]')"
-						  th:title="${c.more > 0} ? ${c.event.name} + ' 외 ' + ${c.more} + '건' : ${c.event.name}"
-						  th:text="${c.event.name}"></span>
-					<span th:if="${c.manual != null and n &lt;= 2}" class="line-clamp-2 w-full break-keep rounded-[5px] px-[3px] py-[2px] text-center text-[12px] font-semibold leading-[1.3]"
-						  th:classappend="${c.manual.category == '업체 휴무일'} ? 'bg-[#e6e8e6] text-[#343a35]' : (${c.manual.category == '견적 상담'} ? 'bg-[#ebe8f6] text-[#5f539c]' : 'bg-[#eef0ee] text-[#5f6861]')"
-						  th:title="${c.manual.title}" th:text="${c.manual.title}"></span>
+					<span th:if="${c.full}" class="block w-full rounded-[4px] bg-[#f9e2e0] py-[2px] text-center text-[11px] font-semibold leading-[1.3] text-[#b2433a]" title="예약 마감">마감</span>
+					<span th:if="${c.event != null and (c.managed == null and !c.full or n &lt;= 2)}" class="flex min-w-0 items-center gap-[3px]"
+						  th:title="${c.more > 0} ? ${c.event.name} + ' 외 ' + ${c.more} + '건' : ${c.event.name}">
+						<i class="h-[13px] w-[3px] shrink-0 rounded-full"
+						   th:classappend="${c.event.status == '승인 대기'} ? 'bg-[#4f80ac]' : (${c.event.status == '예약 확정'} ? 'bg-[#4f8b55]' : 'bg-[#9aa29c]')"></i>
+						<span class="min-w-0 overflow-hidden whitespace-nowrap text-[11.5px] font-medium leading-[1.3] text-[#3a423c]" th:text="${c.event.name}"></span>
+					</span>
+					<span th:if="${c.manual != null and n &lt;= 2}" class="flex min-w-0 items-center gap-[3px]" th:title="${c.manual.title}">
+						<i class="h-[13px] w-[3px] shrink-0 rounded-full"
+						   th:classappend="${c.manual.category == '업체 휴무일'} ? 'bg-[#343a35]' : (${c.manual.category == '견적 상담'} ? 'bg-[#7a6db0]' : 'bg-[#9aa29c]')"></i>
+						<span class="min-w-0 overflow-hidden whitespace-nowrap text-[11.5px] font-medium leading-[1.3] text-[#3a423c]" th:text="${c.manual.title}"></span>
+					</span>
 					<!-- th:if 가 th:with 보다 먼저 계산되어 식을 그대로 씀 -->
-					<span th:if="${c.more + (n > 2 ? n - 2 : 0) > 0}" class="text-center text-[11px] font-semibold leading-none text-[#8a938c]" th:text="'+' + ${c.more + (n > 2 ? n - 2 : 0)} + '건'">+1건</span>
+					<span th:if="${c.more + (n > 2 ? n - 2 : 0) > 0}" class="pl-[6px] text-[10.5px] font-medium leading-none text-[#8a938c]" th:text="'+' + ${c.more + (n > 2 ? n - 2 : 0)}">+1</span>
 				</a>
 			</th:block>
 		</div>
 		<div class="mt-3 flex flex-wrap gap-x-3 gap-y-1.5 border-t border-[#edf0ed] pt-3 text-[13px] text-[#5f6761]">
-			<span><b class="mr-1 inline-block h-2 w-2 bg-[#343a35]"></b>업체 휴무일</span>
-			<span><b class="mr-1 inline-block h-2 w-2 bg-[#F57C00]"></b>예약 불가</span>
-			<span><b class="mr-1 inline-block h-2 w-2 bg-[#4f80ac]"></b>승인 대기</span>
-			<span><b class="mr-1 inline-block h-2 w-2 bg-[#4f8b55]"></b>예약 확정</span>
-			<span><b class="mr-1 inline-block h-2 w-2 bg-[#59635b]"></b>이사 완료</span>
-			<span><b class="mr-1 inline-block h-2 w-2 bg-[#7a6db0]"></b>견적 상담</span>
+			<span><b class="mr-1 inline-block h-[10px] w-[3px] rounded-full align-[-1px] bg-[#343a35]"></b>업체 휴무일</span>
+			<span><b class="mr-1 inline-block h-[10px] w-[3px] rounded-full align-[-1px] bg-[#F57C00]"></b>예약 불가</span>
+			<span><b class="mr-1 inline-block h-[10px] w-[3px] rounded-full align-[-1px] bg-[#4f80ac]"></b>승인 대기</span>
+			<span><b class="mr-1 inline-block h-[10px] w-[3px] rounded-full align-[-1px] bg-[#4f8b55]"></b>예약 확정</span>
+			<span><b class="mr-1 inline-block h-[10px] w-[3px] rounded-full align-[-1px] bg-[#59635b]"></b>이사 완료</span>
+			<span><b class="mr-1 inline-block h-[10px] w-[3px] rounded-full align-[-1px] bg-[#7a6db0]"></b>견적 상담</span>
 			<span><b class="mr-1 inline-block h-2 w-2 rounded-full bg-[#4f80ac]"></b>손 없는 날</span>
 			<span><b class="mr-1 inline-block h-2 w-2 rounded-full bg-[#c85f57]"></b>공휴일</span>
 		</div>

@@ -44,13 +44,13 @@
 		<a class="action notification-button" th:href="@{/notifications}"
 		   th:aria-label="${cs.notificationCount > 0} ? '알림 ' + ${cs.notificationCount} + '개' : '알림'">
 			<img alt="" class="bell" th:src="@{/assets/0ebe3.svg}">
-			<span class="notification-dot" th:if="${cs.notificationCount > 0}"></span>
+			<span class="notification-dot" th:if="${cs.loggedIn}" th:hidden="${cs.notificationCount == 0}" data-badge-notifications></span>
 		</a>
 	</div>
 </div>
 
 <!-- 하단 내비게이션: active = home / move / quote / chat / profile -->
-<nav th:fragment="bottomNav(active)" class="bottom-nav" th:classappend="${cs.easy} ? 'easy-bottom-nav'">
+<nav th:fragment="bottomNav(active)" class="bottom-nav" th:data-badges-url="${cs.loggedIn} ? @{/badges}" th:classappend="${cs.easy} ? 'easy-bottom-nav'">
 	<a class="action nav-item" th:href="@{/home}" aria-label="홈"
 	   th:classappend="${active == 'home'} ? 'selected'">
 		<div class="nav-icon"><img alt="" th:src="${active == 'home'} ? @{/assets/b676d.svg} : @{/assets/home-outline.svg}"></div>
@@ -70,7 +70,7 @@
 	   th:classappend="${(active == 'chat' ? 'selected ' : '') + (!cs.loggedIn ? 'nav-locked' : '')}">
 		<div class="nav-icon"><img alt="" th:src="${active == 'chat'} ? @{/assets/chat-active.svg} : @{/assets/d6860.svg}">
 			<!-- 상담사 답변을 아직 안 봤으면 빨간 점 (상담 화면을 열면 사라짐) -->
-			<span class="nav-dot" th:if="${cs.chatUnread and active != 'chat'}" aria-label="새 상담 답변"></span></div>
+			<span class="nav-dot" th:if="${cs.loggedIn and active != 'chat'}" th:hidden="${!cs.chatUnread}" aria-label="새 상담 답변" data-badge-chat></span></div>
 		<div>채팅</div>
 	</a>
 	<a class="action nav-item" th:href="@{/more}" aria-label="더보기"

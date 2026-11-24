@@ -619,6 +619,16 @@ public class CustomerPageController {
 
 	/* ---------- 상담 (SCR-U-017~019) ---------- */
 
+	/** 화면을 연 채로 있어도 하단 채팅 점 · 알림 점이 바로 뜨게 (customer.js 가 주기적으로 물어봄) */
+	@GetMapping("/badges")
+	@org.springframework.web.bind.annotation.ResponseBody
+	public java.util.Map<String, Object> badges(HttpSession session) {
+		CustomerSession cs = CustomerSession.of(session);
+		if (cs == null || !cs.isLoggedIn()) return java.util.Map.of("chat", false, "notifications", 0);
+		long memberId = cs.getMemberId();
+		return java.util.Map.of("chat", notifications.hasUnreadChat(memberId), "notifications", notifications.unreadCount(memberId));
+	}
+
 	@GetMapping("/chat")
 	public String chat(HttpSession session, Model model) {
 		long memberId = memberId(session);

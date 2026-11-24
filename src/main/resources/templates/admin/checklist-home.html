@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html th:replace="~{admin/fragments/layout :: layout('체크리스트 관리', '', true, ~{::content})}" lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 체크리스트 관리: 고객 진행 현황 한눈에 + 고객별 진행 현황 · 항목 관리 -->
+<th:block th:fragment="content">
+<div class="h-full overflow-y-auto bg-[#f5f6f8] px-4 pb-6 pt-5">
+	<div class="mb-5">
+		<p class="text-[14px] font-bold tracking-[0.12em] text-[#879189]">MOVING CHECKLIST</p>
+		<h1 class="mt-1 text-[21px] font-extrabold tracking-[-0.04em] text-[#253328]">체크리스트 관리</h1>
+	</div>
+
+	<section class="rounded-[22px] bg-white p-5 shadow-[0_8px_24px_rgba(36,58,39,.08)]">
+		<div class="flex items-center gap-2 text-[#346538]">
+			<span class="grid h-8 w-8 place-items-center rounded-xl bg-[#edf3ed]"><svg th:replace="~{admin/fragments/icon :: icon2('check', 18, '')}"></svg></span>
+			<h2 class="text-[15px] font-extrabold text-[#3a403b]">고객 준비 현황</h2>
+		</div>
+		<div class="py-5 text-center">
+			<strong class="text-[42px] font-extrabold tracking-[-0.06em] text-[#346538]"><th:block th:text="${avgPercent}">40</th:block><span class="ml-0.5 text-[19px] tracking-normal">%</span></strong>
+			<p class="mt-1 text-[14px] font-semibold text-[#7d867f]">체크리스트를 쓰는 고객의 평균 진행률</p>
+			<div class="mx-auto mt-4 h-2 w-[78%] overflow-hidden rounded-full bg-[#e8eee8]">
+				<i class="block h-full rounded-full bg-[#346538]" th:style="'width:' + ${avgPercent} + '%'"></i>
+			</div>
+		</div>
+		<div class="grid grid-cols-2 divide-x divide-[#edf0ed] rounded-xl bg-[#f7f8f7] py-3 text-center">
+			<div><b class="block text-[19px] font-extrabold text-[#2e3630]" th:text="${peopleCount} + '명'">3명</b><span class="text-[13px] text-[#858d87]">쓰는 고객</span></div>
+			<div><b class="block text-[19px] font-extrabold text-[#2e3630]" th:text="${doneCount} + '명'">1명</b><span class="text-[13px] text-[#858d87]">모두 끝낸 고객</span></div>
+		</div>
+	</section>
+
+	<div class="mt-5 space-y-3">
+		<a class="flex w-full items-center gap-4 rounded-[18px] border border-white bg-white p-4 text-left shadow-[0_5px_18px_rgba(36,58,39,.06)] transition active:scale-[.99]"
+		   th:href="@{/admin/checklist/customers}">
+			<span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon2('people', 22, '')}"></svg></span>
+			<span class="min-w-0 flex-1">
+				<strong class="block text-[15px] text-[#2e3630]">고객별 진행 현황</strong>
+				<span class="mt-1 block text-[14px] text-[#858d87]">고객마다 단계별로 얼마나 체크했는지</span>
+			</span>
+			<span class="grid h-6 min-w-6 place-items-center rounded-full bg-[#346538] px-1.5 text-[14px] font-extrabold text-white" th:text="${peopleCount}">3</span>
+			<svg th:replace="~{admin/fragments/icon :: icon2('arrowRight', 18, 'text-[#9aa19b]')}"></svg>
+		</a>
+		<a class="flex w-full items-center gap-4 rounded-[18px] border border-white bg-white p-4 text-left shadow-[0_5px_18px_rgba(36,58,39,.06)] transition active:scale-[.99]"
+		   th:href="@{/admin/checklist/items}">
+			<span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon2('edit', 22, '')}"></svg></span>
+			<span class="min-w-0 flex-1">
+				<strong class="block text-[15px] text-[#2e3630]">체크리스트 항목 관리</strong>
+				<span class="mt-1 block text-[14px] leading-5 text-[#858d87]"
+					  th:text="'단계별 기본 할 일 ' + ${itemCount} + '개' + (${hiddenCount} > 0 ? ' · 숨김 ' + ${hiddenCount} + '개' : '') + ' · 고치기 · 더하기 · 숨기기'">단계별 기본 할 일</span>
+			</span>
+			<svg th:replace="~{admin/fragments/icon :: icon2('arrowRight', 18, 'text-[#9aa19b]')}"></svg>
+		</a>
+	</div>
+</div>
+</th:block>
+</body>
+</html>
