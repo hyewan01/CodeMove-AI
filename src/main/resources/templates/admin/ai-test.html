@@ -39,6 +39,56 @@
 		<p class="text-[12px] text-[#969d98]">1분 영상 기준 30초~2분 걸려요. 끝나면 결과 화면으로 이동합니다.</p>
 	</form>
 
+	<!-- 테스트 영상 폴더: 영상을 넣으면 여기 나타나고, 같은 이름의 .csv 가 있으면 정답으로 비교 -->
+	<form class="space-y-3 rounded-[20px] bg-white p-5 shadow-[0_5px_18px_rgba(36,58,39,.06)]" method="post"
+		  th:action="@{/admin/ai-test/folder}" data-ai-folder-form>
+		<div>
+			<p class="text-[17px] font-extrabold text-[#303832]">테스트 영상 폴더 <span class="text-[#346538]" th:if="${folderConfigured}" th:text="${#lists.size(folderVideos)} + '개'">0개</span></p>
+			<p class="mt-1 break-all text-[12px] text-[#969d98]" th:text="${folderConfigured} ? ${folderDir} : 'application-local.yml 의 codemove.ai.test-video-dir 에 폴더를 적으면 나타나요' + (${folderDir} != '' ? ' (지금 값: ' + ${folderDir} + ' — 폴더 없음)' : '')">경로</p>
+		</div>
+		<th:block th:if="${folderConfigured}">
+			<p class="rounded-xl bg-[#e8f3e9] px-3 py-2 text-[13px] font-semibold text-[#346538]" th:if="${batch != null and batch.running}" data-batch-running
+			   th:text="'전체 분석 중 ' + ${batch.done} + '/' + ${batch.total} + ' · 지금: ' + ${batch.current} + ' (' + ${batch.prompt} + ')'">전체 분석 중</p>
+			<p class="rounded-xl bg-[#f5f7f5] px-3 py-2 text-[13px] text-[#535b55]" th:if="${batch != null and !batch.running}"
+			   th:text="'지난 전체 분석: ' + ${batch.done} + '/' + ${batch.total} + '개 끝남 (' + ${batch.prompt} + ')' + (${batch.stopReason} != null ? ' · 멈춤: ' + ${batch.stopReason} : '')">지난 전체 분석</p>
+			<p class="text-[13px] text-[#969d98]" th:if="${#lists.isEmpty(folderVideos)}">폴더에 영상(mp4·mov·webm)이 없어요</p>
+			<div class="flex items-center justify-between gap-3 border-t border-[#edf0ed] pt-3" th:each="v : ${folderVideos}">
+				<div class="min-w-0">
+					<p class="truncate text-[15px] font-bold text-[#303832]" th:text="${v.name}">테스트 1.mp4</p>
+					<p class="text-[12px]" th:classappend="${v.truthError != null} ? 'text-[#c2410c]' : (${v.hasTruth} ? 'text-[#346538]' : 'text-[#969d98]')"
+					   th:text="${v.mb} + 'MB · ' + (${v.truthError != null} ? '정답 파일 오류: ' + ${v.truthError} : (${v.hasTruth} ? '정답 있음' : '정답 없음 (같은 이름 .csv 를 넣으면 비교)'))">정답 없음</p>
+				</div>
+				<button class="h-9 shrink-0 rounded-xl border border-[#346538] px-3 text-[13px] font-bold text-[#346538] disabled:opacity-60" type="submit"
+						name="name" th:value="${v.name}" th:disabled="${!configured}">분석</button>
+			</div>
+			<div class="flex items-center justify-between gap-3 border-t border-[#edf0ed] pt-3" th:unless="${#lists.isEmpty(folderVideos)}">
+				<select class="h-10 rounded-lg border border-[#dfe4df] bg-white px-3 text-[14px] font-semibold text-[#535b55]" name="prompt" aria-label="프롬프트 버전">
+					<option th:each="v : ${promptVersions}" th:value="${v}" th:text="${v == promptVersion} ? ${v} + ' (기본)' : ${v}">v3</option>
+				</select>
+				<button class="h-10 rounded-xl bg-[#346538] px-4 text-[14px] font-bold text-white disabled:opacity-60" type="submit"
+						th:formaction="@{/admin/ai-test/folder/all}" th:disabled="${!configured or (batch != null and batch.running)}">전체 분석 (뒤에서)</button>
+			</div>
+			<p class="text-[12px] text-[#969d98]">"분석"은 끝나면 결과 화면으로 가요. "전체 분석"은 뒤에서 하나씩 돌고, 이 화면에서 진행 상황을 볼 수 있어요.</p>
+		</th:block>
+	</form>
+
+	<!-- 폴더 영상별 결과 묶음 (같은 영상·프롬프트·모델끼리) -->
+	<section class="space-y-3" th:unless="${#lists.isEmpty(summaries)}">
+		<p class="px-1 text-[17px] font-extrabold text-[#303832]">영상별 결과 <span class="text-[13px] font-semibold text-[#969d98]">같은 영상을 여러 번 돌린 결과의 평균 (최소~최대)</span></p>
+		<a class="block rounded-[20px] bg-white p-4 shadow-[0_5px_18px_rgba(36,58,39,.06)]" th:each="s : ${summaries}"
+		   th:href="${s.truthKey != ''} ? @{/admin/ai-test/{id}(id=${s.lastId},truth=${s.truthKey})} : @{/admin/ai-test/{id}(id=${s.lastId})}">
+			<div class="flex items-center justify-between gap-2">
+				<strong class="truncate text-[15px] text-[#303832]" th:text="${s.video}">테스트 1.mp4</strong>
+				<span class="shrink-0 rounded-full bg-[#f5f7f5] px-2 py-0.5 text-[12px] font-bold text-[#535b55]" th:text="${s.runs} + '번'">1번</span>
+			</div>
+			<p class="mt-1 text-[13px] text-[#7d857f]" th:text="${s.prompt} + ' · ' + ${s.model}">v3 · gemini</p>
+			<p class="mt-1 text-[13px] font-semibold text-[#303832]" th:if="${s.f1Avg != null}"
+			   th:text="'F1 ' + ${#numbers.formatDecimal(s.f1Avg, 1, 0)} + '% (' + ${#numbers.formatDecimal(s.f1Min, 1, 0)} + '~' + ${#numbers.formatDecimal(s.f1Max, 1, 0)} + ')'">F1</p>
+			<p class="mt-1 text-[13px] text-[#535b55]"
+			   th:text="'물품 ' + ${#numbers.formatDecimal(s.cbmAvg, 1, 1)} + ' CBM (' + ${#numbers.formatDecimal(s.cbmMin, 1, 1)} + '~' + ${#numbers.formatDecimal(s.cbmMax, 1, 1)} + ')' + (${s.truthCbm != null} ? ' · 정답 ' + ${#numbers.formatDecimal(s.truthCbm, 1, 1)} : ' · 정답 없음')">CBM</p>
+		</a>
+	</section>
+
 	<section class="space-y-3">
 		<p class="px-1 text-[17px] font-extrabold text-[#303832]">분석 기록 <span class="text-[#346538]" th:text="${#lists.size(history)} + '건'">0건</span></p>
 		<p class="rounded-[20px] bg-white p-5 text-center text-[14px] text-[#969d98] shadow-[0_5px_18px_rgba(36,58,39,.06)]" th:if="${#lists.isEmpty(history)}">아직 기록이 없어요</p>
@@ -63,6 +113,15 @@
 		const b = document.querySelector('[data-ai-test-submit]');
 		setTimeout(() => { b.disabled = true; b.textContent = '분석 중… (최대 몇 분)'; }, 0);
 	});
+	document.querySelector('[data-ai-folder-form]')?.addEventListener('submit', (e) => {
+		const clicked = e.submitter;
+		setTimeout(() => {
+			e.target.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+			if (clicked) clicked.textContent = clicked.name === 'name' ? '분석 중…' : '시작 중…';
+		}, 0);
+	});
+	// 전체 분석이 도는 동안 15초마다 새로 고침
+	if (document.querySelector('[data-batch-running]')) setTimeout(() => location.reload(), 15000);
 </script>
 </th:block>
 </body>

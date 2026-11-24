@@ -47,6 +47,9 @@ codemove:
       price-date: 2026-11-23
     # 분석 기록(토큰·비용·결과 JSON) 폴더, Git 제외
     log-dir: ai-logs
+    # 테스트 영상 폴더 (관리자 AI 테스트 화면). 개인 경로라 application-local.yml 에 적습니다.
+    # 영상과 같은 이름의 .csv 를 두면 정답 목록으로 비교 (형식: docs/estimate/testset/*.csv)
+    test-video-dir: ""
 
 mybatis:
   mapper-locations: classpath:mapper/**/*.xml

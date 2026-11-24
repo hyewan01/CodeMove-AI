@@ -39,17 +39,23 @@ public final class GroundTruth {
 		}
 	}
 
-	private record Line(String name, String size, int qty) {
+	/** 정답 한 줄 (품목명 · 크기코드 · 수량) */
+	public record Line(String name, String size, int qty) {
 	}
 
 	private GroundTruth() {
 	}
 
 	public static Score score(String set, List<MappedItem> items) {
+		return score(set, load(set), items);
+	}
+
+	/** @param set 화면에 보일 이름 (테스트셋 이름 또는 "폴더:테스트 1") */
+	public static Score score(String set, List<Line> truth, List<MappedItem> items) {
 		Map<String, int[]> qty = new LinkedHashMap<>(); // name → {정답, AI}
 		Map<String, double[]> cbm = new LinkedHashMap<>();
 		int expOther = 0, detOther = 0;
-		for (Line l : load(set)) {
+		for (Line l : truth) {
 			ItemCatalog.Item item = ItemCatalog.find(l.name());
 			if (item == null) {
 				expOther += l.qty();
@@ -89,7 +95,25 @@ public final class GroundTruth {
 		if (!SETS.contains(set)) {
 			throw new IllegalArgumentException("없는 테스트셋: " + set);
 		}
-		return Csv.rows("testset/" + set + ".csv").stream()
-				.map(c -> new Line(c.get(1).trim(), c.get(2).trim(), Integer.parseInt(c.get(3).trim()))).toList();
+		return lines(Csv.rows("testset/" + set + ".csv"), set);
+	}
+
+	/** 테스트 영상 폴더의 정답 파일 (영상과 같은 이름의 .csv, 형식은 docs/estimate/testset 과 같음) */
+	public static List<Line> read(java.nio.file.Path csv) {
+		return lines(Csv.rows(csv), csv.getFileName().toString());
+	}
+
+	/** 공간,품목명,크기코드,수량,... — 잘못된 줄은 몇 번째 줄인지 알려 줌 */
+	private static List<Line> lines(List<List<String>> rows, String file) {
+		List<Line> out = new ArrayList<>();
+		for (int i = 0; i < rows.size(); i++) {
+			List<String> c = rows.get(i);
+			try {
+				out.add(new Line(c.get(1).trim(), c.size() > 2 ? c.get(2).trim() : "", Integer.parseInt(c.get(3).trim())));
+			} catch (RuntimeException e) {
+				throw new IllegalArgumentException(file + " " + (i + 2) + "번째 줄을 읽지 못했어요 (공간,품목명,크기코드,수량 순서)");
+			}
+		}
+		return out;
 	}
 }

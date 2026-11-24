@@ -3,7 +3,6 @@ package com.codemove.estimate;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -21,8 +20,39 @@ final class Csv {
 		if (in == null) {
 			throw new IllegalStateException("estimate/" + file + " 가 클래스패스에 없습니다 (gradle processResources 확인)");
 		}
+		try (in) {
+			return parse(new String(in.readAllBytes(), StandardCharsets.UTF_8));
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+	}
+
+	/**
+	 * 디스크의 CSV (테스트 영상 폴더의 정답 파일). 엑셀에서 저장하면 UTF-8(BOM) 이 아니라 CP949 일 수 있어서
+	 * UTF-8 로 읽히지 않으면 CP949 로 다시 읽습니다.
+	 */
+	static List<List<String>> rows(java.nio.file.Path file) {
+		try {
+			byte[] bytes = java.nio.file.Files.readAllBytes(file);
+			String text;
+			try {
+				text = StandardCharsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(bytes)).toString();
+			} catch (java.nio.charset.CharacterCodingException e) {
+				text = new String(bytes, java.nio.charset.Charset.forName("MS949"));
+			}
+			return parse(text);
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+	}
+
+	/** 헤더를 뺀 행들 */
+	private static List<List<String>> parse(String text) {
+		if (text.startsWith("﻿")) {
+			text = text.substring(1);
+		}
 		List<List<String>> rows = new ArrayList<>();
-		try (BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+		try (BufferedReader r = new BufferedReader(new java.io.StringReader(text))) {
 			r.readLine();
 			for (String line; (line = r.readLine()) != null;) {
 				if (!line.isBlank()) {
