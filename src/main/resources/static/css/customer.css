@@ -919,7 +919,7 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 @keyframes chat-typing { 0%, 60%, 100% { transform: translateY(0); opacity: .45; } 30% { transform: translateY(-3px); opacity: 1; } }
 .chat-input { position: fixed; z-index: 21; left: max(10px, calc(var(--safe-left) + 8px)); right: max(10px, calc(var(--safe-right) + 8px)); bottom: max(12px, calc(var(--safe-bottom) + 8px)); min-height: 54px; padding: 6px; box-sizing: border-box; border-radius: 15px; background: var(--white); display: flex; flex-direction: column; gap: 6px; color: #b3b3b3; font-size: 13px; box-shadow: 0 3px 16px rgb(0 0 0 / .06); }
 .chat-input-row { min-height: 42px; display: flex; align-items: center; gap: 7px; }
-.chat-editor { flex: 1; max-height: 72px; overflow-y: auto; outline: none; font-size: var(--text-body); line-height: 1.5; }
+.chat-editor { flex: 1; max-height: 72px; overflow-y: auto; outline: none; color: var(--ink); font-size: var(--text-body); line-height: 1.5; }
 .chat-editor:empty::before { content: attr(data-placeholder); color: #b5b5ba; pointer-events: none; }
 .chat-attach, .chat-send { width: 44px; height: 44px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; }
 .chat-attach { background: var(--surface); }

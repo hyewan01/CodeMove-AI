@@ -47,6 +47,27 @@ public class AdminChatController {
 		return "admin/chat-home";
 	}
 
+	/**
+	 * 하단 챗봇 점 · 종 점 · 새 고객 메시지 토스트용. latest.key 가 바뀌면 화면이 토스트를 띄움
+	 * (key = 방 번호 + 마지막 고객 메시지 시각)
+	 */
+	@GetMapping("/badges")
+	@org.springframework.web.bind.annotation.ResponseBody
+	public java.util.Map<String, Object> badges(org.springframework.web.context.request.WebRequest request) {
+		List<ChatRoomLine> rooms = chats.rooms();
+		java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
+		out.put("chat", rooms.stream().mapToInt(r -> r.getUnread() == null ? 0 : r.getUnread()).sum());
+		rooms.stream().filter(r -> r.getUnread() != null && r.getUnread() > 0 && r.getLastCustomerAt() != null)
+				.max(java.util.Comparator.comparing(ChatRoomLine::getLastCustomerAt))
+				.ifPresent(r -> out.put("latest", java.util.Map.of(
+						"key", r.getRoomId() + "@" + r.getLastCustomerAt(),
+						"roomId", r.getRoomId(),
+						"title", (r.getMemberName() == null ? "고객" : r.getMemberName()) + " 고객님 메시지",
+						"message", r.getLastMessage() == null ? "새 메시지가 왔어요" : r.getLastMessage(),
+						"href", request.getContextPath() + "/admin/chats/" + r.getRoomId())));
+		return out;
+	}
+
 	/* ---------- 채팅 목록 · 상세 ---------- */
 
 	/** filter: all|waiting|unread, sort: latest|unread, from=management 면 채팅 관리로 돌아가는 버튼 표시 */

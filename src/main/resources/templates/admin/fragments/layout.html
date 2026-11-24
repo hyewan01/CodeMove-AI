@@ -39,7 +39,7 @@
 							data-open="notifications" type="button">
 						<svg th:replace="~{admin/fragments/icon :: icon('bell', 21, '')}"></svg>
 						<span class="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-[#d9824b]" data-unread-dot
-							  th:if="${hasUnreadNotifications}" th:data-read-url="@{/admin/notifications/panel-read}"></span>
+							  th:hidden="${!hasUnreadNotifications}" th:data-read-url="@{/admin/notifications/panel-read}"></span>
 					</button>
 				</div>
 			</header>
@@ -48,7 +48,7 @@
 				<th:block th:replace="${content}"></th:block>
 			</div>
 
-			<nav class="absolute inset-x-0 bottom-0 z-30 grid h-[82px] grid-cols-5 border-t border-[#e7ebe7] bg-white/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md">
+			<nav th:data-badges-url="@{/admin/badges}" class="absolute inset-x-0 bottom-0 z-30 grid h-[82px] grid-cols-5 border-t border-[#e7ebe7] bg-white/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md">
 				<th:block th:each="tab : ${ {
 						{'예약일정', 'calendar', 'schedule', '/admin/schedule'},
 						{'견적', 'document', 'estimates', '/admin/estimates'},
@@ -59,8 +59,11 @@
 						<a th:if="${tab[3] != ''}" th:href="@{${tab[3]}}" th:aria-label="${tab[0]}"
 						   class="flex flex-col items-center justify-start gap-1 text-[14px] font-semibold"
 						   th:classappend="${isActive} ? 'text-[#346538]' : 'text-[#899089]'">
-							<span class="grid h-9 w-11 place-items-center rounded-2xl" th:classappend="${isActive} ? 'bg-[#eaf1ea]'">
+							<span class="relative grid h-9 w-11 place-items-center rounded-2xl" th:classappend="${isActive} ? 'bg-[#eaf1ea]'">
 								<svg th:replace="~{admin/fragments/icon :: icon(${tab[1]}, 20, '')}"></svg>
+								<!-- 안 읽은 고객 메시지가 있으면 빨간 점 (화면을 열어 둔 채여도 admin.js 가 15초마다 갱신) -->
+								<span th:if="${tab[2] == 'chat'}" class="absolute right-[7px] top-[5px] h-[9px] w-[9px] rounded-full border-2 border-white bg-[#e5483f]"
+									  aria-label="안 읽은 고객 메시지" th:hidden="${chatUnread == null or chatUnread == 0}" data-chat-dot></span>
 							</span>
 							<th:block th:text="${tab[0]}"></th:block>
 						</a>

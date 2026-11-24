@@ -115,6 +115,8 @@
 		markEdited(entry);
 		if (m.id) byId.set(m.id, entry);
 		if (role === 'user') attachMenu(entry);
+		/* 아래 고정 입력창에 가리지 않게, 입력창 높이만큼 위에서 멈춤 */
+		wrap.style.scrollMarginBottom = `${($('.chat-input') || { offsetHeight: 60 }).offsetHeight + 28}px`;
 		wrap.scrollIntoView({ behavior: 'smooth', block: 'end' });
 		return entry;
 	}

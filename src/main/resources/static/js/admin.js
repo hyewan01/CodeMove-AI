@@ -135,6 +135,39 @@
 		showToast(toast.dataset.initialTitle, toast.dataset.initialMessage, toast.dataset.initialHref);
 	}
 
+	/*
+	 * ---------- 새 고객 메시지: 하단 챗봇 빨간 점 + 고객 알림처럼 위에서 내려오는 토스트 ----------
+	 * 화면을 열어 둔 채여도 15초마다(그리고 화면으로 돌아올 때) /admin/badges 를 물어봄.
+	 * 같은 메시지로 두 번 띄우지 않게 마지막으로 본 key 를 이 탭(sessionStorage)에 기억. 그 방을 보고 있으면 토스트는 생략
+	 */
+	const badgeNav = $('[data-badges-url]');
+	if (badgeNav) {
+		const SEEN = 'codemove.admin.lastChatKey';
+		const seen = {
+			get: () => { try { return sessionStorage.getItem(SEEN); } catch (e) { return null; } },
+			set: (v) => { try { sessionStorage.setItem(SEEN, v); } catch (e) { /* 이 탭에서만 다시 뜰 수 있음 */ } },
+		};
+		const checkBadges = () => {
+			if (document.hidden) return;
+			fetch(badgeNav.dataset.badgesUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+				.then((r) => (r.ok ? r.json() : null))
+				.then((b) => {
+					if (!b) return;
+					$$('[data-chat-dot]').forEach((d) => (d.hidden = !b.chat));
+					const latest = b.latest;
+					if (!latest || latest.key === seen.get()) return;
+					const first = seen.get() === null;
+					seen.set(latest.key);
+					const viewing = location.pathname.endsWith(`/admin/chats/${latest.roomId}`);
+					if (!first && !viewing) showToast(latest.title, latest.message, latest.href);
+				})
+				.catch(() => { /* 다음 확인 때 다시 */ });
+		};
+		checkBadges();
+		setInterval(checkBadges, 15000);
+		document.addEventListener('visibilitychange', checkBadges);
+	}
+
 	/* ---------- 작은 팝오버 열고 닫기 : data-toggle="이름" ↔ data-toggle-target="이름" ---------- */
 	$$('[data-toggle]').forEach((btn) => btn.addEventListener('click', () => {
 		const target = $(`[data-toggle-target="${btn.dataset.toggle}"]`);

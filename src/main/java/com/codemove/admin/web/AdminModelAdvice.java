@@ -15,10 +15,17 @@ public class AdminModelAdvice {
 
 	private final AdminViews views;
 	private final NotificationService notifications;
+	private final com.codemove.chat.ChatService chats;
 
-	public AdminModelAdvice(AdminViews views, NotificationService notifications) {
+	public AdminModelAdvice(AdminViews views, NotificationService notifications, com.codemove.chat.ChatService chats) {
 		this.views = views;
 		this.notifications = notifications;
+		this.chats = chats;
+	}
+
+	/** 안 읽은 고객 메시지 수 (모든 방 합) */
+	int chatUnread() {
+		return chats.rooms().stream().mapToInt(r -> r.getUnread() == null ? 0 : r.getUnread()).sum();
 	}
 
 	@ModelAttribute
@@ -28,6 +35,7 @@ public class AdminModelAdvice {
 		}
 		model.addAttribute("notificationGroups", AdminViews.grouped(views.notifications()));
 		model.addAttribute("hasUnreadNotifications", notifications.hasUnreadAdmin());
+		model.addAttribute("chatUnread", chatUnread());
 		model.addAttribute("searchMenus", AdminViews.SEARCH_MENUS);
 		model.addAttribute("drawerMenus", AdminViews.DRAWER_MENUS);
 		String query = request.getQueryString();
