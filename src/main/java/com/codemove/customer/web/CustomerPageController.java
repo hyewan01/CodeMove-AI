@@ -645,8 +645,9 @@ public class CustomerPageController {
 	@PostMapping("/chat/messages")
 	@ResponseBody
 	public Map<String, Object> chatMessage(@RequestParam(defaultValue = "") String text,
-			@RequestParam(required = false) MultipartFile file, HttpSession session) {
-		return chats.customerAsk(memberId(session), text, file);
+			@RequestParam(required = false) MultipartFile file, @RequestParam(defaultValue = "") String to,
+			HttpSession session) {
+		return chats.customerAsk(memberId(session), text, file, to);
 	}
 
 	/** 상담사 새 답변(after 이후) + 모든 메시지 상태 (수정 · 삭제 · 읽음) */

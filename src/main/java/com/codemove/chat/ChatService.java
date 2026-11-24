@@ -405,18 +405,23 @@ public class ChatService {
 		return out;
 	}
 
+	public Map<String, Object> customerAsk(long memberId, String text, MultipartFile file) {
+		return customerAsk(memberId, text, file, null);
+	}
+
 	/**
-	 * 고객 메시지 저장 → 챗봇 답변.
+	 * 고객 메시지 저장 → 받는 쪽에 따라 처리. 고객이 입력창 위에서 [AI 도우미 | 상담사]를 고름.
 	 * <ul>
-	 * <li>상담사 연결(요청) → 대기 중(02), 관리자에게 알림</li>
-	 * <li>상담 중(03, 관리자가 답장한 뒤) → 챗봇은 답하지 않음</li>
-	 * <li>로어북 키워드가 맞으면 그 내용으로 답변</li>
-	 * <li>맞는 로어북이 없거나 챗봇이 꺼져 있으면 대응 규칙을 보내고 답변 필요(05)</li>
+	 * <li>to=counselor: AI 는 답하지 않음. 상담이 안 열려 있으면 대기 중(02)으로 열고 "전달했어요" 안내 + 관리자 알림,
+	 * 이미 상담 중이면 관리자 알림만 (방마다 안 읽은 알림 한 줄)</li>
+	 * <li>to=ai: 상담 중이어도 AI 가 답함 (로어북 → 인사 → 거절 → "상담사 연결해 드릴까요?")</li>
+	 * <li>"상담사 연결" 이라고 보내면 어느 쪽이든 상담 요청</li>
+	 * <li>to 가 없으면(예전 화면) 방 상태로 정함</li>
 	 * </ul>
-	 * @return { id: 고객 메시지 번호, reply: { text, actions } | null, lastId }
+	 * @return { id: 고객 메시지 번호, reply: { id, text, actions } | null, lastId, mode }
 	 */
 	@Transactional
-	public Map<String, Object> customerAsk(long memberId, String text, MultipartFile file) {
+	public Map<String, Object> customerAsk(long memberId, String text, MultipartFile file, String to) {
 		ChatRoomLine room = chats.findOpenRoom(memberId);
 		if (room == null) {
 			room = new ChatRoomLine();
@@ -444,11 +449,9 @@ public class ChatService {
 		String name = member.getMemberName();
 		ChatSetting s = settings();
 		Reply reply;
-		if (CONSULTING.equals(room.getStatus()) && consultExpired(roomId)) {
-			chats.updateRoomStatus(roomId, BOT, null); // 관리자 답 없이 24시간 → 다시 AI
-			room.setStatus(BOT);
-		}
 		boolean consulting = CONSULTING.equals(room.getStatus());
+		boolean open = consulting || WAITING.equals(room.getStatus());
+		boolean toCounselor = to == null || to.isBlank() ? open : "counselor".equals(to);
 		if (isConsultRequest(value)) {
 			m.setNeedsReply("Y");
 			if (!consulting) {
@@ -459,12 +462,22 @@ public class ChatService {
 			String hours = consultHours();
 			reply = new Reply("상담사 연결 요청을 접수했어요." + (hours == null ? "" : "\n상담 운영시간(" + hours + ")에 순서대로 답변드려요.")
 					+ "\n기다리시는 동안에도 궁금한 내용을 편하게 물어보세요.", List.of());
-		} else if (consulting) {
-			// 상담 중: AI 는 조용히, 관리자에게 알림 (안 읽은 알림이 이미 있으면 새로 만들지 않음)
-			reply = null;
+		} else if (toCounselor) {
+			// 상담사에게: AI 는 조용히. 상담이 안 열려 있으면 열고 한 번 안내, 관리자 알림 (안 읽은 알림이 있으면 새로 안 만듦)
 			m.setNeedsReply("Y");
 			String preview = value.isEmpty() ? (m.getAttachmentName() == null ? "새 메시지" : "파일: " + m.getAttachmentName()) : cut(value, 80);
-			notifications.toAdminOnce("18", "고객 메시지", name + " 고객님: " + preview, "/admin/chats/" + roomId);
+			if (!open) {
+				chats.updateRoomStatus(roomId, WAITING, null);
+				notifications.toAdmin("13", "채팅 대기", name + " 고객님이 상담사에게 메시지를 보냈습니다: " + preview,
+						"/admin/chats/" + roomId, true);
+				String hours = consultHours();
+				reply = new Reply("상담사에게 전달했어요."
+						+ (hours != null && outOfHours() ? "\n지금은 상담 시간이 아니라서 운영시간(" + hours + ")에 순서대로 답변드려요."
+								: "\n확인하는 대로 이 채팅으로 답변드릴게요."), List.of());
+			} else {
+				reply = null;
+				notifications.toAdminOnce("18", "고객 메시지", name + " 고객님: " + preview, "/admin/chats/" + roomId);
+			}
 		} else if (m.getAttachmentName() != null && value.isEmpty()) {
 			reply = new Reply(m.getAttachmentName() + " 파일을 받았어요.\n상담사가 확인할 수 있도록 함께 전달할게요.",
 					List.of(action(CONSULT_MENU, CONSULT_MENU, null)));
@@ -521,11 +534,21 @@ public class ChatService {
 		return modeOf(chats.findOpenRoom(memberId));
 	}
 
-	/** 상담 중인데 관리자 마지막 메시지가 24시간 넘게 지났으면 끝난 것으로 */
-	private boolean consultExpired(long roomId) {
-		return chats.listMessages(roomId, 0).stream().filter(x -> "03".equals(x.getSenderType()))
-				.map(x -> x.getSentAt()).filter(t -> t != null).max((a, b) -> a.compareTo(b))
-				.map(t -> t.isBefore(java.time.LocalDateTime.now().minusHours(24))).orElse(false);
+	/** 지금이 상담 운영시간 밖인지 (운영시간 사용을 끄면 false). "22:00–06:00" 처럼 자정을 넘겨도 됨 */
+	boolean outOfHours() {
+		ChatSetting s = settings();
+		if (!"Y".equals(s.getConsultEnabled())) {
+			return false;
+		}
+		try {
+			java.time.LocalTime now = java.time.LocalTime.now();
+			java.time.LocalTime start = java.time.LocalTime.parse(s.getStartTime());
+			java.time.LocalTime end = java.time.LocalTime.parse(s.getEndTime());
+			boolean inside = start.isBefore(end) ? !now.isBefore(start) && now.isBefore(end) : !now.isBefore(start) || now.isBefore(end);
+			return !inside;
+		} catch (RuntimeException e) {
+			return false; // 시간 형식이 이상하면 안내만 생략
+		}
 	}
 
 	/** 관리자 "상담 종료": 다시 AI 가 답하고, 고객에게 안내 한 줄 */

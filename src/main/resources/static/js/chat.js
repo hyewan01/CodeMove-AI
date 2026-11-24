@@ -243,9 +243,10 @@
 		dots.setAttribute('aria-label', '답변 작성 중');
 		dots.append(el('i'), el('i'), el('i'));
 		typing.appendChild(dots);
-		thread.appendChild(typing);
+		if (to !== 'counselor') thread.appendChild(typing); // 상담사에게 보낼 땐 '답 쓰는 중' 표시 없음
 		const body = new FormData();
 		body.append('text', text);
+		body.append('to', to);
 		if (file) body.append('file', file);
 		sending++;
 		fetch(URL_MESSAGES, { method: 'POST', body })
@@ -266,7 +267,11 @@
 				byId.set(res.id, entry);
 				lastId = Math.max(lastId, res.lastId || 0);
 				if (res.mode) setMode(res.mode);
-				if (res.reply && !byId.has(res.reply.id)) addMessage({ id: res.reply.id, role: 'bot', text: res.reply.text }, res.reply.actions);
+				if (res.reply && !byId.has(res.reply.id)) {
+					/* 답이 늦게 와도 그 질문 바로 아래에 (그사이 보낸 메시지보다 위) */
+					const r = addMessage({ id: res.reply.id, role: 'bot', text: res.reply.text }, res.reply.actions);
+					entry.wrap.after(r.wrap);
+				}
 			})
 			.catch(() => {
 				typing.remove();
@@ -275,10 +280,27 @@
 	}
 
 	/* 머리글: 누가 답하는지 */
-	function setMode(mode) {
+	/*
+	 * 받는 쪽 [AI 도우미 | 상담사]: 고객이 고름. 서버 쪽 상태가 바뀔 때만 따라감
+	 * (관리자가 메시지를 보냄 · 상담사 연결 요청 → 상담사, 관리자가 상담 종료 → AI)
+	 */
+	let to = root.dataset.mode === 'counselor' ? 'counselor' : 'ai';
+	let serverMode = to;
+	function setTo(next) {
+		to = next === 'counselor' ? 'counselor' : 'ai';
+		root.querySelectorAll('[data-chat-to]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.chatTo === to)));
+		root.classList.toggle('to-counselor', to === 'counselor');
+		editor.dataset.placeholder = to === 'counselor' ? '상담사에게 보낼 메시지' : 'AI 도우미에게 물어보세요';
 		const label = $('[data-chat-mode]');
-		if (label) label.textContent = mode === 'counselor' ? '상담사와 대화 중' : 'AI 이사 도우미';
+		if (label) label.textContent = to === 'counselor' ? '상담사와 대화 중' : 'AI 이사 도우미';
 	}
+	function setMode(mode) {
+		if (mode === serverMode) return;
+		serverMode = mode;
+		setTo(mode);
+	}
+	root.querySelectorAll('[data-chat-to]').forEach((b) => b.addEventListener('click', () => { setTo(b.dataset.chatTo); editor.focus(); }));
+	setTo(to);
 
 	/* 이전 상담 내용 */
 	(window.CHAT_HISTORY || []).forEach((m) => {
@@ -294,7 +316,9 @@
 			.then((res) => {
 				(res.messages || []).forEach((m) => {
 					lastId = Math.max(lastId, m.id);
-					if (!byId.has(m.id)) addMessage(m);
+					if (byId.has(m.id)) return;
+					addMessage(m);
+					if (m.role === 'admin') setTo('counselor'); // 관리자 말에 답장하면 관리자에게 가도록
 				});
 				(res.states || []).forEach(applyState);
 				if (res.mode) setMode(res.mode);

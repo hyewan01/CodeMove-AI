@@ -4,7 +4,7 @@
 <body>
 <div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
 <!-- SCR-U-017~019 AI 챗봇 · 상담원 연결 · 파일 첨부 -->
-<div class="screen chat-screen" data-chat th:data-url="@{/chat/messages}"
+<div class="screen chat-screen" data-chat th:data-url="@{/chat/messages}" th:data-mode="${chatMode}"
 	 th:data-assets="@{/assets/}" th:data-link-move="@{/move}" th:data-link-quote="@{/quote}" th:data-link-estimates="@{/more/estimates}">
 	<div class="chat-header">
 		<a th:replace="~{customer/fragments/common :: back('/home')}"></a>
@@ -21,6 +21,13 @@
 		<div class="chat-thread" aria-live="polite" data-chat-thread></div>
 	</main>
 	<div class="chat-input">
+		<!-- 받는 쪽 고르기: AI 도우미 / 상담사 (관리자가 메시지를 보내면 상담사로 바뀜) -->
+		<div class="chat-to" role="radiogroup" aria-label="메시지 받는 쪽">
+			<button type="button" class="action" role="radio" data-chat-to="ai"
+					th:aria-checked="${chatMode != 'counselor'}">AI 도우미</button>
+			<button type="button" class="action" role="radio" data-chat-to="counselor"
+					th:aria-checked="${chatMode == 'counselor'}">상담사</button>
+		</div>
 		<div class="chat-attachment-chip" data-chat-chip hidden>
 			<img alt="" th:src="@{/assets/paperclip.svg}">
 			<span data-chat-chip-name></span>
