@@ -99,6 +99,34 @@ public class AdminAiTestController {
 		return "redirect:/admin/ai-test/" + r.analysisId();
 	}
 
+	/** 대표님 검토용 파일을 테스트 영상 폴더에 저장 (폴더 영상일 때) */
+	@PostMapping("/{id}/review")
+	public String saveReview(@PathVariable String id, RedirectAttributes ra) {
+		VideoAnalysisService.Logged log = analysis.find(id);
+		if (log == null) {
+			return "redirect:/admin/ai-test";
+		}
+		String name = folder.saveReview(log);
+		ra.addFlashAttribute("reviewSaved", name == null ? null : name);
+		ra.addFlashAttribute("error", name == null ? "테스트 영상 폴더의 영상이 아니라 폴더에 저장할 수 없어요. 내려받기를 써 주세요" : null);
+		return "redirect:/admin/ai-test/" + id;
+	}
+
+	/** 대표님 검토용 파일 내려받기 */
+	@GetMapping("/{id}/review.csv")
+	public org.springframework.http.ResponseEntity<byte[]> downloadReview(@PathVariable String id) {
+		VideoAnalysisService.Logged log = analysis.find(id);
+		if (log == null) {
+			return org.springframework.http.ResponseEntity.notFound().build();
+		}
+		String file = log.video().replaceFirst("\\.[^.]+$", "") + TestVideoFolder.REVIEW_SUFFIX + ".csv";
+		return org.springframework.http.ResponseEntity.ok()
+				.header("Content-Disposition", org.springframework.http.ContentDisposition.attachment()
+						.filename(file, java.nio.charset.StandardCharsets.UTF_8).build().toString())
+				.contentType(org.springframework.http.MediaType.parseMediaType("text/csv; charset=UTF-8"))
+				.body(TestVideoFolder.reviewCsv(log).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+	}
+
 	@GetMapping("/{id}")
 	public String detail(@PathVariable String id, @RequestParam(defaultValue = "") String truth, Model model) {
 		VideoAnalysisService.Logged log = analysis.find(id);
@@ -109,6 +137,7 @@ public class AdminAiTestController {
 			truth = folder.truthFor(log.video()); // 폴더 영상이면 그 정답과 바로 비교
 		}
 		model.addAttribute("log", log);
+		model.addAttribute("inFolder", folder.path(log.video()) != null);
 		model.addAttribute("sets", folder.truthNames());
 		model.addAttribute("truth", truth);
 		GroundTruth.Score score = truth.isBlank() ? null : folder.score(truth, log.items());

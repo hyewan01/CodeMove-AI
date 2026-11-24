@@ -64,8 +64,52 @@ class TestVideoFolderTest {
 		Files.writeString(dir.resolve("b.csv"), HEADER + "거실,냉장고,03,한 대\n", StandardCharsets.UTF_8);
 		TestVideoFolder.Video v = new TestVideoFolder(dir.toString(), null).videos().get(0);
 		assertTrue(v.hasTruth());
-		assertTrue(v.truthError().contains("2번째 줄"), v.truthError());
+		assertTrue(v.truthError().contains("1번째 품목 줄"), v.truthError());
 		assertEquals("", v.truthKey());
+	}
+
+	@Test
+	void reviewFileReadsBackAsTheSameAnswerList() throws Exception {
+		Files.write(dir.resolve("테스트 1.mp4"), new byte[1]);
+		List<VideoAnalysis.MappedItem> items = List.of(
+				new VideoAnalysis.MappedItem("소파", "02", 1, 0.9, "갈색 원목 소파베드, 3인", "거실", "쿠션 3개", "01", false,
+						null, false),
+				new VideoAnalysis.MappedItem("TV", "03", 1, 0.3, "벽걸이 TV", "거실", "벽에 걸림", "01", true, 75, true),
+				new VideoAnalysis.MappedItem("이사박스", "02", 12, 0.05, "선반 잡동사니", "거실", "선반 3단", "01", false,
+						null, false),
+				new VideoAnalysis.MappedItem("실내 자전거", "02", 1, 0, "실내 자전거", "거실", "", VideoAnalysis.UNMAPPED, true,
+						null, false));
+		VideoAnalysisService.Logged log = new VideoAnalysisService.Logged("15", "2026-11-24T15:10:00", "테스트 1.mp4", 5.7,
+				"gemini-4-hydrogen", "v3", true, null, null, VideoAnalysis.Usage.NONE, 0.05, 0, 0, 0, 0, items, 1.8, 2, 1,
+				"{}");
+		TestVideoFolder f = new TestVideoFolder(dir.toString(), null);
+
+		String saved = f.saveReview(log);
+		assertEquals("테스트 1_AI검토.csv", saved);
+		assertEquals("테스트 1_AI검토(2).csv", f.saveReview(log), "대표님이 고치던 파일은 덮지 않음");
+		Path review = dir.resolve(saved);
+		String text = Files.readString(review);
+		assertTrue(text.startsWith("﻿# 대표님 검토용"), "엑셀용 BOM + 요약");
+		assertTrue(text.contains("포장이사 "), text);
+		assertTrue(text.contains("# TV: 01 "), "크기코드 참고");
+		assertFalse(f.videos().get(0).hasTruth(), "검토 파일은 아직 정답이 아님");
+		assertTrue(f.videos().get(0).hasReview());
+
+		// 대표님이 엑셀에서 고쳐 저장한 것처럼: 크기코드 02 → 2, 판단 톤 적기, 이름 바꾸기
+		String edited = text.replace("\"# " + GroundTruth.TON_LABEL + "\",,", "# " + GroundTruth.TON_LABEL + ",3.5톤,")
+				.replace("# " + GroundTruth.TON_LABEL + ",,", "# " + GroundTruth.TON_LABEL + ",3.5톤,")
+				.replace(",이사박스,02,12,", ",이사박스,2,15,");
+		Files.writeString(dir.resolve("테스트 1.csv"), edited);
+		TestVideoFolder.Video v = f.videos().get(0);
+		assertTrue(v.hasTruth());
+		assertNull(v.truthError());
+		assertEquals(3.5, v.truthTon());
+		List<GroundTruth.Line> truth = GroundTruth.read(dir.resolve("테스트 1.csv"));
+		assertEquals(List.of(new GroundTruth.Line("소파", "02", 1), new GroundTruth.Line("TV", "03", 1),
+				new GroundTruth.Line("이사박스", "02", 15), new GroundTruth.Line("기타", "", 1)), truth);
+		GroundTruth.Score s = f.score("폴더:테스트 1", items);
+		assertEquals(14.0 / 17, s.recall(), 1e-9, "정답 17개(소파 1 + TV 1 + 바구니 15) 중 14개");
+		assertEquals(1, s.expectedOther());
 	}
 
 	@Test

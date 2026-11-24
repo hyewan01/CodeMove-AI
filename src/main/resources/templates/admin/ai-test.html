@@ -56,7 +56,7 @@
 				<div class="min-w-0">
 					<p class="truncate text-[15px] font-bold text-[#303832]" th:text="${v.name}">테스트 1.mp4</p>
 					<p class="text-[12px]" th:classappend="${v.truthError != null} ? 'text-[#c2410c]' : (${v.hasTruth} ? 'text-[#346538]' : 'text-[#969d98]')"
-					   th:text="${v.mb} + 'MB · ' + (${v.truthError != null} ? '정답 파일 오류: ' + ${v.truthError} : (${v.hasTruth} ? '정답 있음' : '정답 없음 (같은 이름 .csv 를 넣으면 비교)'))">정답 없음</p>
+					   th:text="${v.mb} + 'MB · ' + (${v.truthError != null} ? '정답 파일 오류: ' + ${v.truthError} : (${v.hasTruth} ? '정답 있음' + (${v.truthTon != null} ? ' · 대표님 ' + ${#numbers.formatDecimal(v.truthTon, 1, 'DEFAULT', 1, 'POINT').replace('.0', '')} + '톤' : '') : (${v.hasReview} ? '대표님 검토 중 (_AI검토.csv)' : '정답 없음 · 분석 후 대표님 검토용 파일을 만들어 주세요')))">정답 없음</p>
 				</div>
 				<button class="h-9 shrink-0 rounded-xl border border-[#346538] px-3 text-[13px] font-bold text-[#346538] disabled:opacity-60" type="submit"
 						name="name" th:value="${v.name}" th:disabled="${!configured}">분석</button>
@@ -86,6 +86,8 @@
 			   th:text="'F1 ' + ${#numbers.formatDecimal(s.f1Avg, 1, 0)} + '% (' + ${#numbers.formatDecimal(s.f1Min, 1, 0)} + '~' + ${#numbers.formatDecimal(s.f1Max, 1, 0)} + ')'">F1</p>
 			<p class="mt-1 text-[13px] text-[#535b55]"
 			   th:text="'물품 ' + ${#numbers.formatDecimal(s.cbmAvg, 1, 1)} + ' CBM (' + ${#numbers.formatDecimal(s.cbmMin, 1, 1)} + '~' + ${#numbers.formatDecimal(s.cbmMax, 1, 1)} + ')' + (${s.truthCbm != null} ? ' · 정답 ' + ${#numbers.formatDecimal(s.truthCbm, 1, 1)} : ' · 정답 없음')">CBM</p>
+			<p class="mt-1 text-[13px] text-[#535b55]"
+			   th:text="'AI 짐 톤 ' + ${s.tonsText()} + (${s.truthTon != null} ? ' · 대표님 ' + ${#numbers.formatDecimal(s.truthTon, 1, 'DEFAULT', 1, 'POINT').replace('.0', '')} + '톤' : '')">톤</p>
 		</a>
 	</section>
 

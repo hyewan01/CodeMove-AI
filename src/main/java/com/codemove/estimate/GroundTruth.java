@@ -103,15 +103,35 @@ public final class GroundTruth {
 		return lines(Csv.rows(csv), csv.getFileName().toString());
 	}
 
+	/** 설명 줄 "# 대표님 판단 톤,7" 의 톤. 비어 있으면 null */
+	public static Double readTon(java.nio.file.Path csv) {
+		for (List<String> c : Csv.comments(csv)) {
+			if (c.get(0).contains(TON_LABEL) && c.size() > 1) {
+				String v = c.get(1).replaceAll("[^0-9.]", "");
+				if (!v.isEmpty() && !v.equals(".")) {
+					return Double.parseDouble(v);
+				}
+			}
+		}
+		return null;
+	}
+
+	public static final String TON_LABEL = "대표님 판단 톤";
+
 	/** 공간,품목명,크기코드,수량,... — 잘못된 줄은 몇 번째 줄인지 알려 줌 */
 	private static List<Line> lines(List<List<String>> rows, String file) {
 		List<Line> out = new ArrayList<>();
 		for (int i = 0; i < rows.size(); i++) {
 			List<String> c = rows.get(i);
 			try {
-				out.add(new Line(c.get(1).trim(), c.size() > 2 ? c.get(2).trim() : "", Integer.parseInt(c.get(3).trim())));
+				String size = c.size() > 2 ? c.get(2).trim() : "";
+				if (size.matches("\\d")) {
+					size = "0" + size; // 엑셀이 02 → 2 로 저장
+				}
+				out.add(new Line(c.get(1).trim(), size, Integer.parseInt(c.get(3).trim())));
 			} catch (RuntimeException e) {
-				throw new IllegalArgumentException(file + " " + (i + 2) + "번째 줄을 읽지 못했어요 (공간,품목명,크기코드,수량 순서)");
+				throw new IllegalArgumentException(file + " 표의 " + (i + 1) + "번째 품목 줄(" + String.join(",", c)
+						+ ")을 읽지 못했어요 (공간,품목명,크기코드,수량 순서, 수량은 숫자)");
 			}
 		}
 		return out;
