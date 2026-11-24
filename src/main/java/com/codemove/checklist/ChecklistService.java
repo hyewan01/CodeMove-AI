@@ -212,7 +212,7 @@ public class ChecklistService {
 	public List<Template> templates() {
 		List<Template> t = templates;
 		if (t == null) {
-			t = items().stream().filter(ChecklistItem::isUsed)
+			t = items().stream().filter(x -> x.isUsed())
 					.map(i -> new Template(i.getItemCode(), i.getPhase(), i.getTitle(), nz(i.getDetail()), nz(i.getWhereText()),
 							nz(i.getLinkUrl())))
 					.toList();
@@ -270,12 +270,12 @@ public class ChecklistService {
 			throw new IllegalArgumentException("바로가기는 앱 안 경로(/로 시작)나 https 주소만 넣을 수 있어요.");
 		}
 		List<ChecklistItem> all = items();
-		ChecklistItem i = code == null || code.isBlank() ? null
+		ChecklistItem found = code == null || code.isBlank() ? null
 				: all.stream().filter(x -> x.getItemCode().equals(code)).findFirst().orElse(null);
-		boolean isNew = i == null;
+		boolean isNew = found == null;
+		ChecklistItem i = found != null ? found : new ChecklistItem();
 		if (isNew) {
-			i = new ChecklistItem();
-			int max = all.stream().map(ChecklistItem::getItemCode).filter(c -> c.matches("M\\d+"))
+			int max = all.stream().map(x -> x.getItemCode()).filter(c -> c.matches("M\\d+"))
 					.mapToInt(c -> Integer.parseInt(c.substring(1))).max().orElse(0);
 			i.setItemCode(String.format("M%02d", max + 1));
 			i.setUseYn("Y");

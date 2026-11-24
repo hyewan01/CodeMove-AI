@@ -310,7 +310,7 @@ public class CustomerViews {
 				default -> new String[] { "reviewing", "검토 중" };
 			};
 			// 검토 중이면 신청 때 본 예상 범위, 견적이 오면 견적서 금액
-			String amount = !"reviewing".equals(st[0]) && q.getTotalAmount() != null ? Fmt.money(q.getTotalAmount()) + "원"
+			String amount = q != null && !"reviewing".equals(st[0]) && q.getTotalAmount() != null ? Fmt.money(q.getTotalAmount()) + "원"
 					: r.getAiEstMin() != null && r.getAiEstMax() != null
 							? Fmt.money(r.getAiEstMin()) + " ~ " + Fmt.money(r.getAiEstMax()) + "원" : "-";
 			LocalDate date = r.getMoveDate();

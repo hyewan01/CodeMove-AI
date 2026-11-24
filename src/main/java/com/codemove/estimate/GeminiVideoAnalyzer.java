@@ -134,7 +134,7 @@ public class GeminiVideoAnalyzer {
 				}
 			}
 			if (res == null) {
-				throw last;
+				throw last != null ? last : new AnalyzerException(VideoAnalysis.ERR_API, "분석할 모델이 없습니다");
 			}
 			long apiMs = System.currentTimeMillis() - t1;
 			StringBuilder text = new StringBuilder();

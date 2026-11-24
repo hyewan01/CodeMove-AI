@@ -61,7 +61,7 @@ public class AdminChatController {
 		out.put("chat", rooms.stream().mapToInt(r -> r.getUnread() == null ? 0 : r.getUnread()).sum());
 		out.put("bell", notifications.hasUnreadAdmin());
 		rooms.stream().filter(r -> r.getUnread() != null && r.getUnread() > 0 && r.getLastCustomerAt() != null)
-				.max(java.util.Comparator.comparing(ChatRoomLine::getLastCustomerAt))
+				.max((x, y) -> x.getLastCustomerAt().compareTo(y.getLastCustomerAt()))
 				.ifPresent(r -> out.put("latest", java.util.Map.of(
 						"key", r.getRoomId() + "@" + r.getLastCustomerAt(),
 						"roomId", r.getRoomId(),

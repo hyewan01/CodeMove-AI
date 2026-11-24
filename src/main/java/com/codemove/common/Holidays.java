@@ -45,7 +45,7 @@ public final class Holidays {
 	}
 
 	static Map<LocalDate, String> year(int y) {
-		return CACHE.computeIfAbsent(y, Holidays::compute);
+		return CACHE.computeIfAbsent(y, k -> compute(k));
 	}
 
 	private static Map<LocalDate, String> compute(int y) {

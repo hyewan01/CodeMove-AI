@@ -197,9 +197,10 @@ public class ChatService {
 			body = REPLY_MARK + cut(replyTo.replace("\n", " ").trim(), 80) + "\n" + body;
 		}
 		m.setContent(body.isEmpty() ? null : cut(body, 1000));
-		if (hasFile) {
+		if (hasFile && file != null) {
+			String original = file.getOriginalFilename();
 			m.setAttachmentPath(files.save("chat", file));
-			m.setAttachmentName(cut(file.getOriginalFilename() == null ? "첨부파일" : file.getOriginalFilename(), 100));
+			m.setAttachmentName(cut(original == null ? "첨부파일" : original, 100));
 		}
 		m.setIsRead("N");
 		chats.insertMessage(m);
@@ -523,7 +524,7 @@ public class ChatService {
 	/** 상담 중인데 관리자 마지막 메시지가 24시간 넘게 지났으면 끝난 것으로 */
 	private boolean consultExpired(long roomId) {
 		return chats.listMessages(roomId, 0).stream().filter(x -> "03".equals(x.getSenderType()))
-				.map(ChatMessage::getSentAt).filter(java.util.Objects::nonNull).max(java.util.Comparator.naturalOrder())
+				.map(x -> x.getSentAt()).filter(t -> t != null).max((a, b) -> a.compareTo(b))
 				.map(t -> t.isBefore(java.time.LocalDateTime.now().minusHours(24))).orElse(false);
 	}
 

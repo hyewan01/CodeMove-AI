@@ -45,7 +45,7 @@ public class AdminChecklistController {
 		model.addAttribute("avgPercent", people.isEmpty() ? 0
 				: Math.round(people.stream().mapToInt(p -> p.view().percent()).average().orElse(0)));
 		model.addAttribute("doneCount", people.stream().filter(p -> p.view().percent() == 100).count());
-		model.addAttribute("itemCount", items.stream().filter(ChecklistItem::isUsed).count());
+		model.addAttribute("itemCount", items.stream().filter(i -> i.isUsed()).count());
 		model.addAttribute("hiddenCount", items.stream().filter(i -> !i.isUsed()).count());
 		return "admin/checklist-home";
 	}
