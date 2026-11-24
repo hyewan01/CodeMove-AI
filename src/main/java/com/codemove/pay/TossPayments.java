@@ -57,6 +57,14 @@ public class TossPayments {
 		return clientKey;
 	}
 
+	/**
+	 * API 개별 연동 키(test_ck / live_ck)면 결제창 방식: 우리 화면에서 수단을 고르고 토스 결제창을 엶.
+	 * 결제위젯 키(test_gck / live_gck)면 위젯 방식: 토스 위젯이 수단 목록을 그림. 승인 API 는 둘 다 같음
+	 */
+	public boolean windowMode() {
+		return clientKey.matches("(test|live)_ck_.*");
+	}
+
 	/** 테스트 키면 화면에 "테스트 결제 (실제 돈이 빠지지 않아요)" 안내 */
 	public boolean testMode() {
 		return clientKey.startsWith("test_");

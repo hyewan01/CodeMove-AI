@@ -45,6 +45,9 @@ public class PaymentController {
 		model.addAttribute("reservationId", reservationId);
 		model.addAttribute("clientKey", toss.clientKey());
 		model.addAttribute("testMode", toss.testMode());
+		model.addAttribute("windowMode", toss.windowMode());
+		// 결제창 방식의 고객 키: 22~255자, 특수문자 하나 이상, 추측할 수 없게 (결제마다 새로)
+		model.addAttribute("customerKey", "cm_" + java.util.UUID.randomUUID().toString().replace("-", "") + "-k");
 		model.addAttribute("successUrl", base + "/move/pay/success");
 		model.addAttribute("failUrl", base + "/move/pay/fail");
 		return "customer/move/pay";

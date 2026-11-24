@@ -13,9 +13,20 @@
 			<small th:text="${checkout.orderName}">명품익스프레스 이사 계약금</small>
 		</section>
 		<p class="pay-test" th:if="${testMode}">테스트 결제예요. 결제 화면은 실제와 같지만 돈은 빠져나가지 않아요.</p>
-		<div class="pay-widget">
+		<!-- 결제위젯 키: 토스 위젯이 수단 목록을 그림 -->
+		<div class="pay-widget" th:unless="${windowMode}">
 			<div id="payment-method"></div>
 			<div id="agreement"></div>
+		</div>
+		<!-- API 개별 연동 키: 우리 화면에서 수단을 고르고 토스 결제창을 엶 -->
+		<div class="pay-methods" role="radiogroup" aria-label="결제 수단" th:if="${windowMode}">
+			<button type="button" class="action active" role="radio" aria-checked="true" data-pay-method="CARD">
+				<strong>카드 · 간편결제</strong><small>결제창에서 카드나 간편결제를 골라요</small>
+			</button>
+			<button type="button" class="action" role="radio" aria-checked="false" data-pay-method="TOSSPAY"><strong>토스페이</strong></button>
+			<button type="button" class="action" role="radio" aria-checked="false" data-pay-method="NAVERPAY"><strong>네이버페이</strong></button>
+			<!-- 카카오페이는 결제대행 계약 뒤 받은 상점 키로만 테스트할 수 있어 실결제 키일 때만 보여 줌 -->
+			<button type="button" class="action" role="radio" aria-checked="false" data-pay-method="KAKAOPAY" th:unless="${testMode}"><strong>카카오페이</strong></button>
 		</div>
 		<p class="pay-error" data-pay-error hidden></p>
 		<p class="flow-help">잔금은 이사 당일에 결제해요. 예약을 취소하면 계약금 환불은 담당자가 확인한 뒤 진행돼요.</p>
@@ -35,13 +46,54 @@
 			customerMobilePhone: /*[[${checkout.customerPhone}]]*/ '',
 			successUrl: /*[[${successUrl}]]*/ '',
 			failUrl: /*[[${failUrl}]]*/ '',
+			windowMode: /*[[${windowMode}]]*/ false,
+			customerKey: /*[[${customerKey}]]*/ '',
 		};
 		const btn = document.querySelector('[data-pay-button]');
 		const err = document.querySelector('[data-pay-error]');
 		const showError = (m) => { err.textContent = m; err.hidden = false; };
 		if (!window.TossPayments) { showError('결제 화면을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'); return; }
+		const request = {
+			amount: { currency: 'KRW', value: D.amount },
+			orderId: D.orderId,
+			orderName: D.orderName,
+			successUrl: D.successUrl,
+			failUrl: D.failUrl,
+			customerName: D.customerName,
+			customerMobilePhone: D.customerMobilePhone || undefined,
+		};
+		const onError = (e) => {
+			// 결제창을 닫은 경우 등: 다시 누를 수 있게
+			btn.disabled = false;
+			if (e && e.code !== 'USER_CANCEL') showError(e.message || '결제를 하지 못했어요.');
+		};
 		try {
-			const widgets = TossPayments(D.clientKey).widgets({ customerKey: TossPayments.ANONYMOUS });
+			const toss = TossPayments(D.clientKey);
+			if (D.windowMode) {
+				// 결제창: 카드 · 간편결제 통합창, 또는 고른 간편결제 앱을 바로 (flowMode DIRECT + easyPay)
+				const payment = toss.payment({ customerKey: D.customerKey });
+				let method = 'CARD';
+				document.querySelectorAll('[data-pay-method]').forEach((b) => b.addEventListener('click', () => {
+					method = b.dataset.payMethod;
+					document.querySelectorAll('[data-pay-method]').forEach((x) => {
+						const on = x === b;
+						x.classList.toggle('active', on);
+						x.setAttribute('aria-checked', String(on));
+					});
+				}));
+				btn.disabled = false;
+				btn.addEventListener('click', async () => {
+					btn.disabled = true;
+					err.hidden = true;
+					const card = method === 'CARD' ? {} : { flowMode: 'DIRECT', easyPay: method };
+					try {
+						await payment.requestPayment({ method: 'CARD', ...request, card });
+					} catch (e) { onError(e); }
+				});
+				return;
+			}
+			// 결제위젯
+			const widgets = toss.widgets({ customerKey: TossPayments.ANONYMOUS });
 			await widgets.setAmount({ currency: 'KRW', value: D.amount });
 			await Promise.all([
 				widgets.renderPaymentMethods({ selector: '#payment-method', variantKey: 'DEFAULT' }),
@@ -50,20 +102,9 @@
 			btn.disabled = false;
 			btn.addEventListener('click', async () => {
 				btn.disabled = true;
-				try {
-					await widgets.requestPayment({
-						orderId: D.orderId,
-						orderName: D.orderName,
-						successUrl: D.successUrl,
-						failUrl: D.failUrl,
-						customerName: D.customerName,
-						customerMobilePhone: D.customerMobilePhone || undefined,
-					});
-				} catch (e) {
-					// 결제창을 닫은 경우 등: 다시 누를 수 있게
-					btn.disabled = false;
-					if (e && e.code !== 'USER_CANCEL') showError(e.message || '결제를 하지 못했어요.');
-				}
+				err.hidden = true;
+				const { amount, ...rest } = request;
+				try { await widgets.requestPayment(rest); } catch (e) { onError(e); }
 			});
 		} catch (e) {
 			showError((e && e.message) || '결제 화면을 불러오지 못했어요.');
