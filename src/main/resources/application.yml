@@ -8,6 +8,9 @@ server:
   tomcat:
     # 한도를 넘는 업로드도 연결을 끊지 않고 오류 응답을 보내도록
     max-swallow-size: 1100MB
+    # 이사 요청 폼은 품목 한 줄에 칸 7개(items[i].name·size·count·…)라, 기본 50칸이면 AI 가 짐을 8줄 넘게
+    # 찾을 때 제출이 막힘(MaxUploadSizeExceededException). 2000칸 ≈ 품목 280줄
+    max-part-count: 2000
 
 spring:
   application:
