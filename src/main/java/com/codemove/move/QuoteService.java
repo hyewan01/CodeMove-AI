@@ -329,8 +329,9 @@ public class QuoteService {
 		d.setCustomer(customerName);
 		d.setPhone(customerPhone);
 		d.setEstimateDate(Fmt.yy(LocalDate.now()));
-		d.setMoveDate(Fmt.yy(r.getMoveDate()));
-		d.setTransportDate(Fmt.yy(r.getMoveDate()));
+		// 작업일 · 운송일은 담당자가 정해 적는 칸이라 비워 둠 (고객이 고른 날짜는 예약 · 요청에 있음)
+		d.setMoveDate("");
+		d.setTransportDate("");
 		d.setOrigin(join(r.getFromAddress(), r.getFromDetail()));
 		d.setDestination(join(r.getToAddress(), r.getToDetail()));
 		// 이사물량(톤) · 이사비용 · 옵션은 EstimateCalculator (대표님 방식: 적재 CBM → 5톤 + 1톤 조합 → 톤별 요금)

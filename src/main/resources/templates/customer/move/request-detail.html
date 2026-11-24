@@ -40,8 +40,8 @@
 			</div>
 
 			<div class="req-sheet" data-view="sheet" hidden>
-				<iframe title="견적서" loading="lazy" data-sheet-src th:attr="data-src=@{/move/request/{id}/sheet(id=${req.request.requestId})}"></iframe>
-				<a class="action req-sheet-open" target="_blank" rel="noopener" th:href="@{/move/request/{id}/sheet(id=${req.request.requestId})}">크게 보기</a>
+				<!-- 관리자와 같은 보기 도구: − + 로 확대 · 두 손가락으로 확대 · 끌어서 이동 · PDF 다운 -->
+				<iframe title="견적서" data-sheet-src th:attr="data-src=@{/move/request/{id}/sheet(id=${req.request.requestId})}"></iframe>
 			</div>
 
 			<form method="post" th:action="@{/move/estimate/confirm}" th:if="${canConfirm}">

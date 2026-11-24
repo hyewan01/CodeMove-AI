@@ -528,6 +528,8 @@ public class CustomerPageController {
 			return "redirect:/move?tab=estimate";
 		}
 		model.addAttribute("doc", views.estimateDoc(c.quote()));
+		// 옵션 칸 줄(피아노 · 돌침대 …)은 고르지 않았어도 양식대로 보임
+		model.addAttribute("optionRows", com.codemove.move.EstimateDoc.OPTION_ROWS);
 		return "customer/move/sheet";
 	}
 

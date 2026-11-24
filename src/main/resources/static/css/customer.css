@@ -2365,7 +2365,7 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 .req-detail .receipt { margin: 0 0 12px; }
 .req-sheet { border-radius: 18px; background: #dfe4df; overflow: hidden; box-shadow: var(--card-shadow); }
 .req-sheet[hidden] { display: none; }
-.req-sheet iframe { display: block; width: 100%; aspect-ratio: 1488 / 2143; border: 0; background: #dfe4df; }
+.req-sheet iframe { display: block; width: 100%; height: max(520px, calc(100dvh - 300px)); border: 0; background: #dfe4df; }
 .req-sheet-open { min-height: 44px; display: grid; place-items: center; background: var(--white); color: var(--green); font-family: "Pretendard:Bold"; font-size: 14px; }
 .req-confirm { width: 100%; min-height: 54px; border-radius: 16px; background: var(--green); color: var(--white); font-family: "Pretendard:Bold"; font-size: 16px; }
 
