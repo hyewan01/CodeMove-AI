@@ -157,8 +157,11 @@ public class CustomerPageController {
 	private final ChatService chats;
 	private final BookingService booking;
 
+	private final com.codemove.pay.PaymentService payments;
+
 	public CustomerPageController(MemberService members, MoveService moves, NotificationService notifications,
-			CustomerViews views, ChatService chats, BookingService booking) {
+			CustomerViews views, ChatService chats, BookingService booking, com.codemove.pay.PaymentService payments) {
+		this.payments = payments;
 		this.booking = booking;
 		this.members = members;
 		this.moves = moves;
@@ -542,6 +545,10 @@ public class CustomerPageController {
 		}
 		addMoveModel(model, c);
 		model.addAttribute("summary", views.bookingSummary(c));
+		// 계약금: 견적을 확정한 예약이면 결제 버튼, 낸 뒤면 수단 · 영수증
+		model.addAttribute("payable", payments.payable(c));
+		model.addAttribute("payReady", payments.configured());
+		model.addAttribute("paid", payments.paid(reservationId));
 		return "customer/move/booking-detail";
 	}
 

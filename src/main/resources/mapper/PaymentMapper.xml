@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.codemove.pay.PaymentMapper">
+
+	<insert id="insert" parameterType="com.codemove.pay.Payment">
+		<selectKey keyProperty="paymentId" resultType="long" order="BEFORE">
+			SELECT SEQ_PAYMENT.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO TBL_PAYMENT (PAYMENT_ID, RESERVATION_ID, MEMBER_ID, ORDER_ID, ORDER_NAME, AMOUNT, PAY_TYPE, STATUS, REQUESTED_AT)
+		VALUES (#{paymentId}, #{reservationId}, #{memberId}, #{orderId}, #{orderName}, #{amount}, '01', '01', SYSDATE)
+	</insert>
+
+	<select id="findByOrder" resultType="com.codemove.pay.Payment">
+		SELECT * FROM TBL_PAYMENT WHERE ORDER_ID = #{orderId}
+	</select>
+
+	<select id="listByReservation" resultType="com.codemove.pay.Payment">
+		SELECT * FROM TBL_PAYMENT WHERE RESERVATION_ID = #{reservationId} ORDER BY PAYMENT_ID DESC
+	</select>
+
+	<update id="markDone">
+		UPDATE TBL_PAYMENT
+		   SET STATUS = '02', PAYMENT_KEY = #{paymentKey}, METHOD = #{method,jdbcType=VARCHAR},
+		       RECEIPT_URL = #{receiptUrl,jdbcType=VARCHAR}, APPROVED_AT = SYSDATE
+		 WHERE ORDER_ID = #{orderId} AND STATUS = '01'
+	</update>
+
+	<update id="markFailed">
+		UPDATE TBL_PAYMENT
+		   SET STATUS = '03', FAIL_CODE = SUBSTR(#{code,jdbcType=VARCHAR}, 1, 60), FAIL_MESSAGE = SUBSTR(#{message,jdbcType=VARCHAR}, 1, 300)
+		 WHERE ORDER_ID = #{orderId} AND STATUS = '01'
+	</update>
+</mapper>

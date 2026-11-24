@@ -53,6 +53,13 @@ codemove:
     # 테스트 영상 폴더 (관리자 AI 테스트 화면). 개인 경로라 application-local.yml 에 적습니다.
     # 영상과 같은 이름의 .csv 를 두면 정답 목록으로 비교 (형식: docs/estimate/testset/*.csv)
     test-video-dir: ""
+  # 계약금 온라인 결제 (토스페이먼츠 결제위젯). 키는 application-local.yml(Git 제외)에 적음.
+  # 테스트 키(test_gck… / test_gsk…): 개발자센터(developers.tosspayments.com) 개인 가입으로 받음, 실제 돈 안 빠짐
+  # 실결제 키(live_…): 업체 사업자로 결제대행 계약 후 받음. 둘 다 비어 있으면 결제 버튼 대신 "준비 중" 안내
+  pay:
+    toss:
+      client-key: ""
+      secret-key: ""
 
 mybatis:
   mapper-locations: classpath:mapper/**/*.xml

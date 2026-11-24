@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{customer/fragments/common :: head('계약금 결제')}"></head>
+<body>
+<div class="app-shell" th:classappend="${cs.easy} ? 'easy-mode'">
+<!-- 계약금 결제: 토스페이먼츠 결제위젯 (카드 · 계좌이체 · 간편결제 …). 승인은 서버(/move/pay/success)에서 -->
+<div class="screen form-page soft-page">
+	<div th:replace="~{customer/fragments/common :: formHead('/move?tab=booking', '계약금 결제')}"></div>
+	<div class="form-content pay-page">
+		<section class="pay-summary">
+			<span>이사 계약금 (견적 금액의 10%)</span>
+			<strong th:text="${#numbers.formatInteger(checkout.amount, 1, 'COMMA')} + '원'">255,000원</strong>
+			<small th:text="${checkout.orderName}">명품익스프레스 이사 계약금</small>
+		</section>
+		<p class="pay-test" th:if="${testMode}">테스트 결제예요. 결제 화면은 실제와 같지만 돈은 빠져나가지 않아요.</p>
+		<div class="pay-widget">
+			<div id="payment-method"></div>
+			<div id="agreement"></div>
+		</div>
+		<p class="pay-error" data-pay-error hidden></p>
+		<p class="flow-help">잔금은 이사 당일에 결제해요. 예약을 취소하면 계약금 환불은 담당자가 확인한 뒤 진행돼요.</p>
+	</div>
+	<button type="button" class="action flow-next primary pay-button" data-pay-button disabled
+			th:text="${#numbers.formatInteger(checkout.amount, 1, 'COMMA')} + '원 결제하기'">결제하기</button>
+</div>
+<script src="https://js.tosspayments.com/v2/standard"></script>
+<script th:inline="javascript">
+	(async function () {
+		const D = {
+			clientKey: /*[[${clientKey}]]*/ '',
+			amount: /*[[${checkout.amount}]]*/ 0,
+			orderId: /*[[${checkout.orderId}]]*/ '',
+			orderName: /*[[${checkout.orderName}]]*/ '',
+			customerName: /*[[${checkout.customerName}]]*/ '',
+			customerMobilePhone: /*[[${checkout.customerPhone}]]*/ '',
+			successUrl: /*[[${successUrl}]]*/ '',
+			failUrl: /*[[${failUrl}]]*/ '',
+		};
+		const btn = document.querySelector('[data-pay-button]');
+		const err = document.querySelector('[data-pay-error]');
+		const showError = (m) => { err.textContent = m; err.hidden = false; };
+		if (!window.TossPayments) { showError('결제 화면을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'); return; }
+		try {
+			const widgets = TossPayments(D.clientKey).widgets({ customerKey: TossPayments.ANONYMOUS });
+			await widgets.setAmount({ currency: 'KRW', value: D.amount });
+			await Promise.all([
+				widgets.renderPaymentMethods({ selector: '#payment-method', variantKey: 'DEFAULT' }),
+				widgets.renderAgreement({ selector: '#agreement', variantKey: 'AGREEMENT' }),
+			]);
+			btn.disabled = false;
+			btn.addEventListener('click', async () => {
+				btn.disabled = true;
+				try {
+					await widgets.requestPayment({
+						orderId: D.orderId,
+						orderName: D.orderName,
+						successUrl: D.successUrl,
+						failUrl: D.failUrl,
+						customerName: D.customerName,
+						customerMobilePhone: D.customerMobilePhone || undefined,
+					});
+				} catch (e) {
+					// 결제창을 닫은 경우 등: 다시 누를 수 있게
+					btn.disabled = false;
+					if (e && e.code !== 'USER_CANCEL') showError(e.message || '결제를 하지 못했어요.');
+				}
+			});
+		} catch (e) {
+			showError((e && e.message) || '결제 화면을 불러오지 못했어요.');
+		}
+	})();
+</script>
+</div>
+</body>
+</html>

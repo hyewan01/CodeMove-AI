@@ -2376,3 +2376,22 @@ a.hm-card:active, .hm-cta:active, .hm-quick a:active, .hm-type:active { transfor
 /* 하단 채팅: 상담사 답변을 아직 안 봤으면 빨간 점 */
 .nav-icon { position: relative; }
 .nav-dot { position: absolute; top: -1px; right: -3px; width: 9px; height: 9px; box-sizing: border-box; border: 2px solid var(--white); border-radius: 50%; background: #e5483f; }
+
+/* ==================================================
+   계약금 결제 (2026-11-24)
+   ================================================== */
+.booking-pay { width: 100%; min-height: 52px; margin-top: 12px; border-radius: 16px; background: var(--green); color: var(--white); display: grid; place-items: center; font-family: "Pretendard:Bold"; font-size: 15.5px; }
+.booking-paid { margin-top: 10px; padding: 12px 14px; border-radius: 14px; background: var(--green-pale); display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.booking-paid span { color: var(--green); font-family: "Pretendard:Bold"; }
+.booking-paid b { color: #535b55; font-family: "Pretendard:SemiBold"; }
+.booking-paid a { margin-left: auto; color: var(--green); font-family: "Pretendard:Bold"; text-decoration: underline; text-underline-offset: 3px; }
+.pay-page { padding-top: 18px; display: flex; flex-direction: column; gap: 12px; }
+.pay-summary { padding: 22px 20px; border-radius: var(--card-radius, 24px); background: var(--white); box-shadow: var(--card-shadow); display: flex; flex-direction: column; gap: 6px; text-align: center; }
+.pay-summary span { color: var(--green); font-family: "Pretendard:Bold"; font-size: 13px; }
+.pay-summary strong { color: var(--ink); font-family: "Pretendard:ExtraBold"; font-size: 28px; letter-spacing: -.02em; }
+.pay-summary small { color: var(--muted); font-size: 12.5px; }
+.pay-test { margin: 0; padding: 10px 14px; border-radius: 14px; background: #fdf3e3; color: #8a5a14; font-family: "Pretendard:SemiBold"; font-size: 12.5px; line-height: 1.5; }
+.pay-widget { border-radius: var(--card-radius, 24px); background: var(--white); box-shadow: var(--card-shadow); overflow: hidden; min-height: 120px; }
+.pay-error { margin: 0; color: #b9574f; font-family: "Pretendard:SemiBold"; font-size: 13px; }
+.pay-error[hidden] { display: none; }
+.pay-button:disabled { background: var(--disabled); }
