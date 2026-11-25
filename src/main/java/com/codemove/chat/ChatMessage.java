@@ -25,4 +25,6 @@ public class ChatMessage {
 	/** 고친 · 지운 시각 (V7). 지운 메시지는 줄은 남기고 화면에만 "삭제된 메시지" */
 	private LocalDateTime editedAt;
 	private LocalDateTime deletedAt;
+	/** 고객 메시지 받는 쪽 (V9): 01 AI 도우미, 02 상담사, null 이면 구분 없음 */
+	private String sendTo;
 }

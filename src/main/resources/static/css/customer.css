@@ -2545,3 +2545,9 @@ a.chat-file-message { color: inherit; text-decoration: none; }
 .chat-screen.to-counselor .chat-input { box-shadow: 0 0 0 1.5px rgb(52 101 56 / .35), 0 3px 16px rgb(0 0 0 / .06); }
 .easy-mode .chat-to .action { height: 34px; padding: 0 16px; font-size: 15px; }
 .chat-content { padding-bottom: max(150px, calc(var(--safe-bottom) + 116px)); }
+
+/* 상담사를 골랐을 때: 보내기 버튼 · 내 말풍선을 노란 포인트로 (AI 는 초록) */
+.chat-send { transition: opacity .15s ease, background-color .15s ease; }
+.chat-screen.to-counselor .chat-send { background: #ffe08a; }
+.chat-screen.to-counselor .chat-send img { filter: brightness(0); opacity: .72; }
+.message.user.to-counselor { background: #fff0c2; color: #3b3517; }

@@ -57,10 +57,10 @@
 			SELECT SEQ_CHAT_MESSAGE.NEXTVAL FROM DUAL
 		</selectKey>
 		INSERT INTO TBL_CHAT_MESSAGE (MESSAGE_ID, ROOM_ID, ADMIN_ID, TOPIC_ID, SENDER_TYPE, MESSAGE_TYPE, CONTENT,
-		       ATTACHMENT_PATH, ATTACHMENT_NAME, IS_READ, NEEDS_REPLY, SENT_AT)
+		       ATTACHMENT_PATH, ATTACHMENT_NAME, IS_READ, NEEDS_REPLY, SEND_TO, SENT_AT)
 		VALUES (#{messageId}, #{roomId}, #{adminId,jdbcType=NUMERIC}, #{topicId,jdbcType=NUMERIC}, #{senderType}, #{messageType},
 		       #{content,jdbcType=VARCHAR}, #{attachmentPath,jdbcType=VARCHAR}, #{attachmentName,jdbcType=VARCHAR},
-		       NVL(#{isRead,jdbcType=CHAR}, 'N'), NVL(#{needsReply,jdbcType=CHAR}, 'N'), SYSDATE)
+		       NVL(#{isRead,jdbcType=CHAR}, 'N'), NVL(#{needsReply,jdbcType=CHAR}, 'N'), #{sendTo,jdbcType=CHAR}, SYSDATE)
 	</insert>
 
 	<update id="markCustomerRead">

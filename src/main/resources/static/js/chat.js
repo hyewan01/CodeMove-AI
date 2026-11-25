@@ -81,7 +81,9 @@
 			box.appendChild(el('div', `message ${state.role} deleted`, '삭제된 메시지예요'));
 			return;
 		}
-		if (state.text) box.appendChild(el('div', `message ${state.role}`, state.text));
+		/* 상담사에게 보낸 내 메시지는 노란 말풍선 */
+		const tone = state.role === 'user' && state.to === 'counselor' ? ' to-counselor' : '';
+		if (state.text) box.appendChild(el('div', `message ${state.role}${tone}`, state.text));
 		if (state.file || state.fileUrl) box.appendChild(attachmentNode(state.file, state.fileUrl, state.fileKind));
 		if (!state.text && !state.file && !state.fileUrl) box.appendChild(el('div', `message ${state.role}`, ''));
 	}
@@ -233,7 +235,7 @@
 		if (!text && !file) return;
 		const kind = file ? (file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file') : '';
 		const local = file && kind !== 'file' ? URL.createObjectURL(file) : null;
-		const entry = addMessage({ role: 'user', text, file: file && file.name, fileUrl: local, fileKind: kind,
+		const entry = addMessage({ role: 'user', to, text, file: file && file.name, fileUrl: local, fileKind: kind,
 			editBlock: '전송 중이에요.', deleteBlock: '전송 중이에요.' });
 		editor.innerText = '';
 		setAttachment(null);
@@ -263,7 +265,11 @@
 				entry.state.id = res.id;
 				entry.state.editBlock = text ? null : '글이 없는 메시지는 고칠 수 없어요.';
 				entry.state.deleteBlock = null;
-				if (res.fileUrl) { entry.state.fileUrl = res.fileUrl; entry.state.fileKind = res.fileKind; paint(entry); }
+				const moved = res.to && res.to !== entry.state.to; // AI 에게 '상담사 연결'을 보낸 경우
+				if (moved) entry.state.to = res.to;
+				if (res.fileUrl) { entry.state.fileUrl = res.fileUrl; entry.state.fileKind = res.fileKind; }
+				if (moved || res.fileUrl) paint(entry);
+				if (moved) setTo(res.to); // 상담이 이미 열려 있어 mode 가 그대로여도 버튼은 상담사로
 				byId.set(res.id, entry);
 				lastId = Math.max(lastId, res.lastId || 0);
 				if (res.mode) setMode(res.mode);

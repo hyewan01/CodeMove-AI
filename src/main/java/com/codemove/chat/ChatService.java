@@ -558,6 +558,7 @@ public class ChatService {
 		v.put("edited", m.getEditedAt() != null);
 		v.put("deleted", deleted);
 		v.put("mine", mine);
+		v.put("to", toOf(m));
 		// 고객 자기 메시지: 고치기 · 지우기가 안 되면 그 이유 (되면 null)
 		v.put("editBlock", mine ? editBlock(m, now) : "내 메시지만 고칠 수 있어요.");
 		v.put("deleteBlock", mine ? deleteBlock(m, now) : "내 메시지만 삭제할 수 있어요.");
@@ -695,10 +696,13 @@ public class ChatService {
 						List.of(action("상담사 연결", CONSULT_MENU, null), action("괜찮아요", "괜찮아요", null)));
 			}
 		}
+		// "상담사 연결" 이라고 보낸 것도 상담사에게 간 메시지
+		m.setSendTo(toCounselor || isConsultRequest(value) ? TO_COUNSELOR : TO_AI);
 		chats.insertMessage(m);
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("id", m.getMessageId());
+		result.put("to", toOf(m));
 		result.put("fileUrl", m.getAttachmentPath());
 		result.put("fileKind", fileKind(m));
 		if (reply != null) {
@@ -717,6 +721,14 @@ public class ChatService {
 		}
 		result.put("mode", modeOf(chats.findRoom(roomId)));
 		return result;
+	}
+
+	/** 고객 메시지 받는 쪽 (SEND_TO) */
+	static final String TO_AI = "01", TO_COUNSELOR = "02";
+
+	/** 화면 값: counselor | ai | "" (예전 메시지) */
+	static String toOf(ChatMessage m) {
+		return m.getSendTo() == null ? "" : TO_COUNSELOR.equals(m.getSendTo().trim()) ? "counselor" : "ai";
 	}
 
 	/** 고객 화면 머리글: counselor(상담사와 대화 중) | ai */
