@@ -6,11 +6,12 @@
 	<!-- SCR-U-024 휴대전화 로그인 -->
 	<div class="screen form-page">
 		<div th:replace="~{customer/fragments/common :: formHead('/login', '휴대전화 로그인')}"></div>
-		<form class="form-content" method="post" th:action="@{/login/phone}" data-phone-verify>
+		<form class="form-content" method="post" th:action="@{/login/phone}" data-phone-verify data-purpose="login"
+			  th:data-send-url="@{/auth/code/send}" th:data-kind="${loginKind}">
 			<div class="phone-login-group">
 				<div class="field-wrap no-label">
 					<input class="field" name="phone" type="tel" inputmode="tel" aria-label="휴대폰 번호"
-						   placeholder="휴대폰 번호를 입력해주세요" data-format="phone" autocomplete="tel">
+						   placeholder="휴대폰 번호를 입력해주세요" data-format="phone" autocomplete="tel" th:value="${loginPhone}">
 				</div>
 				<button type="button" class="action phone-send-button is-disabled" data-send-code>인증하기</button>
 			</div>
@@ -24,8 +25,18 @@
 					<input class="field" name="code" type="text" inputmode="numeric" aria-label="인증번호"
 						   placeholder="인증번호 6자리" data-format="digits" maxlength="6" autocomplete="one-time-code">
 				</div>
-				<div class="phone-code-hint"><span data-phone-echo></span> 으로 인증번호가 발송되었어요.</div>
+				<div class="phone-code-hint" data-code-hint></div>
 			</div>
+			<!-- 관리자 번호: 문자 대신 비밀번호 -->
+			<div class="phone-code-group" data-password-group hidden>
+				<div class="phone-code-label"><span>관리자 비밀번호</span></div>
+				<div class="field-wrap no-label">
+					<input class="field" name="password" type="password" aria-label="관리자 비밀번호"
+						   placeholder="비밀번호를 입력해주세요" autocomplete="current-password" maxlength="72">
+				</div>
+			</div>
+			<p class="form-error" role="alert" data-code-error th:text="${loginError}" th:hidden="${loginError == null}"></p>
+			<label class="keep-login" data-keep><input type="checkbox" name="keep" value="true" checked> 이 기기에서 로그인 유지 (30일)</label>
 
 			<button class="action form-submit next-button is-disabled" data-submit>로그인</button>
 			<div class="form-links">

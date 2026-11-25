@@ -198,40 +198,72 @@
 		grabber.addEventListener('pointercancel', () => { startY = null; sheet.style.transform = ''; });
 	}
 
+	/* 인증번호 받기: 서버가 만들고 보냄 → { ok, kind(code | password), message, demoCode } */
+	const requestCode = (form, phone) => fetch(form.dataset.sendUrl, {
+		method: 'POST', credentials: 'same-origin',
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
+		body: new URLSearchParams({ purpose: form.dataset.purpose, phone: phone || '' }).toString(),
+	}).then((r) => (r.ok ? r.json() : Promise.reject(r)))
+		.catch(() => ({ ok: false, message: '인증번호를 받지 못했어요. 잠시 후 다시 시도해 주세요.' }));
+	const showError = (form, text) => {
+		const e = $('[data-code-error]', form);
+		if (!e) return;
+		e.textContent = text || '';
+		e.hidden = !text;
+	};
+
 	/* ---------- 휴대폰 인증: 휴대전화 로그인(SCR-U-024) · 휴대폰 번호 변경(SCR-U-032) ---------- */
-	$$('[data-phone-verify]').forEach((phoneLogin) => {
-		const phone = $('[name="phone"]', phoneLogin);
-		const code = $('[name="code"]', phoneLogin);
-		const send = $('[data-send-code]', phoneLogin);
-		const submit = $('[data-submit]', phoneLogin);
-		let sent = false;
-		/* 번호를 바꾸면 인증 초기화 */
-		phone.addEventListener('input', () => {
-			if (!sent) return;
-			sent = false;
-			send.textContent = '인증하기';
-			$('[data-code-group]', phoneLogin).hidden = true;
-		});
+	$$('[data-phone-verify]').forEach((form) => {
+		const phone = $('[name="phone"]', form);
+		const code = $('[name="code"]', form);
+		const password = $('[name="password"]', form);
+		const send = $('[data-send-code]', form);
+		const submit = $('[data-submit]', form);
+		const codeGroup = $('[data-code-group]', form);
+		const passwordGroup = $('[data-password-group]', form);
+		const keep = $('[data-keep]', form);
+		let kind = ''; // '' 아직 · code 인증번호 · password 관리자
+		let waiting = false;
 		const refresh = () => {
-			const ready = digitsOf(phone).length === 11;
+			const ready = !waiting && digitsOf(phone).length === 11;
 			setEnabled(send, ready);
 			send.classList.toggle('active', ready);
-			setEnabled(submit, sent && digitsOf(code).length === 6);
+			setEnabled(submit, kind === 'password' ? password.value.length >= 6 : kind === 'code' && digitsOf(code).length === 6);
+		};
+		const open = (k) => {
+			kind = k;
+			codeGroup.hidden = k !== 'code';
+			if (passwordGroup) passwordGroup.hidden = k !== 'password';
+			if (keep) keep.hidden = k === 'password';
+			send.hidden = k === 'password';
+			send.textContent = k === 'code' ? '재인증' : '인증하기';
+			refresh();
 		};
 		send.addEventListener('click', () => {
 			if (send.classList.contains('is-disabled')) return;
-			sent = true;
-			code.value = '';
-			send.textContent = '재인증';
-			$('[data-code-group]', phoneLogin).hidden = false;
-			$('[data-phone-echo]', phoneLogin).textContent = phone.value;
-			startTimer($('[data-timer]', phoneLogin));
-			code.focus();
+			waiting = true;
+			showError(form, '');
 			refresh();
+			send.textContent = '확인 중';
+			const asked = phone.value;
+			requestCode(form, asked).then((res) => {
+				waiting = false;
+				if (phone.value !== asked) { open(''); return; } // 기다리는 사이 번호를 바꿈
+				if (!res.ok) { open(''); showError(form, res.message); return; }
+				if (res.kind === 'password' && passwordGroup) { open('password'); password.focus(); return; }
+				code.value = '';
+				$('[data-code-hint]', form).textContent = res.demoCode ? `시연용 번호예요. 인증번호 ${res.demoCode}` : `${asked} 으로 인증번호를 보냈어요.`;
+				open('code');
+				startTimer($('[data-timer]', form));
+				code.focus();
+			});
 		});
-		phone.addEventListener('input', refresh);
+		/* 번호를 바꾸면 인증 초기화 */
+		phone.addEventListener('input', () => { if (kind) { showError(form, ''); open(''); } else refresh(); });
 		code.addEventListener('input', refresh);
-		refresh();
+		if (password) password.addEventListener('input', refresh);
+		/* 틀려서 돌아온 경우: 입력칸을 다시 열어 둠 */
+		open(form.dataset.kind === 'code' || (form.dataset.kind === 'password' && passwordGroup) ? form.dataset.kind : '');
 	});
 
 	/* ---------- 목록 필터 시트 (견적내역 · 예약내역) ---------- */
@@ -381,8 +413,14 @@
 		$('[data-resend]', verify).addEventListener('click', () => {
 			boxes.forEach((b) => (b.value = ''));
 			boxes[0].focus();
-			startTimer(timer);
 			refresh();
+			requestCode(verify).then((res) => {
+				showError(verify, res.ok ? '' : res.message);
+				const note = $('[data-verify-note]', verify);
+				note.textContent = res.ok ? (res.demoCode ? `시연용 번호예요. 인증번호 ${res.demoCode}` : '인증번호를 다시 보냈어요.') : '';
+				note.hidden = !res.ok;
+				if (res.ok) startTimer(timer);
+			});
 		});
 		startTimer(timer);
 		refresh();

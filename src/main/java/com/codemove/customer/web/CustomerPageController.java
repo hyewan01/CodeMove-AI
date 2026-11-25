@@ -20,6 +20,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.codemove.admin.web.AdminSession;
+import com.codemove.auth.AdminPasswordService;
+import com.codemove.auth.AuthCodeService;
+import com.codemove.auth.AuthCodeService.Purpose;
+import com.codemove.auth.LoginDevices;
 import com.codemove.chat.ChatService;
 import com.codemove.schedule.BookingService;
 import com.codemove.common.Fmt;
@@ -35,12 +39,14 @@ import com.codemove.move.MoveService.CurrentMove;
 import com.codemove.move.RequestItem;
 import com.codemove.notification.NotificationService;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.Data;
 
 /**
  * 고객 화면 (SCR-U-001~034). 회원·이사·후기·알림은 DB(서비스), 로그인 상태는 CustomerSession.
- * 휴대전화 본인인증 문자는 아직 연동하지 않아 인증번호는 아무 6자리나 통과합니다.
+ * 휴대전화 인증번호는 서버가 만들고 확인합니다 (auth/AuthCodeService, 문자 발송 전에는 시연 번호만).
  */
 @Controller
 public class CustomerPageController {
@@ -159,10 +165,17 @@ public class CustomerPageController {
 
 	private final com.codemove.pay.PaymentService payments;
 	private final com.codemove.checklist.ChecklistService checklist;
+	private final AuthCodeService codes;
+	private final AdminPasswordService adminPasswords;
+	private final LoginDevices devices;
 
 	public CustomerPageController(MemberService members, MoveService moves, NotificationService notifications,
 			CustomerViews views, ChatService chats, BookingService booking, com.codemove.pay.PaymentService payments,
-			com.codemove.checklist.ChecklistService checklist) {
+			com.codemove.checklist.ChecklistService checklist, AuthCodeService codes, AdminPasswordService adminPasswords,
+			LoginDevices devices) {
+		this.codes = codes;
+		this.adminPasswords = adminPasswords;
+		this.devices = devices;
 		this.payments = payments;
 		this.checklist = checklist;
 		this.booking = booking;
@@ -268,31 +281,122 @@ public class CustomerPageController {
 		return "customer/auth/login-help";
 	}
 
+	/** 인증을 마친 번호 (10분 안에 가입까지 마치면 다시 인증하지 않음) */
+	private static final String VERIFIED_KEY = "verifiedPhone";
+
+	private record VerifiedPhone(String digits, long at) implements java.io.Serializable {
+	}
+
+	private static boolean verified(HttpSession session, String phone) {
+		return session.getAttribute(VERIFIED_KEY) instanceof VerifiedPhone v && v.digits().equals(Fmt.digits(phone))
+				&& System.currentTimeMillis() - v.at() < 10 * 60 * 1000;
+	}
+
+	private static void markVerified(HttpSession session, String phone) {
+		session.setAttribute(VERIFIED_KEY, new VerifiedPhone(Fmt.digits(phone), System.currentTimeMillis()));
+	}
+
 	/**
-	 * 휴대전화 로그인: 관리자 번호면 관리자 화면, 회원이면 고객 홈, 처음 보는 번호면 회원가입으로.
-	 * (샘플: 010-9445-8224 관리자 김선국 / 010-5678-1234 김코드 / 010-4321-8765 김무브)
+	 * 인증번호 받기. 관리자 번호면 문자를 보내지 않고 비밀번호를 물어봄.
+	 * @param purpose login · phone(번호 변경) · signup · withdraw. 가입 · 탈퇴는 세션에 있는 번호로만 보냄
 	 */
+	@PostMapping("/auth/code/send")
+	@ResponseBody
+	public Map<String, Object> sendCode(@RequestParam String purpose, @RequestParam(defaultValue = "") String phone,
+			HttpServletRequest request, HttpSession session) {
+		Map<String, Object> out = new java.util.LinkedHashMap<>();
+		CustomerSession cs = CustomerSession.of(session);
+		Purpose p;
+		String to = phone;
+		switch (purpose) {
+			case "login" -> {
+				p = Purpose.LOGIN;
+				if (members.loginByPhone(phone).admin() != null) {
+					out.put("ok", true);
+					out.put("kind", "password");
+					return out;
+				}
+			}
+			case "phone" -> p = cs.isLoggedIn() ? Purpose.PHONE : null;
+			case "signup" -> {
+				p = Purpose.SIGNUP;
+				to = signupForm(session).getPhone();
+				if (members.isRegistered(to)) p = null;
+			}
+			case "withdraw" -> {
+				boolean ready = cs.isLoggedIn() && cs.getMemberId().equals(session.getAttribute(WITHDRAW_KEY));
+				p = ready ? Purpose.WITHDRAW : null;
+				to = ready ? members.find(cs.getMemberId()).getPhone() : "";
+			}
+			default -> p = null;
+		}
+		if (p == null) {
+			out.put("ok", false);
+			out.put("message", "처음부터 다시 진행해 주세요.");
+			return out;
+		}
+		AuthCodeService.Sent sent = codes.send(session.getId(), p, to, request.getRemoteAddr());
+		out.put("ok", sent.ok());
+		out.put("kind", "code");
+		out.put("message", sent.message());
+		out.put("demoCode", sent.demoCode());
+		return out;
+	}
+
+	/** 휴대전화 로그인: 관리자 번호는 비밀번호로 관리자 화면, 회원은 인증번호로 고객 홈, 처음 보는 번호면 회원가입으로 */
 	@PostMapping("/login/phone")
-	public String phoneLogin(@RequestParam String phone, HttpSession session) {
+	public String phoneLogin(@RequestParam String phone, @RequestParam(defaultValue = "") String code,
+			@RequestParam(defaultValue = "") String password, @RequestParam(defaultValue = "false") boolean keep,
+			HttpServletRequest request, HttpServletResponse response, HttpSession session, RedirectAttributes flash) {
 		CustomerSession cs = CustomerSession.of(session);
 		PhoneLogin result = members.loginByPhone(phone);
 		if (result.admin() != null) {
+			String error = adminPasswords.check(result.admin().getAdminId(), password);
+			if (error != null) {
+				return loginFailed(flash, phone, "password", error);
+			}
+			devices.forget(request, response);
+			request.changeSessionId();
 			cs.logout();
 			AdminSession.login(session, result.admin());
 			return CustomerSession.redirectAfterAdminLogin(session);
 		}
-		AdminSession.logout(session);
-		if (result.member() == null) {
+		String error = codes.verify(session.getId(), Purpose.LOGIN, phone, code);
+		if (error != null) {
+			return loginFailed(flash, phone, "code", error);
+		}
+		Member m = result.member();
+		if (m == null) {
+			markVerified(session, phone);
 			SignupForm form = signupForm(session);
 			form.setPhone(Fmt.phone(phone));
 			return "redirect:/signup?notice=new";
 		}
-		cs.login(result.member().getMemberId(), result.member().getMemberName());
+		if ("N".equals(m.getIsVerified())) {
+			// 휴대전화 인증 없이 간편 로그인으로 가입한 계정: 번호 주인이 아닐 수 있어 전화번호로는 열지 않음
+			return loginFailed(flash, phone, "", "간편 로그인으로 가입한 번호예요. 카카오 · 네이버로 로그인해 주세요.");
+		}
+		AdminSession.logout(session);
+		request.changeSessionId();
+		cs.login(m.getMemberId(), m.getMemberName());
+		if (keep) {
+			devices.remember(m.getMemberId(), request, response);
+		} else {
+			devices.forget(request, response);
+		}
 		return CustomerSession.redirectAfterLogin(session);
 	}
 
+	private static String loginFailed(RedirectAttributes flash, String phone, String kind, String error) {
+		flash.addFlashAttribute("loginPhone", Fmt.phone(phone));
+		flash.addFlashAttribute("loginKind", kind);
+		flash.addFlashAttribute("loginError", error);
+		return "redirect:/login/phone";
+	}
+
 	@GetMapping("/logout")
-	public String logout(HttpSession session) {
+	public String logout(HttpServletRequest request, HttpServletResponse response, HttpSession session) {
+		devices.forget(request, response);
 		CustomerSession.of(session).logout();
 		return "redirect:/";
 	}
@@ -308,6 +412,7 @@ public class CustomerPageController {
 		model.addAttribute("notice", switch (String.valueOf(notice)) {
 			case "new" -> "가입된 회원이 아니에요. 회원가입 후 이용해 주세요.";
 			case "exists" -> "이미 가입된 휴대폰 번호예요. 휴대전화로 로그인해 주세요.";
+			case "nosms" -> "지금은 문자 인증을 준비 중이에요. 카카오 · 네이버로 가입해 주세요.";
 			case "social" -> pending != null ? SocialProvider.of(pending.provider()).map(p -> p.label()).orElse("간편")
 					+ " 계정으로 처음 오셨어요. 회원가입을 마치면 연결돼요." : null;
 			default -> null;
@@ -325,7 +430,8 @@ public class CustomerPageController {
 	}
 
 	@PostMapping("/signup")
-	public String signup(@ModelAttribute SignupForm form, HttpSession session) {
+	public String signup(@ModelAttribute SignupForm form, HttpServletRequest request, HttpSession session,
+			RedirectAttributes flash) {
 		SignupForm saved = signupForm(session);
 		saved.setName(form.getName());
 		saved.setPhone(form.getPhone());
@@ -335,6 +441,15 @@ public class CustomerPageController {
 		if (members.isRegistered(saved.getPhone())) {
 			return "redirect:/signup?notice=exists";
 		}
+		if (verified(session, saved.getPhone())) {
+			return "redirect:/signup/welcome"; // 로그인 화면에서 방금 인증한 번호
+		}
+		if (!codes.canSend(saved.getPhone())) {
+			// 문자를 보낼 수 없으면 간편 로그인으로 온 사람만 (인증 안 된 번호로) 가입
+			return CustomerSession.of(session).getPendingSocial() != null ? "redirect:/signup/welcome"
+					: "redirect:/signup?notice=nosms";
+		}
+		flash.addFlashAttribute("sent", codes.send(session.getId(), Purpose.SIGNUP, saved.getPhone(), request.getRemoteAddr()));
 		return "redirect:/signup/verify";
 	}
 
@@ -351,12 +466,24 @@ public class CustomerPageController {
 
 	@GetMapping("/signup/verify")
 	public String verifyForm(HttpSession session, Model model) {
-		model.addAttribute("name", signupForm(session).getName());
+		SignupForm form = signupForm(session);
+		if (Fmt.digits(form.getPhone()).length() < 10) {
+			return "redirect:/signup";
+		}
+		model.addAttribute("name", form.getName());
+		model.addAttribute("maskedPhone", Fmt.maskPhone(form.getPhone()));
 		return "customer/auth/verify";
 	}
 
 	@PostMapping("/signup/verify")
-	public String verify() {
+	public String verify(@RequestParam(defaultValue = "") String code, HttpSession session, RedirectAttributes flash) {
+		String phone = signupForm(session).getPhone();
+		String error = codes.verify(session.getId(), Purpose.SIGNUP, phone, code);
+		if (error != null) {
+			flash.addFlashAttribute("codeError", error);
+			return "redirect:/signup/verify";
+		}
+		markVerified(session, phone);
 		return "redirect:/signup/welcome";
 	}
 
@@ -370,7 +497,7 @@ public class CustomerPageController {
 
 	/** 회원가입 완료 → TBL_MEMBER (+ 간편 로그인으로 왔으면 TBL_SOCIAL) */
 	@PostMapping("/signup/complete")
-	public String signupComplete(HttpSession session) {
+	public String signupComplete(HttpServletRequest request, HttpServletResponse response, HttpSession session) {
 		SignupForm form = signupForm(session);
 		if (form.getName() == null || form.getName().isBlank() || Fmt.digits(form.getPhone()).length() < 10
 				|| !form.isTermsAccepted()) {
@@ -378,16 +505,26 @@ public class CustomerPageController {
 		}
 		CustomerSession cs = CustomerSession.of(session);
 		CustomerSession.PendingSocial pending = cs.getPendingSocial();
+		boolean verified = verified(session, form.getPhone());
+		if (members.isRegistered(form.getPhone())) {
+			return "redirect:/signup?notice=exists";
+		}
+		if (!verified && (pending == null || codes.canSend(form.getPhone()))) {
+			return "redirect:/signup"; // 인증을 건너뛰고 온 경우
+		}
 		Member m;
 		try {
 			m = members.signup(form.getName(), form.getPhone(), pending != null ? pending.provider() : null,
-					pending != null ? pending.socialNo() : null);
+					pending != null ? pending.socialNo() : null, verified);
 		} catch (DuplicateKeyException e) {
 			return "redirect:/signup?notice=exists";
 		}
 		session.removeAttribute(SIGNUP_KEY);
+		session.removeAttribute(VERIFIED_KEY);
 		AdminSession.logout(session);
+		request.changeSessionId();
 		cs.login(m.getMemberId(), m.getMemberName());
+		devices.forget(request, response);
 		notifications.toAdmin("14", "신규 가입", m.getMemberName() + " 고객님이 신규 회원으로 가입했습니다.", "/admin/members", false);
 		notifications.fire("회원 관리 · 신규 회원이 가입되었을 시", m.getMemberId(), m.getMemberName());
 		return CustomerSession.redirectAfterLogin(session);
@@ -685,12 +822,19 @@ public class CustomerPageController {
 		return "customer/more/profile";
 	}
 
-	/** 휴대폰 번호 변경 (본인인증 문자 연동 전: 인증번호 확인은 화면에서만) */
+	/** 휴대폰 번호 변경 (새 번호로 받은 인증번호 확인) */
 	@PostMapping("/more/profile/phone")
-	public String changePhone(@RequestParam String phone, HttpSession session) {
-		if (Fmt.digits(phone).length() == 11 && !members.changePhone(memberId(session), phone)) {
+	public String changePhone(@RequestParam String phone, @RequestParam(defaultValue = "") String code,
+			HttpSession session, RedirectAttributes flash) {
+		String error = codes.verify(session.getId(), Purpose.PHONE, phone, code);
+		if (error != null) {
+			flash.addFlashAttribute("phoneCodeError", error);
+			return "redirect:/more/profile";
+		}
+		if (!members.changePhone(memberId(session), phone)) {
 			return "redirect:/more/profile?error=taken";
 		}
+		devices.forgetAll(memberId(session));
 		return "redirect:/more/profile";
 	}
 
@@ -712,11 +856,15 @@ public class CustomerPageController {
 
 	/** [예, 탈퇴할게요] → 본인인증 */
 	@PostMapping("/more/withdraw")
-	public String withdrawConfirm(HttpSession session) {
+	public String withdrawConfirm(HttpServletRequest request, HttpSession session, RedirectAttributes flash) {
 		if (hasBookedMove(session)) {
 			return "redirect:/more/withdraw";
 		}
 		session.setAttribute(WITHDRAW_KEY, memberId(session));
+		String phone = members.find(memberId(session)).getPhone();
+		if (codes.canSend(phone)) {
+			flash.addFlashAttribute("sent", codes.send(session.getId(), Purpose.WITHDRAW, phone, request.getRemoteAddr()));
+		}
 		return "redirect:/more/withdraw/verify";
 	}
 
@@ -727,21 +875,36 @@ public class CustomerPageController {
 		}
 		Member me = members.find(memberId(session));
 		model.addAttribute("maskedPhone", Fmt.maskPhone(me.getPhone()));
+		model.addAttribute("canSend", codes.canSend(me.getPhone()));
+		model.addAttribute("phrase", WITHDRAW_PHRASE);
 		return "customer/more/withdraw-verify";
 	}
 
-	/** 본인인증 완료 → 탈퇴 (문자 인증 연동 전: 인증번호 6자리 입력만 확인) */
+	/** 문자를 보낼 수 없는 번호면 이 문장을 적어야 탈퇴 (탈퇴 자체를 막지는 않음) */
+	private static final String WITHDRAW_PHRASE = "탈퇴할게요";
+
+	/** 본인인증 완료 → 탈퇴 */
 	@PostMapping("/more/withdraw/verify")
-	public String withdraw(@RequestParam(defaultValue = "") String code, HttpSession session) {
+	public String withdraw(@RequestParam(defaultValue = "") String code, @RequestParam(defaultValue = "") String phrase,
+			HttpServletRequest request, HttpServletResponse response, HttpSession session, RedirectAttributes flash) {
 		long id = memberId(session);
-		if (!Long.valueOf(id).equals(session.getAttribute(WITHDRAW_KEY)) || !code.matches("\\d{6}")) {
+		if (!Long.valueOf(id).equals(session.getAttribute(WITHDRAW_KEY))) {
 			return "redirect:/more/withdraw";
+		}
+		String phone = members.find(id).getPhone();
+		String error = codes.canSend(phone) ? codes.verify(session.getId(), Purpose.WITHDRAW, phone, code)
+				: WITHDRAW_PHRASE.equals(phrase.trim()) ? null : "'" + WITHDRAW_PHRASE + "'라고 똑같이 적어 주세요.";
+		if (error != null) {
+			flash.addFlashAttribute("codeError", error);
+			return "redirect:/more/withdraw/verify";
 		}
 		if (hasBookedMove(session)) {
 			return "redirect:/more/withdraw";
 		}
 		String name = CustomerSession.of(session).getUserName();
 		members.withdraw(id);
+		devices.forgetAll(id);
+		devices.forget(request, response);
 		session.removeAttribute(WITHDRAW_KEY);
 		CustomerSession.of(session).logout();
 		session.setAttribute("withdrawnName", name);

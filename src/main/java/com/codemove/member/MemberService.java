@@ -10,7 +10,7 @@ import com.codemove.common.Fmt;
 
 /**
  * 로그인 · 회원가입 · 간편로그인 연결 · 회원 관리.
- * 관리자는 휴대전화 인증으로만 로그인하고(TBL_ADMIN.PHONE), 소셜 로그인은 고객 전용입니다.
+ * 관리자는 전화번호 + 비밀번호로 로그인하고(auth/AdminPasswordService), 소셜 로그인은 고객 전용입니다.
  */
 @Service
 public class MemberService {
@@ -56,12 +56,16 @@ public class MemberService {
 		return id == null ? null : members.findMember(id);
 	}
 
-	/** 회원가입 (본인인증 완료 후). provider·socialNo 가 있으면 그 소셜 계정도 연결 */
+	/**
+	 * 회원가입. provider·socialNo 가 있으면 그 소셜 계정도 연결.
+	 * @param verified 휴대전화 인증을 마쳤는지. 문자를 보낼 수 없을 때 간편 로그인으로 가입하면 false
+	 */
 	@Transactional
-	public Member signup(String name, String phone, String provider, String socialNo) {
+	public Member signup(String name, String phone, String provider, String socialNo, boolean verified) {
 		Member m = new Member();
 		m.setMemberName(name.trim());
 		m.setPhone(Fmt.phone(phone));
+		m.setIsVerified(verified ? "Y" : "N");
 		members.insertMember(m);
 		if (provider != null && socialNo != null) {
 			members.insertSocial(m.getMemberId(), loginType(provider), socialNo);

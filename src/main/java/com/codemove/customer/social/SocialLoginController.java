@@ -14,15 +14,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.codemove.admin.web.AdminSession;
+import com.codemove.auth.LoginDevices;
 import com.codemove.customer.web.CustomerSession;
 import com.codemove.member.Member;
 import com.codemove.member.MemberService;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 /**
  * 간편 로그인 (SCR-U-023): 버튼 → 카카오·네이버·애플 로그인 화면 → 콜백 → 고객 홈.
- * 소셜 로그인은 항상 고객 계정 (관리자는 휴대전화 인증만).
+ * 소셜 로그인은 항상 고객 계정 (관리자는 전화번호 + 비밀번호만).
  */
 @Controller
 public class SocialLoginController {
@@ -44,10 +47,12 @@ public class SocialLoginController {
 
 	private final SocialLoginService social;
 	private final MemberService members;
+	private final LoginDevices devices;
 
-	public SocialLoginController(SocialLoginService social, MemberService members) {
+	public SocialLoginController(SocialLoginService social, MemberService members, LoginDevices devices) {
 		this.social = social;
 		this.members = members;
+		this.devices = devices;
 	}
 
 	@GetMapping("/login/social/{code}")
@@ -73,7 +78,8 @@ public class SocialLoginController {
 	@GetMapping("/login/oauth/{code}/callback")
 	public String callback(@PathVariable String code, @RequestParam(required = false) String state,
 			@RequestParam(name = "code", required = false) String authCode,
-			@RequestParam(required = false) String error, HttpSession session) {
+			@RequestParam(required = false) String error, HttpServletRequest request, HttpServletResponse response,
+			HttpSession session) {
 		SocialProvider provider = SocialProvider.of(code).filter(p -> p != SocialProvider.APPLE).orElse(null);
 		if (provider == null) {
 			return "redirect:/login";
@@ -86,7 +92,7 @@ public class SocialLoginController {
 		}
 		try {
 			return complete(social.fetchProfile(provider, authCode, social.redirectUri(provider, currentBase()), state, null),
-					session);
+					request, response, session);
 		} catch (RuntimeException e) {
 			log.warn("{} 로그인 실패", provider.label(), e);
 			return fail(provider, "failed");
@@ -118,18 +124,22 @@ public class SocialLoginController {
 	}
 
 	@GetMapping("/login/oauth/apple/complete")
-	public String appleComplete(@RequestParam String ticket, HttpSession session) {
+	public String appleComplete(@RequestParam String ticket, HttpServletRequest request, HttpServletResponse response,
+			HttpSession session) {
 		AppleResult result = appleResults.remove(ticket);
 		if (result == null || result.expiresAt() < System.currentTimeMillis()
 				|| !("apple:" + result.state()).equals(session.getAttribute(STATE_KEY))) {
 			return fail(SocialProvider.APPLE, "failed");
 		}
-		return complete(result.profile(), session);
+		return complete(result.profile(), request, response, session);
 	}
 
 	/** 연결된 회원이면 로그인, 처음 보는 소셜 계정이면 회원가입(가입을 마치면 TBL_SOCIAL 연결) */
-	private String complete(SocialLoginService.SocialProfile profile, HttpSession session) {
+	private String complete(SocialLoginService.SocialProfile profile, HttpServletRequest request,
+			HttpServletResponse response, HttpSession session) {
 		session.removeAttribute(STATE_KEY);
+		devices.forget(request, response);
+		request.changeSessionId();
 		AdminSession.logout(session);
 		CustomerSession cs = CustomerSession.of(session);
 		Member member = members.findBySocial(profile.provider().code(), profile.id());

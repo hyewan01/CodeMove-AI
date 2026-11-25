@@ -51,4 +51,15 @@ public interface MemberMapper {
 	int deleteSocials(long memberId);
 
 	Admin findAdmin(long adminId);
+
+	/* ---------- 관리자 비밀번호 (BCrypt) ---------- */
+
+	String findAdminPassword(long adminId);
+
+	int updateAdminPassword(@Param("adminId") long adminId, @Param("hash") String hash);
+
+	/** 비밀번호가 없을 때만 (이미 있으면 0) */
+	int setFirstAdminPassword(@Param("adminId") long adminId, @Param("hash") String hash);
+
+	List<Admin> findAdminsWithoutPassword();
 }

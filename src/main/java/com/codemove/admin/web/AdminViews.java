@@ -134,7 +134,8 @@ public class AdminViews {
 			new Menu("회원 관리", null, "people", "/admin/members"),
 			new Menu("일정 관리", null, "calendar", "/admin/schedule/manage"),
 			new Menu("견적서 등록", null, "document", "/admin/estimates/new"),
-			new Menu("AI 영상 분석 테스트", null, "document", "/admin/ai-test"));
+			new Menu("AI 영상 분석 테스트", null, "document", "/admin/ai-test"),
+			new Menu("비밀번호 변경", null, "settings", "/admin/password"));
 
 	public static final List<Menu> SEARCH_MENUS = List.of(
 			new Menu("견적 관리", "견적 기록 및 상태 관리", "document", "/admin/estimates"),
@@ -142,6 +143,7 @@ public class AdminViews {
 			new Menu("예약 관리", "예약 내역 및 상태 관리", "calendar", "/admin/reservations"),
 			new Menu("예약 일정", "월간 이사 일정 확인", "calendar", "/admin/schedule"),
 			new Menu("일정 관리", "휴무일 및 예약 불가일 관리", "calendar", "/admin/schedule/manage"),
+			new Menu("비밀번호 변경", "관리자 로그인 비밀번호", "settings", "/admin/password"),
 			new Menu("체크리스트 관리", "고객별 이사 준비 진행률 · 기본 할 일 수정", "check", "/admin/checklist"),
 			new Menu("후기 관리", "고객 후기와 답변 관리", "star", "/admin/reviews"),
 			new Menu("회원 관리", "고객 및 관리자 관리", "people", "/admin/members"),

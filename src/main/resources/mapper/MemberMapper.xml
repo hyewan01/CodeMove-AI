@@ -13,6 +13,25 @@
 		SELECT ADMIN_ID, ADMIN_NAME, PHONE, IS_ACTIVE FROM TBL_ADMIN WHERE ADMIN_ID = #{adminId}
 	</select>
 
+	<!-- 관리자 비밀번호 (세션에 담는 Admin 에는 넣지 않음) -->
+	<select id="findAdminPassword" resultType="string">
+		SELECT PASSWORD FROM TBL_ADMIN WHERE ADMIN_ID = #{adminId} AND IS_ACTIVE = 'Y'
+	</select>
+
+	<update id="updateAdminPassword">
+		UPDATE TBL_ADMIN SET PASSWORD = #{hash}, PW_CHANGED_AT = SYSDATE WHERE ADMIN_ID = #{adminId}
+	</update>
+
+	<update id="setFirstAdminPassword">
+		UPDATE TBL_ADMIN SET PASSWORD = #{hash}, PW_CHANGED_AT = SYSDATE
+		 WHERE ADMIN_ID = #{adminId} AND IS_ACTIVE = 'Y' AND PASSWORD IS NULL
+	</update>
+
+	<select id="findAdminsWithoutPassword" resultType="com.codemove.member.Admin">
+		SELECT ADMIN_ID, ADMIN_NAME, PHONE, IS_ACTIVE FROM TBL_ADMIN
+		 WHERE IS_ACTIVE = 'Y' AND PASSWORD IS NULL ORDER BY ADMIN_ID
+	</select>
+
 	<select id="findActiveMemberByPhone" resultType="com.codemove.member.Member">
 		SELECT * FROM TBL_MEMBER
 		 WHERE REPLACE(PHONE, '-', '') = #{digits}
@@ -28,7 +47,7 @@
 			SELECT SEQ_MEMBER.NEXTVAL FROM DUAL
 		</selectKey>
 		INSERT INTO TBL_MEMBER (MEMBER_ID, MEMBER_NAME, PHONE, IS_VERIFIED, IS_ACTIVE, JOINED_AT, TERMS_AGREED_AT)
-		VALUES (#{memberId}, #{memberName}, #{phone}, 'Y', 'Y', SYSDATE, SYSDATE)
+		VALUES (#{memberId}, #{memberName}, #{phone}, #{isVerified}, 'Y', SYSDATE, SYSDATE)
 	</insert>
 
 	<select id="findMemberIdBySocial" resultType="long">

@@ -30,6 +30,7 @@
 				<button type="button" class="action personal-change-button" aria-label="휴대폰 번호 변경" data-modal-open="phone-change">변경</button>
 			</div>
 			<p class="form-error" role="alert" th:if="${phoneError}" th:text="${phoneError}"></p>
+			<p class="form-error" role="alert" th:if="${phoneCodeError}" th:text="${phoneCodeError}"></p>
 		</div>
 
 		<div class="linked-login-card">
@@ -52,7 +53,8 @@
 
 		<button type="button" class="action personal-modal-scrim" aria-label="휴대폰 번호 변경 닫기" data-modal="phone-change" data-modal-close hidden></button>
 		<form aria-labelledby="phone-change-title" aria-modal="true" class="personal-modal" role="dialog"
-			  method="post" th:action="@{/more/profile/phone}" data-modal="phone-change" data-phone-verify hidden>
+			  method="post" th:action="@{/more/profile/phone}" data-modal="phone-change" data-phone-verify data-purpose="phone"
+			  th:data-send-url="@{/auth/code/send}" hidden>
 			<div class="sheet-grabber personal-sheet-grabber" aria-label="휴대폰 번호 변경 화면 닫기" role="button" tabindex="0" data-modal-close>
 				<div class="sheet-handle"></div>
 			</div>
@@ -79,8 +81,9 @@
 					<input class="field" name="code" type="text" inputmode="numeric" aria-label="인증번호"
 						   placeholder="인증번호 6자리" data-format="digits" maxlength="6">
 				</div>
-				<div class="phone-code-hint"><span data-phone-echo></span> 으로 인증번호가 발송되었어요.</div>
+				<div class="phone-code-hint" data-code-hint></div>
 			</div>
+			<p class="form-error" role="alert" data-code-error hidden></p>
 			<button class="action form-submit next-button phone-change-confirm is-disabled" data-submit>인증하고 변경</button>
 		</form>
 	</div>

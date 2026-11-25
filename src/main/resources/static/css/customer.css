@@ -2551,3 +2551,12 @@ a.chat-file-message { color: inherit; text-decoration: none; }
 .chat-screen.to-counselor .chat-send { background: #ffe08a; }
 .chat-screen.to-counselor .chat-send img { filter: brightness(0); opacity: .72; }
 .message.user.to-counselor { background: #fff0c2; color: #3b3517; }
+
+/* 휴대전화 인증: 로그인 유지 · 안내 */
+.keep-login { margin-top: 22px; display: flex; align-items: center; gap: 8px; color: var(--body); font-family: "Pretendard:Medium"; font-size: 14px; }
+.keep-login input { width: 18px; height: 18px; accent-color: var(--green); }
+.keep-login[hidden], .phone-send-button[hidden] { display: none; }
+.phone-code-hint, .verify-note { color: #6b746d; font-size: 13px; line-height: 1.5; }
+.verify-note { margin: 14px 0 0; }
+.form-error[hidden], .verify-note[hidden] { display: none; }
+.phone-code-label > span:first-child, .verify-help { color: #6b746d; }

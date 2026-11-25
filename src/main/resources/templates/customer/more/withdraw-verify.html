@@ -6,13 +6,30 @@
 <!-- 회원 탈퇴 2/3: 휴대폰 본인인증 (회원가입 본인인증과 같은 입력 방식) -->
 <div class="screen form-page">
 	<div th:replace="~{customer/fragments/common :: formHead('/more/withdraw', null)}"></div>
-	<form class="form-content verify-page" method="post" th:action="@{/more/withdraw/verify}" data-verify>
+	<!-- 문자를 보낼 수 없는 번호: 문장을 적어 확인 -->
+	<form th:unless="${canSend}" class="form-content verify-page" method="post" th:action="@{/more/withdraw/verify}">
+		<div class="signup-copy">정말 탈퇴하려면<br>아래 문장을 적어 주세요</div>
+		<div class="field-wrap">
+			<div class="field-label" th:text="${phrase}">탈퇴할게요</div>
+			<input class="field" name="phrase" type="text" th:aria-label="${phrase} + ' 라고 적기'" th:placeholder="${phrase}" autocomplete="off" required>
+		</div>
+		<p class="form-error" role="alert" th:if="${codeError}" th:text="${codeError}"></p>
+		<p class="wd-verify-note">바로 탈퇴되고 되돌릴 수 없어요.</p>
+		<button class="action form-submit verify-submit primary">탈퇴하기</button>
+	</form>
+	<form th:if="${canSend}" class="form-content verify-page" method="post" th:action="@{/more/withdraw/verify}" data-verify
+		  data-purpose="withdraw" th:data-send-url="@{/auth/code/send}">
 		<div class="signup-copy">본인 확인을 위해<br>인증번호를 입력해 주세요</div>
-		<div class="verify-help">인증번호 문자 메시지가 <b th:text="${maskedPhone}">010-****-5678</b>(으)로 발송되었습니다.</div>
+		<div class="verify-help"><b th:text="${maskedPhone}">010-****-5678</b>(으)로 받은 인증번호 6자리예요.</div>
 		<div class="otp-row" data-otp>
 			<input class="otp-box" inputmode="numeric" maxlength="1" type="text" aria-label="인증번호 1번째 자리" th:each="i : ${#numbers.sequence(1, 6)}">
 		</div>
 		<input type="hidden" name="code" data-otp-value>
+			<p class="verify-note" data-verify-note th:if="${sent != null and sent.demoCode != null}" th:text="'시연용 번호예요. 인증번호 ' + ${sent.demoCode}"></p>
+			<p class="verify-note" data-verify-note th:unless="${sent != null and sent.demoCode != null}" hidden></p>
+			<p class="form-error" role="alert" data-code-error
+			   th:text="${codeError != null} ? ${codeError} : (${sent != null and !sent.ok} ? ${sent.message} : '')"
+			   th:hidden="${codeError == null and (sent == null or sent.ok)}"></p>
 		<div class="otp-meta">
 			<span class="otp-timer" data-timer>03:00</span>
 			<button type="button" class="action otp-resend" data-resend>재발송</button>

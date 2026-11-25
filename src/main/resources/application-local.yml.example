@@ -24,3 +24,7 @@ codemove:
       key-id: <Sign in with Apple 키 ID>
       # .p8 파일 경로 또는 -----BEGIN PRIVATE KEY----- 로 시작하는 내용
       private-key: <AuthKey_XXXX.p8 경로>
+  # 휴대전화 인증 시연 번호 (문자가 안 나가는 동안만 쓰임). 실제 고객 번호는 적지 마세요
+  auth:
+    demo-phones: 010-1234-5678, 010-5678-1234, 010-4321-8765, 010-0000-0001, 010-0000-0011, 010-0000-0012
+    demo-code: <시연용 인증번호 6자리>

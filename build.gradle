@@ -29,6 +29,8 @@ dependencies {
 	runtimeOnly 'com.oracle.database.nls:orai18n:19.33.0.0'
 	// 손 없는 날: 한국 음력(단기력) 변환 DangiCalendar (common/LunarDays)
 	implementation 'com.ibm.icu:icu4j:78.3'
+	// 관리자 비밀번호 BCrypt (auth/AdminPasswordService). 암호 도구만 쓰고 Spring Security 필터는 쓰지 않음
+	implementation 'org.springframework.security:spring-security-crypto'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-thymeleaf-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
