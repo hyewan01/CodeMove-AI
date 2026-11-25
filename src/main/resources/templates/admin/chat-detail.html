@@ -49,17 +49,17 @@
 		</div>
 	</header>
 
-	<!-- 상담 상태: 회색 상담 아님 · 주황 상담 요청 → 누르면 시작, 초록 상담 중 → 누르면 종료할지 물어봄 -->
+	<!-- 상담 상태: 회색 AI 응대 중 · 주황 상담 요청 → 누르면 시작, 초록 상담 중 → 누르면 종료할지 물어봄 -->
 	<div class="flex shrink-0 items-center justify-between gap-2 border-b border-[#e8ece8] bg-white py-1.5 pl-4 pr-3">
 		<span class="min-w-0 truncate text-[13px] text-[#7d867f]"
-			  th:text="${mode == 'counselor'} ? '고객 메시지가 관리자에게만 와요' : (${mode == 'waiting'} ? '고객님이 상담을 기다리고 있어요' : '지금은 AI 가 답하고 있어요')"></span>
+			  th:text="${mode == 'counselor'} ? '고객 메시지가 관리자에게만 와요' : (${mode == 'waiting'} ? '고객님이 상담을 기다리고 있어요' : '오른쪽을 누르면 상담을 시작해요')"></span>
 		<form th:unless="${mode == 'counselor'}" class="shrink-0" method="post" th:action="@{/admin/chats/{id}/start(id=${room.id})}">
 			<input type="hidden" name="from" th:value="${from}">
 			<button type="submit" class="flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition active:scale-95" data-consult="start"
 					th:classappend="${mode == 'waiting'} ? 'bg-[#fff1e2] text-[#b4590b]' : 'bg-[#eceeec] text-[#7d867f]'"
-					th:aria-label="${mode == 'waiting'} ? '상담 요청, 누르면 상담 시작' : '상담 아님, 누르면 상담 시작'">
+					th:aria-label="${mode == 'waiting'} ? '상담 요청, 누르면 상담 시작' : 'AI 응대 중, 누르면 상담 시작'">
 				<span class="h-2 w-2 rounded-full" th:classappend="${mode == 'waiting'} ? 'bg-[#E8740C]' : 'bg-[#b3bab5]'"></span>
-				<th:block th:text="${mode == 'waiting'} ? '상담 요청' : '상담 아님'">상담 아님</th:block>
+				<th:block th:text="${mode == 'waiting'} ? '상담 요청' : 'AI 응대 중'">AI 응대 중</th:block>
 			</button>
 		</form>
 		<button th:if="${mode == 'counselor'}" type="button" class="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#346538] px-3 text-[13px] font-bold text-white transition active:scale-95"
