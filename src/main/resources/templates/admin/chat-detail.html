@@ -4,7 +4,8 @@
 <!-- 채팅 상세 (SCR-A-007) -->
 <th:block th:fragment="content">
 <div class="relative flex h-full min-h-0 flex-col overflow-hidden bg-[#f5f6f8]" data-chat-detail
-	 th:data-messages-url="@{/admin/chats/{id}/messages(id=${room.id})}">
+	 th:data-messages-url="@{/admin/chats/{id}/messages(id=${room.id})}"
+	 th:data-state-url="@{/admin/chats/{id}/state(id=${room.id})}" th:data-version="${version}">
 	<!-- 관리자 메시지 메뉴 (꾹 누르기 · 오른쪽 클릭) -->
 	<div class="absolute z-40 flex min-w-[120px] flex-col rounded-xl border border-[#e2e7e2] bg-white p-1.5 shadow-[0_12px_32px_rgba(34,53,37,.18)]" role="menu" data-msg-menu hidden>
 		<button type="button" role="menuitem" class="rounded-lg px-3 py-2.5 text-left text-[15px] font-semibold text-[#303832] hover:bg-[#f5f6f5]" data-menu-edit>수정</button>
@@ -29,10 +30,6 @@
 			<a th:if="${from == 'management'}" aria-label="채팅 관리로 돌아가기" class="flex shrink-0 items-center gap-1 rounded-full bg-[#edf3ed] px-2.5 py-1.5 text-[14px] font-bold text-[#346538]"
 			   th:href="@{/admin/chat-management}"><span class="rotate-180 leading-none"><svg th:replace="~{admin/fragments/icon :: icon2('arrowRight', 12, '')}"></svg></span>채팅 관리</a>
 			<div class="min-w-0"><h1 class="truncate text-[17px] font-extrabold text-[#346538]" th:text="${room.name}">홍길동</h1></div>
-			<span th:if="${room.waiting}" class="ml-1 flex shrink-0 items-center gap-1 rounded-full bg-[#fff0ee] px-2 py-1 text-[13px] font-bold text-[#bd5147]">
-				<span class="h-1.5 w-1.5 rounded-full bg-[#d95c50]"></span>대기 중</span>
-			<!-- 상담 중이면 AI 는 답하지 않음 (상담 종료 또는 24시간 뒤 다시 AI) -->
-			<span th:if="${consultMode and !room.waiting}" class="ml-1 shrink-0 rounded-full bg-[#edf3ed] px-2 py-1 text-[13px] font-bold text-[#346538]">상담 중</span>
 		</div>
 		<div class="flex shrink-0 items-center">
 			<button aria-label="대화 내용 검색" class="grid h-10 w-9 place-items-center rounded-full text-[#3f4941] hover:bg-[#f2f5f2]" type="button" data-toggle="msg-search">
@@ -47,15 +44,42 @@
 						<span class="grid h-5 w-5 place-items-center rounded-md border border-[#d8ddd8] group-aria-pressed:border-0 group-aria-pressed:bg-[#346538] group-aria-pressed:text-white">
 							<svg th:replace="~{admin/fragments/icon :: icon2('check', 13, 'hidden group-aria-pressed:block')}"></svg></span>
 					</button>
-					<form th:if="${consultMode}" class="mt-1 border-t border-[#eef0ee] pt-1" method="post" th:action="@{/admin/chats/{id}/end(id=${room.id})}">
-						<input type="hidden" name="from" th:value="${from}">
-						<button class="w-full rounded-lg px-3 py-2.5 text-left text-[14px] font-semibold text-[#346538] hover:bg-[#f5f6f5]" type="submit">
-							상담 종료 <span class="block text-[12px] font-normal text-[#8a918c]">다시 AI 가 답하도록</span></button>
-					</form>
 				</div>
 			</div>
 		</div>
 	</header>
+
+	<!-- 상담 상태: 회색 상담 아님 · 주황 상담 요청 → 누르면 시작, 초록 상담 중 → 누르면 종료할지 물어봄 -->
+	<div class="flex shrink-0 items-center justify-between gap-2 border-b border-[#e8ece8] bg-white py-1.5 pl-4 pr-3">
+		<span class="min-w-0 truncate text-[13px] text-[#7d867f]"
+			  th:text="${mode == 'counselor'} ? '고객 메시지가 관리자에게만 와요' : (${mode == 'waiting'} ? '고객님이 상담을 기다리고 있어요' : '지금은 AI 가 답하고 있어요')"></span>
+		<form th:unless="${mode == 'counselor'}" class="shrink-0" method="post" th:action="@{/admin/chats/{id}/start(id=${room.id})}">
+			<input type="hidden" name="from" th:value="${from}">
+			<button type="submit" class="flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold transition active:scale-95" data-consult="start"
+					th:classappend="${mode == 'waiting'} ? 'bg-[#fff1e2] text-[#b4590b]' : 'bg-[#eceeec] text-[#7d867f]'"
+					th:aria-label="${mode == 'waiting'} ? '상담 요청, 누르면 상담 시작' : '상담 아님, 누르면 상담 시작'">
+				<span class="h-2 w-2 rounded-full" th:classappend="${mode == 'waiting'} ? 'bg-[#E8740C]' : 'bg-[#b3bab5]'"></span>
+				<th:block th:text="${mode == 'waiting'} ? '상담 요청' : '상담 아님'">상담 아님</th:block>
+			</button>
+		</form>
+		<button th:if="${mode == 'counselor'}" type="button" class="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#346538] px-3 text-[13px] font-bold text-white transition active:scale-95"
+				aria-label="상담 중, 누르면 상담 종료" data-consult="end">
+			<span class="h-2 w-2 rounded-full bg-[#ffe08a]"></span>상담 중</button>
+	</div>
+
+	<!-- 상담 종료 확인 -->
+	<form th:if="${mode == 'counselor'}" class="absolute inset-0 z-50 grid place-items-center bg-[#1f2d21]/45 p-6 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-label="상담 종료"
+		  method="post" th:action="@{/admin/chats/{id}/end(id=${room.id})}" data-consult-end hidden>
+		<input type="hidden" name="from" th:value="${from}">
+		<div class="w-full max-w-[340px] rounded-[22px] bg-white p-5 text-center shadow-[0_20px_50px_rgba(25,42,28,.24)]">
+			<h2 class="text-[17px] font-extrabold text-[#303832]">상담 종료하시겠습니까?</h2>
+			<p class="mt-2 text-[14px] text-[#8a918c]">종료하면 다시 AI 가 고객에게 답해요.</p>
+			<div class="mt-5 grid grid-cols-2 gap-2">
+				<button class="h-11 rounded-xl bg-[#f0f2f0] text-[15px] font-bold text-[#646c66]" type="button" data-consult-end-cancel>아니요</button>
+				<button class="h-11 rounded-xl bg-[#346538] text-[15px] font-bold text-white" type="submit">네</button>
+			</div>
+		</div>
+	</form>
 
 	<div class="flex shrink-0 items-center gap-2 border-b border-[#e8ece8] bg-white px-3 py-2.5" data-toggle-target="msg-search" hidden>
 		<div class="flex flex-1 items-center gap-2 rounded-full bg-[#f2f3f5] px-4 py-2.5">
@@ -71,11 +95,14 @@
 		<div class="mb-5 text-center"><span class="rounded-full bg-[#e8ebe8] px-3 py-1.5 text-[14px] font-semibold text-[#7d857f]">오늘</span></div>
 		<div class="space-y-4">
 			<div th:each="m : ${messages}" th:with="isCustomer=${m.role == 'customer'}"
-				 class="flex max-w-[84%] flex-col gap-1" th:classappend="${isCustomer} ? 'items-start' : 'ml-auto items-end'"
+				 class="flex max-w-[94%] flex-col gap-1" th:classappend="${isCustomer} ? 'items-start' : 'ml-auto items-end'"
 				 th:data-role="${m.role}" th:data-waiting="${m.waiting}" th:data-text="${m.text}" data-msg
 				 th:data-msg-id="${m.id}" th:data-edit-block="${m.editBlock}" th:data-delete-block="${m.deleteBlock}" th:data-deleted="${m.deleted}">
 				<span th:unless="${isCustomer}" class="text-[14px] font-bold" th:classappend="${m.role == 'ai'} ? 'text-[#6c7d6e]' : 'text-[#346538]'"
 					  th:text="${m.role == 'ai'} ? 'AI' : '관리자'">AI</span>
+				<!-- 말풍선 옆에 안 읽음 1 · 시간 (카톡처럼, 내 말은 왼쪽 · 고객 말은 오른쪽) -->
+				<div class="flex max-w-full items-end gap-1.5" th:classappend="${isCustomer} ? '' : 'flex-row-reverse'">
+				<div class="flex min-w-0 flex-col gap-1" th:classappend="${isCustomer} ? 'items-start' : 'items-end'">
 				<!-- 지운 메시지 -->
 				<div th:if="${m.deleted}" class="rounded-2xl border border-dashed border-[#cfd6cf] px-3 py-2 text-[15px] italic text-[#9aa29c]">삭제된 메시지예요</div>
 				<th:block th:unless="${m.deleted}">
@@ -89,10 +116,13 @@
 					   class="flex max-w-[240px] items-center gap-2 rounded-xl bg-[#e7eee8] px-3 py-2 text-[14px] font-semibold text-[#4f6652]">
 						<svg th:replace="~{admin/fragments/icon :: icon('document', 15, 'shrink-0')}"></svg><span class="truncate" th:text="${m.fileName}">파일</span></a>
 				</th:block>
-				<span class="text-[12px] text-[#9aa29c]" th:if="${m.role == 'admin'}"
-					  th:text="${m.time} + (${m.edited and !m.deleted} ? ' · 수정됨' : '') + (${m.read} ? ' · 읽음' : ' · 안 읽음')">10:00 · 읽음</span>
-				<span class="text-[12px] text-[#9aa29c]" th:if="${m.role == 'customer'}"
-					  th:text="${m.time} + (${m.edited and !m.deleted} ? ' · 수정됨' : '')">10:00</span>
+				</div>
+				<div class="flex shrink-0 flex-col text-[12px] leading-[1.3] text-[#8b948d]" th:classappend="${isCustomer} ? 'items-start' : 'items-end'">
+					<b th:if="${m.role == 'admin' and !m.deleted}" class="text-[13px] font-extrabold text-[#4f8b55]" aria-label="고객이 아직 안 읽음" th:hidden="${m.read}" data-unread>1</b>
+					<span th:if="${m.edited and !m.deleted}">수정됨</span>
+					<span class="whitespace-nowrap" th:text="${m.time}">오후 12:13</span>
+				</div>
+				</div>
 				<span th:if="${m.waiting}" class="flex items-center gap-1 text-[14px] font-semibold text-[#ba554c]">답변 대기 · 왼쪽으로 밀어 답장</span>
 			</div>
 			<div class="py-16 text-center" data-msg-empty hidden>
@@ -101,6 +131,9 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- 글을 쓰는 중에 새 메시지가 오면 (아니면 저절로 새로 보여 줌) -->
+	<button type="button" class="mx-auto mb-2 h-9 shrink-0 rounded-full bg-[#346538] px-4 text-[14px] font-bold text-white shadow-lg" data-new-messages hidden>새 메시지 보기</button>
 
 	<form class="shrink-0 border-t border-[#e1e6e1] bg-white px-3 pb-3 pt-2 shadow-[0_-4px_16px_rgba(36,58,39,.06)]"
 		  method="post" enctype="multipart/form-data" th:action="@{/admin/chats/{id}/messages(id=${room.id})}" data-send>
@@ -167,7 +200,7 @@
 		});
 
 		const scrollBottom = () => area.scrollTo({ top: area.scrollHeight, behavior: 'smooth' });
-		scrollBottom();
+		area.scrollTop = area.scrollHeight;
 
 		const reply = $('[data-reply]');
 		const setReply = (text) => {
@@ -268,6 +301,32 @@
 				.then((res) => { if (res.ok) location.reload(); else alert(res.message); })
 				.catch(() => alert('삭제하지 못했어요. 잠시 후 다시 시도해 주세요.'));
 		});
+
+		/* 상담 중을 누르면 종료할지 물어봄 */
+		const end = $('[data-consult-end]');
+		if (end) {
+			$('[data-consult="end"]').addEventListener('click', () => (end.hidden = false));
+			$('[data-consult-end-cancel]').addEventListener('click', () => (end.hidden = true));
+		}
+
+		/* 보는 동안 5초마다: 고객이 읽으면 1 을 지우고, 새 메시지 · 상담 상태가 바뀌면 새로 보여 줌 (쓰던 글은 지키고 버튼만) */
+		const fresh = $('[data-new-messages]');
+		fresh.addEventListener('click', () => location.reload());
+		const busy = () => draft.value || fileInput.files.length || !reply.hidden || !edit.hidden || !menu.hidden
+			|| (end && !end.hidden) || query.value || opts.hideAi || opts.waitingOnly
+			|| [...root.querySelectorAll('video')].some((v) => !v.paused);
+		setInterval(() => {
+			if (document.hidden) return;
+			fetch(root.dataset.stateUrl, { headers: { Accept: 'application/json' } })
+				.then((r) => (r.ok ? r.json() : null))
+				.then((s) => {
+					if (!s) return;
+					msgs.forEach((m) => { const u = m.querySelector('[data-unread]'); if (u) u.hidden = !s.unread.includes(Number(m.dataset.msgId)); });
+					if (s.version === root.dataset.version) return;
+					if (busy()) fresh.hidden = false; else location.reload();
+				})
+				.catch(() => { /* 다음 확인 때 다시 */ });
+		}, 5000);
 	})();
 </script>
 </th:block>

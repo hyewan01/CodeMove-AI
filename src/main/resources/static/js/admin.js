@@ -94,8 +94,11 @@
 		if (toastTimer) clearTimeout(toastTimer);
 		if (toast) toast.hidden = true;
 	};
-	const showToast = (title, message, href) => {
+	/* postUrl 이 있으면 누를 때 그 주소로 보냄 (상담 요청 알림 → 상담 시작) */
+	let toastPost = null, swiped = false;
+	const showToast = (title, message, href, postUrl) => {
 		if (!toast) return;
+		toastPost = postUrl || null;
 		$('[data-toast-title]', toast).textContent = title;
 		$('[data-toast-message]', toast).textContent = message;
 		$('[data-toast-time]', toast).textContent =
@@ -108,7 +111,17 @@
 	if (toast) {
 		const link = $('[data-toast-link]', toast);
 		let startX = null;
-		link.addEventListener('pointerdown', (e) => { startX = e.clientX; });
+		link.addEventListener('click', (e) => {
+			if (swiped) { e.preventDefault(); return; }
+			if (!toastPost) return;
+			e.preventDefault();
+			const form = document.createElement('form');
+			form.method = 'post';
+			form.action = toastPost;
+			document.body.appendChild(form);
+			form.submit();
+		});
+		link.addEventListener('pointerdown', (e) => { startX = e.clientX; swiped = false; });
 		link.addEventListener('pointermove', (e) => {
 			if (startX === null) return;
 			const dx = Math.max(0, e.clientX - startX);
@@ -122,6 +135,7 @@
 			link.style.transform = '';
 			link.style.opacity = '';
 			if (dx > 80) {
+				swiped = true;
 				e.preventDefault();
 				hideToast();
 			}
@@ -136,7 +150,8 @@
 	}
 
 	/*
-	 * ---------- 새 고객 메시지: 하단 챗봇 빨간 점 + 고객 알림처럼 위에서 내려오는 토스트 ----------
+	 * ---------- 상담 요청 · 새 고객 메시지: 하단 챗봇 빨간 점 + 위에서 내려오는 알림 ----------
+	 * 관리자에게 온 것만 (AI 에게 보낸 메시지는 알리지 않음). 상담 요청은 앱에 들어왔을 때 기다리던 것도 알리고, 누르면 바로 상담 시작
 	 * 화면을 열어 둔 채여도 15초마다(그리고 화면으로 돌아올 때) /admin/badges 를 물어봄.
 	 * 같은 메시지로 두 번 띄우지 않게 마지막으로 본 key 를 이 탭(sessionStorage)에 기억. 그 방을 보고 있으면 토스트는 생략
 	 */
@@ -147,6 +162,8 @@
 			get: () => { try { return sessionStorage.getItem(SEEN); } catch (e) { return null; } },
 			set: (v) => { try { sessionStorage.setItem(SEEN, v); } catch (e) { /* 이 탭에서만 다시 뜰 수 있음 */ } },
 		};
+		const ASKED = 'codemove.admin.seenRequests';
+		const asked = new Set((() => { try { return JSON.parse(sessionStorage.getItem(ASKED)) || []; } catch (e) { return []; } })());
 		const checkBadges = () => {
 			if (document.hidden) return;
 			fetch(badgeNav.dataset.badgesUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
@@ -157,12 +174,21 @@
 					/* 종 점: 알림 패널을 보고 있을 때는 그대로 둠 */
 					const bell = $('[data-unread-dot]');
 					if (bell && b.bell !== undefined && !$('[data-panel="notifications"]:not([hidden])')) bell.hidden = !b.bell;
+					const at = (id) => location.pathname.endsWith(`/admin/chats/${id}`);
+					/* 여러 명이면 가장 최근 요청 하나로 묶어서 */
+					const requests = (b.requests || []).filter((r) => !asked.has(r.key));
+					const request = requests[0];
+					if (request) {
+						requests.forEach((r) => asked.add(r.key));
+						if (requests.length > 1) request.message += ` (외 ${requests.length - 1}명도 기다리고 있어요)`;
+						try { sessionStorage.setItem(ASKED, JSON.stringify([...asked])); } catch (e) { /* 이 탭에서 다시 뜰 수 있음 */ }
+						if (!at(request.roomId)) { showToast(request.title, request.message, request.href, request.start); return; }
+					}
 					const latest = b.latest;
 					if (!latest || latest.key === seen.get()) return;
 					const first = seen.get() === null;
 					seen.set(latest.key);
-					const viewing = location.pathname.endsWith(`/admin/chats/${latest.roomId}`);
-					if (!first && !viewing) showToast(latest.title, latest.message, latest.href);
+					if (!first && !at(latest.roomId)) showToast(latest.title, latest.message, latest.href);
 				})
 				.catch(() => { /* 다음 확인 때 다시 */ });
 		};

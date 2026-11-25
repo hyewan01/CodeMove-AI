@@ -43,15 +43,15 @@ public class AdminChatController {
 	@GetMapping("/chat-management")
 	public String home(Model model) {
 		List<AdminChat.ChatRoom> rooms = rooms();
-		// 실시간 상담 현황 = 고객이 상담사 연결을 요청한 채팅만 (챗봇 미응답은 채팅 목록에서 '대기 중'으로만 표시)
-		model.addAttribute("waitingCount", rooms.stream().filter(r -> r.consultRequested()).count());
+		// 실시간 상담 현황 = 고객이 상담을 요청하고 아직 연결되지 않은 채팅
+		model.addAttribute("waitingCount", rooms.stream().filter(r -> r.waiting()).count());
 		model.addAttribute("unreadCount", rooms.stream().mapToInt(r -> r.unread()).sum());
 		return "admin/chat-home";
 	}
 
 	/**
-	 * 하단 챗봇 점 · 종 점 · 새 고객 메시지 토스트용. latest.key 가 바뀌면 화면이 토스트를 띄움
-	 * (key = 방 번호 + 마지막 고객 메시지 시각)
+	 * 하단 챗봇 점 · 종 점 · 상단 알림용.
+	 * requests: 연결을 기다리는 상담 요청 (최근 순), latest: 상담 중인 방의 새 고객 메시지. key 가 처음 보는 것이면 화면이 알림을 띄움
 	 */
 	@GetMapping("/badges")
 	@org.springframework.web.bind.annotation.ResponseBody
@@ -60,27 +60,71 @@ public class AdminChatController {
 		java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
 		out.put("chat", rooms.stream().mapToInt(r -> r.getUnread() == null ? 0 : r.getUnread()).sum());
 		out.put("bell", notifications.hasUnreadAdmin());
-		rooms.stream().filter(r -> r.getUnread() != null && r.getUnread() > 0 && r.getLastCustomerAt() != null)
+		String base = request.getContextPath() + "/admin/chats/";
+		out.put("requests", rooms.stream().filter(r -> "waiting".equals(ChatService.modeOf(r)))
+				.sorted(Comparator.comparing((ChatRoomLine r) -> String.valueOf(r.getWaitingAt())).reversed())
+				.map(r -> java.util.Map.of("key", "req:" + r.getRoomId() + "@" + r.getWaitingAt(), "roomId", r.getRoomId(),
+						"title", name(r) + "님이 상담을 요청하셨습니다",
+						"message", AdminChat.preview(r).isBlank() || ChatService.isConsultRequest(AdminChat.preview(r))
+								? "누르면 바로 상담을 시작해요" : AdminChat.preview(r),
+						"href", base + r.getRoomId(), "start", base + r.getRoomId() + "/start"))
+				.toList());
+		rooms.stream().filter(r -> "counselor".equals(ChatService.modeOf(r)) && r.getUnread() != null && r.getUnread() > 0
+				&& r.getLastCustomerAt() != null)
 				.max((x, y) -> x.getLastCustomerAt().compareTo(y.getLastCustomerAt()))
 				.ifPresent(r -> out.put("latest", java.util.Map.of(
 						"key", r.getRoomId() + "@" + r.getLastCustomerAt(),
 						"roomId", r.getRoomId(),
-						"title", (r.getMemberName() == null ? "고객" : r.getMemberName()) + " 고객님 메시지",
-						"message", r.getLastMessage() == null ? "새 메시지가 왔어요" : r.getLastMessage(),
-						"href", request.getContextPath() + "/admin/chats/" + r.getRoomId())));
+						"title", name(r) + " 고객님 메시지",
+						"message", AdminChat.preview(r).isBlank() ? "새 메시지가 왔어요" : AdminChat.preview(r),
+						"href", base + r.getRoomId())));
 		return out;
+	}
+
+	private static String name(ChatRoomLine r) {
+		return r.getMemberName() == null ? "고객" : r.getMemberName();
+	}
+
+	/** 상담 시작: AI 를 끄고 고객 메시지를 관리자에게만 (상담 요청 알림 · 상담 상태 버튼) */
+	@PostMapping("/chats/{id}/start")
+	public String startConsult(@PathVariable long id, @RequestParam(defaultValue = "") String from, HttpSession session) {
+		chats.startConsult(id, AdminSession.adminId(session));
+		return back(id, from);
 	}
 
 	/** 상담 종료: 다시 AI 가 답함 (고객에게 안내 메시지) */
 	@PostMapping("/chats/{id}/end")
 	public String endConsult(@PathVariable long id, @RequestParam(defaultValue = "") String from) {
 		chats.endConsult(id);
-		return "redirect:/admin/chats/" + id + (from.isBlank() ? "" : "?from=" + from);
+		return back(id, from);
+	}
+
+	private static String back(long id, String from) {
+		return "redirect:/admin/chats/" + id + ("management".equals(from) ? "?from=management" : "");
+	}
+
+	/** 채팅방을 보는 동안: 새 메시지 · 수정 · 삭제 · 상담 상태가 바뀌었는지(version)와 고객이 아직 안 읽은 관리자 메시지 */
+	@GetMapping("/chats/{id}/state")
+	@org.springframework.web.bind.annotation.ResponseBody
+	public java.util.Map<String, Object> state(@PathVariable long id) {
+		ChatRoomLine line = chats.room(id);
+		List<ChatMessage> messages = line == null ? List.of() : chats.peek(id);
+		return java.util.Map.of("version", version(line, messages), "unread",
+				messages.stream().filter(m -> "03".equals(m.getSenderType()) && !"Y".equals(m.getIsRead()))
+						.map(m -> m.getMessageId()).toList());
+	}
+
+	private static String version(ChatRoomLine line, List<ChatMessage> messages) {
+		StringBuilder b = new StringBuilder(ChatService.modeOf(line));
+		for (ChatMessage m : messages) {
+			b.append('|').append(m.getMessageId()).append(m.getEditedAt()).append(m.getDeletedAt());
+		}
+		return Integer.toHexString(b.toString().hashCode()) + "-" + messages.size();
 	}
 
 	/* ---------- 채팅 목록 · 상세 ---------- */
 
-	/** filter: all|waiting|unread, sort: latest|unread, from=management 면 채팅 관리로 돌아가는 버튼 표시 */
+	/** filter: all(관리자와 주고받은 채팅)|waiting|unread|ai(AI 하고만 대화), sort: latest|unread, from=management 면 채팅 관리로 돌아가는 버튼 표시 */
 	@GetMapping("/chats")
 	public String list(@RequestParam(defaultValue = "all") String filter, @RequestParam(defaultValue = "latest") String sort,
 			@RequestParam(defaultValue = "") String from, Model model) {
@@ -89,7 +133,12 @@ public class AdminChatController {
 				? Comparator.<AdminChat.ChatRoom>comparingInt(r -> -r.unread()).thenComparing(byActivity)
 				: byActivity;
 		List<AdminChat.ChatRoom> rooms = rooms().stream()
-				.filter(r -> "waiting".equals(filter) ? r.waiting() : !"unread".equals(filter) || r.unread() > 0)
+				.filter(r -> switch (filter) {
+					case "waiting" -> r.waiting();
+					case "unread" -> r.unread() > 0;
+					case "ai" -> !r.talked();
+					default -> r.talked();
+				})
 				.sorted(order)
 				.toList();
 		model.addAttribute("rooms", rooms);
@@ -108,7 +157,8 @@ public class AdminChatController {
 		AdminChat.ChatRoom room = AdminChat.ChatRoom.of(line);
 		List<ChatMessage> messages = chats.openRoom(id);
 		notifications.markAdminChatRead("/admin/chats/" + id); // 이 방의 채팅 알림은 읽음
-		model.addAttribute("consultMode", "counselor".equals(ChatService.modeOf(line)));
+		model.addAttribute("mode", ChatService.modeOf(line));
+		model.addAttribute("version", version(line, messages));
 		// 답변이 필요한 고객 메시지 중 그 뒤에 관리자 답장이 없는 것 = 붉게
 		int lastAdmin = -1;
 		for (int i = 0; i < messages.size(); i++) {
@@ -117,7 +167,7 @@ public class AdminChatController {
 		List<AdminChat.Message> views = new java.util.ArrayList<>();
 		for (int i = 0; i < messages.size(); i++) {
 			ChatMessage m = messages.get(i);
-			views.add(AdminChat.Message.of(m, "01".equals(m.getSenderType()) && "Y".equals(m.getNeedsReply()) && i > lastAdmin));
+			views.add(AdminChat.Message.of(m, ChatService.toAdmin(m) && "Y".equals(m.getNeedsReply()) && i > lastAdmin));
 		}
 		model.addAttribute("room", room);
 		model.addAttribute("messages", views);

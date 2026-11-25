@@ -58,6 +58,13 @@ class ChatRulesTest {
 	}
 
 	@Test
+	void clockLikeKakaoTalk() {
+		assertEquals("오후 12:13", ChatService.clock(java.time.LocalDateTime.of(2026, 11, 25, 12, 13)));
+		assertEquals("오전 12:05", ChatService.clock(java.time.LocalDateTime.of(2026, 11, 25, 0, 5)));
+		assertEquals("오후 11:59", ChatService.clock(java.time.LocalDateTime.of(2026, 11, 25, 23, 59)));
+	}
+
+	@Test
 	void whoAnswers() {
 		ChatRoomLine room = new ChatRoomLine();
 		room.setStatus(ChatService.BOT);
@@ -65,7 +72,7 @@ class ChatRulesTest {
 		room.setStatus(ChatService.UNANSWERED);
 		assertEquals("ai", ChatService.modeOf(room));
 		room.setStatus(ChatService.WAITING);
-		assertEquals("counselor", ChatService.modeOf(room));
+		assertEquals("waiting", ChatService.modeOf(room));
 		room.setStatus(ChatService.CONSULTING);
 		assertEquals("counselor", ChatService.modeOf(room));
 		assertEquals("ai", ChatService.modeOf(null));

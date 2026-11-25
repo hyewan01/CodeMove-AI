@@ -19,7 +19,8 @@
 	let lastId = 0;
 	const byId = new Map(); // 메시지 번호 → { wrap, state }
 
-	const now = () => new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+	/* 오후 12:13 */
+	const now = () => new Intl.DateTimeFormat('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date());
 
 	const el = (tag, cls, text) => {
 		const e = document.createElement(tag);
@@ -96,8 +97,12 @@
 		if (role !== 'user') wrap.appendChild(avatar(role));
 		const content = el('div', 'chat-message-content');
 		if (role === 'admin') content.appendChild(el('span', 'chat-sender-name', '상담사'));
+		/* 말풍선 옆에 안 읽음 1 · 시간 (카톡처럼, 내 말은 왼쪽 · 받은 말은 오른쪽) */
+		const row = el('div', 'chat-message-row');
 		const box = el('div', 'chat-message-body');
-		content.appendChild(box);
+		const meta = el('div', 'chat-message-meta');
+		row.append(box, meta);
+		content.appendChild(row);
 		if (actions) {
 			const qr = el('div', 'chat-quick-replies');
 			actions.forEach((a) => {
@@ -108,13 +113,11 @@
 			});
 			content.appendChild(qr);
 		}
-		const meta = el('small', 'chat-message-time', m.time || now());
-		content.appendChild(meta);
 		wrap.appendChild(content);
 		thread.appendChild(wrap);
-		const entry = { wrap, box, meta, state: { ...m } };
+		const entry = { wrap, box, meta, state: { ...m, time: m.time || now() } };
 		paint(entry);
-		markEdited(entry);
+		paintMeta(entry);
 		if (m.id) byId.set(m.id, entry);
 		if (role === 'user') attachMenu(entry);
 		/* 아래 고정 입력창에 가리지 않게, 입력창 높이만큼 위에서 멈춤 */
@@ -123,9 +126,17 @@
 		return entry;
 	}
 
-	function markEdited(entry) {
+	/* 안 읽음 1 은 상담사에게 보낸 내 메시지에만 (AI 는 바로 읽음) */
+	function paintMeta(entry) {
 		const s = entry.state;
-		entry.meta.textContent = (s.edited && !s.deleted ? '수정됨 · ' : '') + (s.time || '');
+		entry.meta.innerHTML = '';
+		if (s.role === 'user' && s.to === 'counselor' && !s.read && !s.deleted) {
+			const one = el('b', 'chat-unread', '1');
+			one.setAttribute('aria-label', '상담사가 아직 안 읽음');
+			entry.meta.appendChild(one);
+		}
+		if (s.edited && !s.deleted) entry.meta.appendChild(el('small', '', '수정됨'));
+		entry.meta.appendChild(el('small', 'chat-message-time', s.time || ''));
 	}
 
 	/* 서버에서 받은 최신 상태로 고침 (수정 · 삭제 · 읽음) */
@@ -134,7 +145,8 @@
 		if (!entry) return;
 		const changed = entry.state.text !== s.text || entry.state.deleted !== s.deleted || entry.state.edited !== s.edited;
 		entry.state = { ...entry.state, ...s };
-		if (changed) { paint(entry); markEdited(entry); }
+		if (changed) paint(entry);
+		paintMeta(entry);
 	}
 
 	/* ---------- 내 메시지 수정 · 삭제 메뉴 ---------- */
@@ -269,6 +281,7 @@
 				if (moved) entry.state.to = res.to;
 				if (res.fileUrl) { entry.state.fileUrl = res.fileUrl; entry.state.fileKind = res.fileKind; }
 				if (moved || res.fileUrl) paint(entry);
+				paintMeta(entry);
 				if (moved) setTo(res.to); // 상담이 이미 열려 있어 mode 가 그대로여도 버튼은 상담사로
 				byId.set(res.id, entry);
 				lastId = Math.max(lastId, res.lastId || 0);
@@ -288,22 +301,25 @@
 	/* 머리글: 누가 답하는지 */
 	/*
 	 * 받는 쪽 [AI 도우미 | 상담사]: 고객이 고름. 서버 쪽 상태가 바뀔 때만 따라감
-	 * (관리자가 메시지를 보냄 · 상담사 연결 요청 → 상담사, 관리자가 상담 종료 → AI)
+	 * (상담사 연결 요청 → 상담사, 관리자가 연결하면 AI 꺼짐, 관리자가 상담 종료 → AI)
 	 */
-	let to = root.dataset.mode === 'counselor' ? 'counselor' : 'ai';
-	let serverMode = to;
+	let serverMode = root.dataset.mode || 'ai'; // ai · waiting(상담 요청, 연결 전) · counselor(상담 중, AI 꺼짐)
+	let to = serverMode === 'ai' ? 'ai' : 'counselor';
 	function setTo(next) {
-		to = next === 'counselor' ? 'counselor' : 'ai';
-		root.querySelectorAll('[data-chat-to]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.chatTo === to)));
+		to = serverMode === 'counselor' || next === 'counselor' ? 'counselor' : 'ai';
+		root.querySelectorAll('[data-chat-to]').forEach((b) => {
+			b.setAttribute('aria-checked', String(b.dataset.chatTo === to));
+			b.disabled = b.dataset.chatTo === 'ai' && serverMode === 'counselor';
+		});
 		root.classList.toggle('to-counselor', to === 'counselor');
 		editor.dataset.placeholder = to === 'counselor' ? '상담사에게 보낼 메시지' : 'AI 도우미에게 물어보세요';
 		const label = $('[data-chat-mode]');
-		if (label) label.textContent = to === 'counselor' ? '상담사와 대화 중' : 'AI 이사 도우미';
+		if (label) label.textContent = to === 'ai' ? 'AI 이사 도우미' : serverMode === 'waiting' ? '상담사 연결 중' : '상담사와 대화 중';
 	}
 	function setMode(mode) {
 		if (mode === serverMode) return;
 		serverMode = mode;
-		setTo(mode);
+		setTo(mode === 'ai' ? 'ai' : 'counselor');
 	}
 	root.querySelectorAll('[data-chat-to]').forEach((b) => b.addEventListener('click', () => { setTo(b.dataset.chatTo); editor.focus(); }));
 	setTo(to);

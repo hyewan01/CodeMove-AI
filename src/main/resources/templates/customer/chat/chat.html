@@ -11,7 +11,7 @@
 		<div class="chat-header-title">
 			<strong>명품 상담</strong>
 			<!-- 누가 답하는지: AI 이사 도우미 / 상담사와 대화 중 (상담 중이면 AI 는 답하지 않음) -->
-			<span data-chat-mode th:text="${chatMode == 'counselor'} ? '상담사와 대화 중' : 'AI 이사 도우미'">AI 이사 도우미</span>
+			<span data-chat-mode th:text="${chatMode == 'counselor'} ? '상담사와 대화 중' : (${chatMode == 'waiting'} ? '상담사 연결 중' : 'AI 이사 도우미')">AI 이사 도우미</span>
 		</div>
 		<span></span>
 	</div>
@@ -24,9 +24,9 @@
 		<!-- 받는 쪽 고르기: AI 도우미 / 상담사 (관리자가 메시지를 보내면 상담사로 바뀜) -->
 		<div class="chat-to" role="radiogroup" aria-label="메시지 받는 쪽">
 			<button type="button" class="action" role="radio" data-chat-to="ai"
-					th:aria-checked="${chatMode != 'counselor'}">AI 도우미</button>
+					th:aria-checked="${chatMode == 'ai'}" th:disabled="${chatMode == 'counselor'}">AI 도우미</button>
 			<button type="button" class="action" role="radio" data-chat-to="counselor"
-					th:aria-checked="${chatMode == 'counselor'}">상담사</button>
+					th:aria-checked="${chatMode != 'ai'}">상담사</button>
 		</div>
 		<div class="chat-attachment-chip" data-chat-chip hidden>
 			<img alt="" th:src="@{/assets/paperclip.svg}">

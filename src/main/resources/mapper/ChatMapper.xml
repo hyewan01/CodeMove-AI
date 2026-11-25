@@ -2,13 +2,20 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.codemove.chat.ChatMapper">
 
+	<!-- 관리자에게 온 고객 메시지 (AI 에게 보낸 것은 빼고). 예전 메시지(SEND_TO 없음)는 답변 필요로 표시됐거나 상담 요청 중인 방의 것 -->
+	<sql id="toAdmin">x.SENDER_TYPE = '01' AND x.DELETED_AT IS NULL
+		AND (x.SEND_TO = '02' OR (x.SEND_TO IS NULL AND (x.NEEDS_REPLY = 'Y' OR c.STATUS = '02')))</sql>
+
+	<!-- LAST_MESSAGE · LAST_AT: 관리자와 주고받은 마지막 메시지, UNREAD: 관리자에게 온 안 읽은 메시지 수 -->
 	<sql id="roomLine">
 		SELECT c.ROOM_ID, c.MEMBER_ID, m.MEMBER_NAME, c.STATUS, c.STARTED_AT, c.WAITING_AT,
 		       (SELECT MAX(NVL(x.CONTENT, x.ATTACHMENT_NAME)) KEEP (DENSE_RANK LAST ORDER BY x.SENT_AT, x.MESSAGE_ID)
-		          FROM TBL_CHAT_MESSAGE x WHERE x.ROOM_ID = c.ROOM_ID AND x.SENDER_TYPE = '01') AS LAST_MESSAGE,
-		       (SELECT MAX(x.SENT_AT) FROM TBL_CHAT_MESSAGE x WHERE x.ROOM_ID = c.ROOM_ID) AS LAST_AT,
-		       (SELECT MAX(x.SENT_AT) FROM TBL_CHAT_MESSAGE x WHERE x.ROOM_ID = c.ROOM_ID AND x.SENDER_TYPE = '01') AS LAST_CUSTOMER_AT,
-		       (SELECT COUNT(*) FROM TBL_CHAT_MESSAGE x WHERE x.ROOM_ID = c.ROOM_ID AND x.SENDER_TYPE = '01' AND x.IS_READ = 'N') AS UNREAD
+		          FROM TBL_CHAT_MESSAGE x WHERE x.ROOM_ID = c.ROOM_ID
+		           AND ((<include refid="toAdmin"/>) OR (x.SENDER_TYPE = '03' AND x.DELETED_AT IS NULL))) AS LAST_MESSAGE,
+		       (SELECT MAX(x.SENT_AT) FROM TBL_CHAT_MESSAGE x WHERE x.ROOM_ID = c.ROOM_ID
+		           AND ((<include refid="toAdmin"/>) OR (x.SENDER_TYPE = '03' AND x.DELETED_AT IS NULL))) AS LAST_AT,
+		       (SELECT MAX(x.SENT_AT) FROM TBL_CHAT_MESSAGE x WHERE x.ROOM_ID = c.ROOM_ID AND <include refid="toAdmin"/>) AS LAST_CUSTOMER_AT,
+		       (SELECT COUNT(*) FROM TBL_CHAT_MESSAGE x WHERE x.ROOM_ID = c.ROOM_ID AND x.IS_READ = 'N' AND <include refid="toAdmin"/>) AS UNREAD
 		  FROM TBL_CHAT_ROOM c JOIN TBL_MEMBER m ON m.MEMBER_ID = c.MEMBER_ID
 	</sql>
 

@@ -2560,3 +2560,15 @@ a.chat-file-message { color: inherit; text-decoration: none; }
 .verify-note { margin: 14px 0 0; }
 .form-error[hidden], .verify-note[hidden] { display: none; }
 .phone-code-label > span:first-child, .verify-help { color: #6b746d; }
+
+/* 말풍선 옆 안 읽음 1 · 시간 (2026-11-25) */
+.chat-message-content { max-width: min(92%, 400px); }
+.easy-mode .chat-message-content { max-width: min(94%, 440px); }
+.chat-message-row { max-width: 100%; display: flex; align-items: flex-end; gap: 6px; }
+.chat-message-wrap.user .chat-message-row { flex-direction: row-reverse; }
+.chat-message-body { min-width: 0; }
+.chat-message-meta { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-start; color: #8b948d; line-height: 1.3; }
+.chat-message-wrap.user .chat-message-meta { align-items: flex-end; }
+.chat-message-meta small, .chat-message-time { color: #8b948d; font-size: 11px; white-space: nowrap; }
+.chat-unread { color: #4f8b55; font-family: "Pretendard:Bold"; font-size: 12px; }
+.chat-to .action:disabled { opacity: .4; cursor: default; }

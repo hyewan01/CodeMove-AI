@@ -1,6 +1,5 @@
 package com.codemove.chat;
 
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,7 +27,6 @@ public class ChatService {
 	/** 고객 첫 화면 퀵메뉴: 관리자가 등록하는 5개 + 마지막 '상담사 연결' = 6개 */
 	public static final int MAX_QUICK_MENUS = 5;
 	public static final String CONSULT_MENU = "상담사 연결";
-	private static final DateTimeFormatter HM = DateTimeFormatter.ofPattern("HH:mm");
 	/** 관리자 답장 인용 (밀어서 답장): 내용 첫 줄에 붙여 저장 */
 	private static final String REPLY_MARK = "↪ ";
 
@@ -392,8 +390,7 @@ public class ChatService {
 		m.setIsRead("N");
 		chats.insertMessage(m);
 		chats.markCustomerRead(roomId);
-		// 관리자가 한 번이라도 말하면 상담 중: 고객 답장은 관리자에게 가고 AI 는 끼어들지 않음
-		// (상담 종료 버튼 또는 관리자 마지막 메시지 뒤 24시간이 지나면 다시 AI)
+		// 관리자가 한 번이라도 말하면 상담 중: 고객 메시지는 관리자에게만 가고 AI 는 꺼짐 (상담 종료를 눌러야 다시 AI)
 		chats.updateRoomStatus(roomId, CONSULTING, adminId);
 		notifications.markAdminChatRead("/admin/chats/" + roomId);
 		String preview = text == null || text.isBlank()
@@ -554,7 +551,8 @@ public class ChatService {
 		v.put("file", deleted ? null : m.getAttachmentName());
 		v.put("fileUrl", deleted ? null : m.getAttachmentPath());
 		v.put("fileKind", deleted ? "" : fileKind(m));
-		v.put("time", m.getSentAt().format(HM));
+		v.put("time", clock(m.getSentAt()));
+		v.put("read", "Y".equals(m.getIsRead()));
 		v.put("edited", m.getEditedAt() != null);
 		v.put("deleted", deleted);
 		v.put("mine", mine);
@@ -602,7 +600,7 @@ public class ChatService {
 	 * <ul>
 	 * <li>to=counselor: AI 는 답하지 않음. 상담이 안 열려 있으면 대기 중(02)으로 열고 "전달했어요" 안내 + 관리자 알림,
 	 * 이미 상담 중이면 관리자 알림만 (방마다 안 읽은 알림 한 줄)</li>
-	 * <li>to=ai: 상담 중이어도 AI 가 답함 (로어북 → 인사 → 거절 → "상담사 연결해 드릴까요?")</li>
+	 * <li>to=ai: AI 가 답함. 상담이 연결된 동안은 AI 가 꺼져 관리자에게만 감 (로어북 → 인사 → 거절 → "상담사 연결해 드릴까요?")</li>
 	 * <li>"상담사 연결" 이라고 보내면 어느 쪽이든 상담 요청</li>
 	 * <li>to 가 없으면(예전 화면) 방 상태로 정함</li>
 	 * </ul>
@@ -639,13 +637,13 @@ public class ChatService {
 		Reply reply;
 		boolean consulting = CONSULTING.equals(room.getStatus());
 		boolean open = consulting || WAITING.equals(room.getStatus());
-		boolean toCounselor = to == null || to.isBlank() ? open : "counselor".equals(to);
-		if (isConsultRequest(value)) {
+		// 상담이 연결된 동안은 무엇을 골라도 관리자에게만 (AI 꺼짐)
+		boolean toCounselor = consulting || (to == null || to.isBlank() ? open : "counselor".equals(to));
+		if (isConsultRequest(value) && !consulting) {
 			m.setNeedsReply("Y");
-			if (!consulting) {
+			if (!open) {
 				chats.updateRoomStatus(roomId, WAITING, null);
-				notifications.toAdmin("13", "채팅 대기", name + " 고객님이 상담사 연결을 요청했습니다. 응답이 필요합니다.",
-						"/admin/chats/" + roomId, true);
+				notifications.toAdmin("13", "채팅 대기", name + "님이 상담을 요청하셨습니다.", "/admin/chats/" + roomId, true);
 			}
 			String hours = consultHours();
 			reply = new Reply("상담사 연결 요청을 접수했어요." + (hours == null ? "" : "\n상담 운영시간(" + hours + ")에 순서대로 답변드려요.")
@@ -656,7 +654,7 @@ public class ChatService {
 			String preview = value.isEmpty() ? (m.getAttachmentName() == null ? "새 메시지" : "파일: " + m.getAttachmentName()) : cut(value, 80);
 			if (!open) {
 				chats.updateRoomStatus(roomId, WAITING, null);
-				notifications.toAdmin("13", "채팅 대기", name + " 고객님이 상담사에게 메시지를 보냈습니다: " + preview,
+				notifications.toAdmin("13", "채팅 대기", name + "님이 상담을 요청하셨습니다: " + preview,
 						"/admin/chats/" + roomId, true);
 				String hours = consultHours();
 				reply = new Reply("상담사에게 전달했어요."
@@ -667,7 +665,7 @@ public class ChatService {
 				notifications.toAdminOnce("18", "고객 메시지", name + " 고객님: " + preview, "/admin/chats/" + roomId);
 			}
 		} else if (m.getAttachmentName() != null && value.isEmpty()) {
-			reply = new Reply(m.getAttachmentName() + " 파일을 받았어요.\n상담사가 확인할 수 있도록 함께 전달할게요.",
+			reply = new Reply("AI 는 파일을 볼 수 없어요.\n상담사에게 보여 주려면 위에서 [상담사]를 고르고 다시 보내 주세요.",
 					List.of(action(CONSULT_MENU, CONSULT_MENU, null)));
 		} else {
 			Lorebook hit = "Y".equals(s.getBotEnabled()) ? matchLorebook(value) : null;
@@ -731,9 +729,49 @@ public class ChatService {
 		return m.getSendTo() == null ? "" : TO_COUNSELOR.equals(m.getSendTo().trim()) ? "counselor" : "ai";
 	}
 
-	/** 고객 화면 머리글: counselor(상담사와 대화 중) | ai */
+	/** counselor(상담 중, AI 꺼짐) | waiting(상담 요청, 관리자 연결 전) | ai */
 	public static String modeOf(ChatRoomLine room) {
-		return room != null && (CONSULTING.equals(room.getStatus()) || WAITING.equals(room.getStatus())) ? "counselor" : "ai";
+		String status = room == null ? null : room.getStatus();
+		return CONSULTING.equals(status) ? "counselor" : WAITING.equals(status) ? "waiting" : "ai";
+	}
+
+	/** 오후 12:13 */
+	public static String clock(java.time.LocalDateTime t) {
+		return t == null ? "" : (t.getHour() < 12 ? "오전 " : "오후 ") + (t.getHour() % 12 == 0 ? 12 : t.getHour() % 12) + ":"
+				+ String.format("%02d", t.getMinute());
+	}
+
+	/** 관리자에게 온 고객 메시지인지 (ChatMapper.xml 의 toAdmin 과 같은 기준) */
+	public static boolean toAdmin(ChatMessage m) {
+		return "01".equals(m.getSenderType())
+				&& (m.getSendTo() == null ? "Y".equals(m.getNeedsReply()) : "counselor".equals(toOf(m)));
+	}
+
+	/** 읽음 처리 없이 방의 메시지 (관리자 채팅방이 바뀌었는지 확인) */
+	public List<ChatMessage> peek(long roomId) {
+		return chats.listMessages(roomId, 0);
+	}
+
+	/** 관리자가 상담 시작 (상담 요청 알림 · 상담 상태 버튼): AI 를 끄고 고객에게 안내 한 줄 */
+	@Transactional
+	public void startConsult(long roomId, Long adminId) {
+		ChatRoomLine room = chats.findRoom(roomId);
+		if (room == null || CONSULTING.equals(room.getStatus())) {
+			return;
+		}
+		chats.updateRoomStatus(roomId, CONSULTING, adminId);
+		botNotice(roomId, "상담사와 연결됐어요. 지금부터 보내는 메시지는 상담사에게 전달돼요.");
+		notifications.markAdminChatRead("/admin/chats/" + roomId);
+	}
+
+	private void botNotice(long roomId, String text) {
+		ChatMessage bot = new ChatMessage();
+		bot.setRoomId(roomId);
+		bot.setSenderType("02");
+		bot.setMessageType("01");
+		bot.setContent(text);
+		bot.setIsRead("Y");
+		chats.insertMessage(bot);
 	}
 
 	public String customerMode(long memberId) {
@@ -761,17 +799,11 @@ public class ChatService {
 	@Transactional
 	public void endConsult(long roomId) {
 		ChatRoomLine room = chats.findRoom(roomId);
-		if (room == null || BOT.equals(room.getStatus())) {
+		if (room == null || "ai".equals(modeOf(room))) {
 			return;
 		}
 		chats.updateRoomStatus(roomId, BOT, null);
-		ChatMessage bot = new ChatMessage();
-		bot.setRoomId(roomId);
-		bot.setSenderType("02");
-		bot.setMessageType("01");
-		bot.setContent("상담사와의 상담이 끝났어요. 이제 다시 AI 이사 도우미가 답해 드려요.\n상담사가 필요하면 언제든 '상담사 연결'이라고 보내 주세요.");
-		bot.setIsRead("Y");
-		chats.insertMessage(bot);
+		botNotice(roomId, "상담사와의 상담이 끝났어요. 이제 다시 AI 이사 도우미가 답해 드려요.\n상담사가 필요하면 언제든 '상담사 연결'이라고 보내 주세요.");
 		notifications.markAdminChatRead("/admin/chats/" + roomId);
 	}
 
@@ -786,7 +818,7 @@ public class ChatService {
 	}
 
 	/** '상담사 연결' 퀵메뉴, "상담사 연결해 주세요", "상담원 요청" 등 */
-	static boolean isConsultRequest(String value) {
+	public static boolean isConsultRequest(String value) {
 		String v = value.replace(" ", "");
 		return (v.contains("상담사") || v.contains("상담원")) && (v.contains("연결") || v.contains("요청"));
 	}
