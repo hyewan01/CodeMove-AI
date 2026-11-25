@@ -65,6 +65,12 @@ class ChatRulesTest {
 	}
 
 	@Test
+	void dayLabel() {
+		assertEquals("2026년 11월 25일 수요일", ChatService.day(java.time.LocalDateTime.of(2026, 11, 25, 0, 0)));
+		assertEquals("2026년 11월 29일 일요일", ChatService.day(java.time.LocalDateTime.of(2026, 11, 29, 23, 59)));
+	}
+
+	@Test
 	void whoAnswers() {
 		ChatRoomLine room = new ChatRoomLine();
 		room.setStatus(ChatService.BOT);

@@ -92,9 +92,12 @@
 	</div>
 
 	<div class="flex-1 overflow-y-auto p-4" data-msg-area>
-		<div class="mb-5 text-center"><span class="rounded-full bg-[#e8ebe8] px-3 py-1.5 text-[14px] font-semibold text-[#7d857f]">오늘</span></div>
 		<div class="space-y-4">
-			<div th:each="m : ${messages}" th:with="isCustomer=${m.role == 'customer'}"
+			<th:block th:each="m, st : ${messages}">
+			<!-- 날짜가 바뀌는 곳 -->
+			<div th:if="${st.first or messages[st.index - 1].day != m.day}" class="py-1 text-center" data-day>
+				<span class="rounded-full bg-[#e8ebe8] px-3 py-1.5 text-[13px] font-semibold text-[#7d857f]" th:text="${m.day}">2026년 11월 25일 수요일</span></div>
+			<div th:with="isCustomer=${m.role == 'customer'}"
 				 class="flex max-w-[94%] flex-col gap-1" th:classappend="${isCustomer} ? 'items-start' : 'ml-auto items-end'"
 				 th:data-role="${m.role}" th:data-waiting="${m.waiting}" th:data-text="${m.text}" data-msg
 				 th:data-msg-id="${m.id}" th:data-edit-block="${m.editBlock}" th:data-delete-block="${m.deleteBlock}" th:data-deleted="${m.deleted}">
@@ -125,6 +128,7 @@
 				</div>
 				<span th:if="${m.waiting}" class="flex items-center gap-1 text-[14px] font-semibold text-[#ba554c]">답변 대기 · 왼쪽으로 밀어 답장</span>
 			</div>
+			</th:block>
 			<div class="py-16 text-center" data-msg-empty hidden>
 				<p class="text-[15px] font-semibold text-[#656d67]">조회된 대화가 없습니다</p>
 				<p class="mt-1 text-[14px] text-[#979d98]">검색어나 설정을 변경해 주세요.</p>
@@ -182,6 +186,12 @@
 					&& (!q || m.dataset.text.toLocaleLowerCase().includes(q));
 				m.hidden = !show;
 				if (show) n++;
+			});
+			/* 그날 보이는 메시지가 없으면 날짜도 숨김 */
+			root.querySelectorAll('[data-day]').forEach((d) => {
+				let el = d.nextElementSibling, any = false;
+				while (el && el.matches('[data-msg]')) { any = any || !el.hidden; el = el.nextElementSibling; }
+				d.hidden = !any;
 			});
 			$('[data-msg-empty]').hidden = n > 0;
 			$('[data-msg-count]').hidden = !q;

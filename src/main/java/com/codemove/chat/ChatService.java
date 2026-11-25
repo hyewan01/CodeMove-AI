@@ -552,6 +552,7 @@ public class ChatService {
 		v.put("fileUrl", deleted ? null : m.getAttachmentPath());
 		v.put("fileKind", deleted ? "" : fileKind(m));
 		v.put("time", clock(m.getSentAt()));
+		v.put("day", day(m.getSentAt()));
 		v.put("read", "Y".equals(m.getIsRead()));
 		v.put("edited", m.getEditedAt() != null);
 		v.put("deleted", deleted);
@@ -739,6 +740,12 @@ public class ChatService {
 	public static String clock(java.time.LocalDateTime t) {
 		return t == null ? "" : (t.getHour() < 12 ? "오전 " : "오후 ") + (t.getHour() % 12 == 0 ? 12 : t.getHour() % 12) + ":"
 				+ String.format("%02d", t.getMinute());
+	}
+
+	/** 2026년 11월 25일 수요일 (날짜 구분선) */
+	public static String day(java.time.LocalDateTime t) {
+		return t == null ? "" : t.getYear() + "년 " + t.getMonthValue() + "월 " + t.getDayOfMonth() + "일 "
+				+ "일월화수목금토".charAt(t.getDayOfWeek().getValue() % 7) + "요일";
 	}
 
 	/** 관리자에게 온 고객 메시지인지 (ChatMapper.xml 의 toAdmin 과 같은 기준) */

@@ -22,6 +22,10 @@
 	/* 오후 12:13 */
 	const now = () => new Intl.DateTimeFormat('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date());
 
+	/* 2026년 11월 25일 수요일 (날짜 구분선) */
+	const today = () => new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date());
+	let lastDay = '';
+
 	const el = (tag, cls, text) => {
 		const e = document.createElement(tag);
 		if (cls) e.className = cls;
@@ -93,6 +97,12 @@
 	function addMessage(m, actions) {
 		$('[data-chat-restart]').hidden = false;
 		const role = m.role;
+		/* 날짜가 바뀌는 곳 */
+		const day = m.day || today();
+		if (day !== lastDay) {
+			lastDay = day;
+			thread.appendChild(el('div', 'chat-day', day));
+		}
 		const wrap = el('div', `chat-message-wrap ${role}`);
 		if (role !== 'user') wrap.appendChild(avatar(role));
 		const content = el('div', 'chat-message-content');
@@ -115,7 +125,7 @@
 		}
 		wrap.appendChild(content);
 		thread.appendChild(wrap);
-		const entry = { wrap, box, meta, state: { ...m, time: m.time || now() } };
+		const entry = { wrap, box, meta, state: { ...m, day, time: m.time || now() } };
 		paint(entry);
 		paintMeta(entry);
 		if (m.id) byId.set(m.id, entry);
@@ -288,7 +298,7 @@
 				if (res.mode) setMode(res.mode);
 				if (res.reply && !byId.has(res.reply.id)) {
 					/* 답이 늦게 와도 그 질문 바로 아래에 (그사이 보낸 메시지보다 위) */
-					const r = addMessage({ id: res.reply.id, role: 'bot', text: res.reply.text }, res.reply.actions);
+					const r = addMessage({ id: res.reply.id, role: 'bot', text: res.reply.text, day: entry.state.day }, res.reply.actions);
 					entry.wrap.after(r.wrap);
 				}
 			})

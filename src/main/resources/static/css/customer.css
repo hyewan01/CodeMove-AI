@@ -2572,3 +2572,5 @@ a.chat-file-message { color: inherit; text-decoration: none; }
 .chat-message-meta small, .chat-message-time { color: #8b948d; font-size: 11px; white-space: nowrap; }
 .chat-unread { color: #4f8b55; font-family: "Pretendard:Bold"; font-size: 12px; }
 .chat-to .action:disabled { opacity: .4; cursor: default; }
+
+.chat-day { align-self: center; padding: 5px 12px; border-radius: 999px; background: #e4e9e4; color: #6b746d; font-family: "Pretendard:SemiBold"; font-size: 12px; }

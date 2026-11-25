@@ -66,7 +66,7 @@ public final class AdminChat {
 	 */
 	public record Message(long id, String role, String text, boolean waiting, String replyTo, String file,
 			String fileName, String fileKind, boolean edited, boolean deleted, String editBlock, String deleteBlock,
-			boolean read, String time) {
+			boolean read, String time, String day) {
 
 		public static Message of(ChatMessage m, boolean waiting) {
 			String[] parts = ChatService.splitReply(m.getContent());
@@ -79,7 +79,7 @@ public final class AdminChat {
 					deleted ? "" : ChatService.fileKind(m), m.getEditedAt() != null, deleted,
 					admin ? ChatService.editBlockOf(m, now) : "고객 메시지는 고칠 수 없어요.",
 					admin ? ChatService.deleteBlockOf(m, now) : "고객 메시지는 삭제할 수 없어요.", "Y".equals(m.getIsRead()),
-					ChatService.clock(m.getSentAt()));
+					ChatService.clock(m.getSentAt()), ChatService.day(m.getSentAt()));
 		}
 	}
 
