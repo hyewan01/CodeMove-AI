@@ -50,7 +50,9 @@ public final class AdminEstimates {
 			r.phone = q.getContactPhone();
 			r.companyName = q.getCompanyName();
 			r.quoteNo = q.getQuoteNo();
-			r.videoUrl = q.getVideoPath();
+			// 팀원 앱이 넣은 경로는 앞에 / 가 없음 (uploads/videos/…)
+			String path = q.getVideoPath();
+			r.videoUrl = path == null || path.startsWith("/") || path.startsWith("http") ? path : "/" + path;
 			r.videoFileName = q.getVideoName();
 			if (q.getVideoUploadedAt() != null) {
 				int h = q.getVideoUploadedAt().getHour();

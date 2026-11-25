@@ -232,7 +232,6 @@ public class ChatService {
 
 	/* ---------- 설정 · 주제 · 퀵메뉴 ---------- */
 
-	@Transactional
 	public ChatSetting settings() {
 		ChatSetting s = chats.findSetting();
 		if (s == null) {

@@ -8,11 +8,17 @@
 @source "../resources/static/js/admin.js";
 
 @font-face { font-family: Pretendard; src: url("/fonts/Pretendard-Light.woff2") format("woff2"); font-weight: 300; font-display: swap; }
+@font-face { font-family: Pretendard; src: url("/fonts/Pretendard-Light.kr.woff2") format("woff2"); font-weight: 300; font-display: swap; }
 @font-face { font-family: Pretendard; src: url("/fonts/Pretendard-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: Pretendard; src: url("/fonts/Pretendard-Regular.kr.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: Pretendard; src: url("/fonts/Pretendard-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: Pretendard; src: url("/fonts/Pretendard-Medium.kr.woff2") format("woff2"); font-weight: 500; font-display: swap; }
 @font-face { font-family: Pretendard; src: url("/fonts/Pretendard-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: Pretendard; src: url("/fonts/Pretendard-SemiBold.kr.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 @font-face { font-family: Pretendard; src: url("/fonts/Pretendard-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: Pretendard; src: url("/fonts/Pretendard-Bold.kr.woff2") format("woff2"); font-weight: 700; font-display: swap; }
 @font-face { font-family: Pretendard; src: url("/fonts/Pretendard-ExtraBold.woff2") format("woff2"); font-weight: 800; font-display: swap; }
+@font-face { font-family: Pretendard; src: url("/fonts/Pretendard-ExtraBold.kr.woff2") format("woff2"); font-weight: 800; font-display: swap; }
 
 :root {
   font-family:

@@ -74,10 +74,13 @@ public class MemberService {
 	}
 
 	/** 연결된 간편로그인 제공자 코드 (kakao, naver, apple) */
+	private final com.codemove.config.ShortMemory<Long, List<String>> providers = new com.codemove.config.ShortMemory<>(
+			java.time.Duration.ofMinutes(1));
+
 	public List<String> connectedProviders(long memberId) {
-		return members.findSocialTypes(memberId).stream()
+		return providers.get(memberId, id -> members.findSocialTypes(id).stream()
 				.map(t -> switch (t) { case "01" -> "kakao"; case "02" -> "naver"; default -> "apple"; })
-				.toList();
+				.toList());
 	}
 
 	/** @return false 면 다른 회원이 쓰는 번호 */
@@ -156,6 +159,7 @@ public class MemberService {
 		}
 		members.deactivateAdminByPhone(Fmt.digits(m.getPhone()));
 		members.deleteSocials(memberId);
+		providers.forget(memberId);
 		members.withdrawMember(memberId);
 	}
 }

@@ -405,8 +405,11 @@ public class MoveService {
 	}
 
 	/** 홈 칭찬후기: 4점 이상 최근 순 */
+	private final com.codemove.config.ShortMemory<Integer, List<Review>> praise = new com.codemove.config.ShortMemory<>(
+			java.time.Duration.ofMinutes(1));
+
 	public List<Review> praiseReviews(int limit) {
-		List<Review> all = moves.listReviews(null, 4);
+		List<Review> all = praise.get(4, rating -> moves.listReviews(null, rating));
 		return all.subList(0, Math.min(limit, all.size()));
 	}
 }

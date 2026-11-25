@@ -185,7 +185,6 @@ public class NotificationService {
 
 	/* ---------- 메시징 운영 설정 ---------- */
 
-	@Transactional
 	public NotificationSetting setting() {
 		NotificationSetting s = mapper.findSetting();
 		if (s == null) {

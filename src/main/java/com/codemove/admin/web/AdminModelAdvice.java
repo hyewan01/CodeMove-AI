@@ -30,7 +30,8 @@ public class AdminModelAdvice {
 
 	@ModelAttribute
 	public void common(HttpServletRequest request, HttpSession session, Model model) {
-		if (!request.getRequestURI().startsWith(request.getContextPath() + "/admin") || !"GET".equals(request.getMethod())) {
+		if (!request.getRequestURI().startsWith(request.getContextPath() + "/admin")
+				|| !com.codemove.config.PageRequest.is(request)) {
 			return;
 		}
 		model.addAttribute("notificationGroups", AdminViews.grouped(views.notifications()));

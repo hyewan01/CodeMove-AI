@@ -114,6 +114,12 @@ public class AdminEstimateController {
 		return "redirect:" + AdminPageController.safeBack(back, "/admin/estimates");
 	}
 
+	/** 예전 알림(팀원 앱)의 주소 /admin/estimates/294 → 그 견적을 연 목록 */
+	@GetMapping("/{id:[0-9]+}")
+	public String open(@PathVariable long id) {
+		return "redirect:/admin/estimates?id=" + id;
+	}
+
 	/** 견적 상세 (일정 캘린더 > 상세 보기): 읽기 전용 견적서 */
 	@GetMapping("/{id}/document")
 	public String document(@PathVariable long id, @RequestParam(defaultValue = "") String back, Model model) {

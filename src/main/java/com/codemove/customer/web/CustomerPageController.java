@@ -27,6 +27,7 @@ import com.codemove.auth.LoginDevices;
 import com.codemove.chat.ChatService;
 import com.codemove.schedule.BookingService;
 import com.codemove.common.Fmt;
+import com.codemove.config.PageRequest;
 import com.codemove.common.LunarDays;
 import com.codemove.move.ItemCatalog;
 import com.codemove.customer.social.SocialProvider;
@@ -193,13 +194,16 @@ public class CustomerPageController {
 
 	/** 모든 고객 화면 공통: cs (로그인 · 이름 · 진행 상태 · 알림 수) */
 	@ModelAttribute
-	public void common(HttpSession session, Model model) {
+	public void common(HttpServletRequest request, HttpSession session, Model model) {
 		CustomerSession cs = CustomerSession.of(session);
 		if (cs.isLoggedIn()) {
 			Member me = members.find(cs.getMemberId());
 			if (me == null || !"Y".equals(me.getIsActive())) {
 				cs.logout();
 			}
+		}
+		if (!PageRequest.is(request)) {
+			return;
 		}
 		CurrentMove c = current(session);
 		model.addAttribute("cs", views.view(cs, c));

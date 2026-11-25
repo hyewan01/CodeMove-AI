@@ -31,7 +31,6 @@ public class BookingService {
 		this.schedules = schedules;
 	}
 
-	@Transactional
 	public ReservationSetting setting() {
 		ReservationSetting s = schedules.findReservationSetting();
 		if (s == null) {
