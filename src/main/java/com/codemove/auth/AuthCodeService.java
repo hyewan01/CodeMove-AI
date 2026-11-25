@@ -138,9 +138,9 @@ public class AuthCodeService {
 		}
 		// 실패해도 요금이 나갈 수 있어 보내기 전에 셈
 		lastSent.put(digits, now);
-		sentToday.merge("phone:" + digits, 1, Integer::sum);
-		sentToday.merge("ip:" + ip, 1, Integer::sum);
-		sentToday.merge("total", 1, Integer::sum);
+		for (String k : List.of("phone:" + digits, "ip:" + ip, "total")) {
+			sentToday.put(k, count(k) + 1);
+		}
 		String value = String.format("%06d", random.nextInt(1_000_000));
 		try {
 			sms.send(digits, "[명품익스프레스] 인증번호 " + value + " (3분 안에 입력해 주세요)");
