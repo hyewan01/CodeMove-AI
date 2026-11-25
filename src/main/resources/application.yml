@@ -13,6 +13,12 @@ server:
     max-part-count: 2000
 
 spring:
+  # 오류 화면(templates/error.html)에 내부 코드 · SQL 을 보이지 않음. 자세한 내용은 서버 로그
+  web:
+    error:
+      include-stacktrace: never
+      include-message: never
+      include-binding-errors: never
   application:
     name: codemove
   servlet:
@@ -30,9 +36,21 @@ spring:
     username: ${DB_USERNAME:}
     password: ${DB_PASSWORD:}
     hikari:
+      # 노트북 절전 · 와이파이 끊김 뒤에는 열어 둔 연결이 말없이 죽어 있음.
+      # 죽은 연결을 2초 안에 알아채고(기본 5초) 5개를 모두 버린 뒤 새로 연결할 시간(20초)을 줌. 쉬는 연결은 1개만 남김
       maximum-pool-size: 5
-      connection-timeout: 10000
+      minimum-idle: 1
+      idle-timeout: 60000
+      keepalive-time: 30000
+      max-lifetime: 600000
+      validation-timeout: 2000
+      connection-timeout: 20000
       connection-test-query: SELECT 1 FROM DUAL
+      data-source-properties:
+        # 연결 시도(로그인까지) 5초, 응답 없는 조회는 15초 뒤 포기 (끊긴 연결이 새 연결을 막지 않게)
+        oracle.net.CONNECT_TIMEOUT: 5000
+        oracle.net.OUTBOUND_CONNECT_TIMEOUT: 5000
+        oracle.jdbc.ReadTimeout: 15000
 
 codemove:
   ai:

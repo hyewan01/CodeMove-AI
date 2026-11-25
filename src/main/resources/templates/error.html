@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!-- 오류 안내 (DB 가 안 될 때도 떠야 하므로 공통 프래그먼트 · 로그인 정보를 쓰지 않음). 내부 오류 내용은 보여 주지 않고 서버 로그에만 남김 -->
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+	<title>잠시 문제가 생겼어요 | 명품익스프레스</title>
+	<link rel="stylesheet" th:href="@{/css/customer.css}">
+	<style>
+		body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: #eef1ee; color: #1a1a1a; font-family: "Pretendard:Medium", sans-serif; }
+		.error-card { width: min(380px, calc(100vw - 40px)); padding: 40px 26px 28px; box-sizing: border-box; border-radius: 26px; background: #fff; box-shadow: 0 16px 48px rgb(26 58 30 / .12); text-align: center; }
+		.error-card img { display: block; width: 96px; height: 96px; margin: 0 auto; border-radius: 28px; }
+		.error-card h1 { margin: 18px 0 0; font-family: "Pretendard:Bold", sans-serif; font-size: 20px; line-height: 1.35; }
+		.error-card p { margin: 10px 0 0; color: #6b746d; font-size: 15px; line-height: 1.6; word-break: keep-all; }
+		.error-actions { margin-top: 26px; display: grid; gap: 8px; }
+		.error-actions a { min-height: 50px; display: grid; place-items: center; border-radius: 14px; font-family: "Pretendard:Bold", sans-serif; font-size: 16px; text-decoration: none; }
+		.error-actions .primary { background: #346538; color: #fff; }
+		.error-actions .plain { background: #f1f4f1; color: #4d554f; }
+	</style>
+</head>
+<body>
+<main class="error-card" th:with="missing=${status == 404}, server=${status == null or status >= 500}">
+	<img alt="" th:src="@{/assets/mover-assistant-3d.svg}">
+	<h1 th:text="${missing} ? '찾는 화면이 없어요' : (${server} ? '잠시 문제가 생겼어요' : '요청을 처리하지 못했어요')">잠시 문제가 생겼어요</h1>
+	<p th:text="${missing} ? '주소가 바뀌었거나 없는 화면이에요.' : (${server} ? '잠시 뒤 다시 시도해 주세요. 계속되면 인터넷 연결을 확인해 주세요.' : '처음 화면에서 다시 시도해 주세요.')">잠시 뒤 다시 시도해 주세요. 계속되면 인터넷 연결을 확인해 주세요.</p>
+	<div class="error-actions">
+		<a class="primary" th:if="${server}" href="#" data-retry>다시 시도</a>
+		<a th:classappend="${server} ? 'plain' : 'primary'" th:href="@{/}">처음 화면으로</a>
+	</div>
+</main>
+<script>
+	/* 보던 주소 그대로 다시 열기 (검색 조건 등 유지) */
+	const retry = document.querySelector('[data-retry]');
+	if (retry) retry.addEventListener('click', (e) => { e.preventDefault(); location.assign(location.href); });
+</script>
+</body>
+</html>
