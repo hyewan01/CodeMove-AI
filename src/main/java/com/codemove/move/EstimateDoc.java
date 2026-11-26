@@ -52,6 +52,13 @@ public class EstimateDoc implements java.io.Serializable {
 	private int itemRowCount = 8;
 	private List<String> itemNames = new ArrayList<>(List.of("냉장고", "세탁기", "침대", "책상", "의자", "박스"));
 	private List<String> itemQuantities = new ArrayList<>(List.of("1대", "1대", "1개", "2개", "4개", "25개"));
+	/** AI가 수기 견적서를 읽을 때 글씨가 흐렸던 칸 (폼 이름: customer, itemNames[3] …). 수정 화면에서 노랗게 표시 */
+	private java.util.Set<String> reviewFields = new java.util.LinkedHashSet<>();
+
+	/** 확인이 필요한 칸인지 (화면용) */
+	public boolean needsReview(String field) {
+		return reviewFields != null && reviewFields.contains(field);
+	}
 
 	public String itemName(int index) {
 		return index < itemNames.size() && itemNames.get(index) != null ? itemNames.get(index) : "";

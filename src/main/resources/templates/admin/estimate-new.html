@@ -24,7 +24,8 @@
 				<span class="grid h-14 w-14 place-items-center rounded-2xl bg-[#edf3ed] text-[#346538]"><svg th:replace="~{admin/fragments/icon :: icon('document', 26, '')}"></svg></span>
 			</span>
 			<strong class="mx-auto mt-5 block max-w-[290px] text-[18px] leading-6 text-[#303832]">과거 수기 견적서를 촬영하거나 PDF 파일을 첨부하세요.</strong>
-			<span class="mt-2 block text-[14px] text-[#8f9691]">AI가 텍스트를 자동 인식하여 아래 필드에 입력합니다.</span>
+			<span class="mt-2 block text-[14px] text-[#8f9691]">AI가 손글씨를 읽어 견적서 칸에 채워 줍니다.</span>
+			<span class="mt-1 block text-[13px] text-[#8f9691]">견적서 전체가 나오게, 가까이서 밝게 찍어 주세요.</span>
 		</button>
 
 		<div class="mt-5 flex items-center gap-2 rounded-xl bg-[#f6f8f6] px-3 py-2.5 text-left" data-file-row hidden>
@@ -72,12 +73,12 @@
 			<div class="text-center">
 				<span class="mx-auto block h-9 w-9 animate-spin rounded-full border-2 border-[#dce7dd] border-t-[#346538]"></span>
 				<p class="mt-3 text-[15px] font-bold text-[#346538]">AI가 견적서를 분석하고 있습니다</p>
-				<p class="mt-1 text-[13px] text-[#929994]">완료되면 Step 2로 이동합니다.</p>
+				<p class="mt-1 text-[13px] text-[#929994]">30초쯤 걸려요. 완료되면 Step 2로 이동합니다.</p>
 			</div>
 		</div>
 	</form>
 	<script>
-		/* 첨부: 사진은 미리보기 → [확인] 시 분석, PDF는 바로 분석 (인식은 AI 연동 전 시연값) */
+		/* 첨부: 사진은 미리보기 → [확인] 시 분석, PDF는 바로 분석 (서버에서 AI가 수기 견적서를 읽음, SheetReader) */
 		(function () {
 			const form = document.querySelector('[data-upload]');
 			const q = (s) => form.querySelector(s);
@@ -85,7 +86,7 @@
 			const analyze = (kind) => {
 				q('[data-kind]').value = kind;
 				q('[data-loading]').hidden = false;
-				setTimeout(() => form.submit(), 900);
+				form.submit();
 			};
 			form.querySelectorAll('[data-pick]').forEach((input) => input.addEventListener('change', () => {
 				const file = input.files && input.files[0];
@@ -126,6 +127,8 @@
 		<div><p class="text-[13px] font-extrabold tracking-[.12em] text-[#7a927d]">STEP 2</p><h2 class="mt-1 text-[22px] font-extrabold text-[#346538]">견적서 수정</h2></div>
 		<button class="h-9 rounded-xl bg-[#346538] px-4 text-[15px] font-extrabold text-white" type="submit">다음</button>
 	</div>
+	<p th:if="${reg.notice}" class="mb-4 rounded-xl px-4 py-3 text-[14px] font-semibold leading-6" role="status" data-ai-notice
+	   th:style="${reg.recognized} ? 'background:#fff8db;color:#6b5a12' : 'background:#fbefed;color:#9b4a43'" th:text="${reg.notice}">AI 안내</p>
 	<div th:replace="~{admin/fragments/estimate-sheet :: viewer(${doc}, true, false, ~{})}"></div>
 </form>
 
@@ -150,13 +153,14 @@
 	<section class="rounded-[20px] bg-white p-5 shadow-[0_5px_18px_rgba(36,58,39,.06)]">
 		<p class="text-[13px] font-extrabold tracking-[.12em] text-[#7a927d]" th:text="${pdfMode} ? 'STEP 3' : 'STEP 4'">STEP 4</p>
 		<h2 class="mt-1 text-[22px] font-extrabold text-[#346538]">견적 등록</h2>
-		<div th:if="${pdfMode}" class="mt-5 space-y-3">
+		<div th:if="${askNameDate}" class="mt-5 space-y-3">
+			<p th:unless="${pdfMode}" class="rounded-xl bg-[#f7f8f7] px-4 py-3 text-[15px] text-[#59615b]">견적서에서 고객 이름이나 날짜를 찾지 못했어요. 확인해서 적어 주세요.</p>
 			<label class="block"><span class="mb-1.5 block text-[14px] font-bold text-[#687069]">이름</span>
-				<input class="h-11 w-full rounded-xl border border-[#dfe4df] bg-white px-3 text-[16px] font-semibold outline-none focus:border-[#346538]" name="name" placeholder="고객 이름을 입력하세요" data-required></label>
+				<input class="h-11 w-full rounded-xl border border-[#dfe4df] bg-white px-3 text-[16px] font-semibold outline-none focus:border-[#346538]" name="name" th:value="${pdfMode} ? '' : ${doc.customer}" placeholder="고객 이름을 입력하세요" data-required></label>
 			<label class="block"><span class="mb-1.5 block text-[14px] font-bold text-[#687069]">날짜</span>
-				<input class="h-11 w-full rounded-xl border border-[#dfe4df] bg-white px-3 text-[16px] font-semibold outline-none focus:border-[#346538]" name="date" inputmode="numeric" maxlength="8" placeholder="YY.MM.DD" data-short-date data-required></label>
+				<input class="h-11 w-full rounded-xl border border-[#dfe4df] bg-white px-3 text-[16px] font-semibold outline-none focus:border-[#346538]" name="date" th:value="${pdfMode} ? '' : ${askDate}" inputmode="numeric" maxlength="8" placeholder="YY.MM.DD" data-short-date data-required></label>
 		</div>
-		<p th:unless="${pdfMode}" class="mt-5 rounded-xl bg-[#f7f8f7] px-4 py-3 text-[15px] text-[#59615b]">견적서에서 인식한 담당자와 견적일이 등록 정보로 사용됩니다.</p>
+		<p th:unless="${askNameDate}" class="mt-5 rounded-xl bg-[#f7f8f7] px-4 py-3 text-[15px] text-[#59615b]">견적서에서 인식한 담당자와 견적일이 등록 정보로 사용됩니다.</p>
 		<label class="mt-5 block">
 			<span class="mb-2 block text-[14px] font-extrabold text-[#59615b]">분류</span>
 			<select class="h-11 w-full rounded-xl border border-[#dfe4df] bg-white px-3 text-[16px] font-semibold" name="status">
@@ -166,10 +170,10 @@
 	</section>
 	<div class="mt-4 grid grid-cols-[1fr_2fr] gap-2">
 		<a class="grid h-12 place-items-center rounded-xl border border-[#d9ded9] bg-white text-[15px] font-bold" th:href="@{/admin/estimates/new(step=3)}">이전</a>
-		<button class="h-12 rounded-xl bg-[#346538] text-[16px] font-extrabold text-white disabled:opacity-40" type="submit" th:disabled="${pdfMode}" data-complete-submit>견적 관리에 등록</button>
+		<button class="h-12 rounded-xl bg-[#346538] text-[16px] font-extrabold text-white disabled:opacity-40" type="submit" th:disabled="${askNameDate}" data-complete-submit>견적 관리에 등록</button>
 	</div>
 	<script>
-		/* PDF 등록: 이름과 날짜를 입력해야 등록 가능 */
+		/* PDF · 이름이나 날짜를 못 읽은 사진: 이름과 날짜를 입력해야 등록 가능 */
 		(function () {
 			const form = document.querySelector('[data-complete]');
 			const required = form.querySelectorAll('[data-required]');
@@ -177,6 +181,7 @@
 			const submit = form.querySelector('[data-complete-submit]');
 			const refresh = () => (submit.disabled = [...required].some((i) => !i.value.trim()));
 			required.forEach((i) => i.addEventListener('input', refresh));
+			refresh();
 		})();
 	</script>
 </form>

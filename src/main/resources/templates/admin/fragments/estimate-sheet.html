@@ -8,7 +8,7 @@
 
 <!-- 값 칸: 입력 또는 표시 -->
 <th:block th:fragment="field(editable, name, value, extra)">
-	<input th:if="${editable}" th:name="${name}" th:value="${value}"
+	<input th:if="${editable}" th:name="${name}" th:value="${value}" th:style="${doc != null and doc.needsReview(name)} ? 'background:#fff1b8' : null" th:attr="data-review=${doc != null and doc.needsReview(name)} ? 'Y' : null"
 		   class="block h-full w-full min-w-0 overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-[1.25cqw] font-semibold outline-none focus:bg-white" th:classappend="${extra}">
 	<span th:unless="${editable}" th:text="${value}" data-copy
 		  class="select-text flex h-full min-w-0 flex-1 items-center overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-[1.25cqw] font-semibold" th:classappend="${extra}"></span>
@@ -16,7 +16,7 @@
 
 <!-- 금액 칸 -->
 <th:block th:fragment="money(editable, name, value)">
-	<input th:if="${editable}" th:name="${name}" th:value="${value}" data-money
+	<input th:if="${editable}" th:name="${name}" th:value="${value}" data-money th:style="${doc != null and doc.needsReview(name)} ? 'background:#fff1b8' : null" th:attr="data-review=${doc != null and doc.needsReview(name)} ? 'Y' : null"
 		   class="block h-full w-full min-w-0 overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-right text-[1.25cqw] font-semibold outline-none focus:bg-white">
 	<span th:unless="${editable}" th:text="'₩ ' + ${value}" data-copy
 		  class="select-text flex h-full min-w-0 flex-1 items-center justify-end overflow-hidden whitespace-nowrap bg-white px-[.55cqw] text-[1.25cqw] font-semibold"></span>
@@ -75,11 +75,11 @@
 		<div data-item-rows>
 			<div class="grid grid-cols-8 bg-white" th:each="row : ${#numbers.sequence(0, doc.itemRowCount - 1)}" data-item-row>
 				<th:block th:each="col : ${#numbers.sequence(0, 3)}" th:with="idx=${row * 4 + col}">
-					<input th:if="${editable}" th:aria-label="${row + 1} + '행 ' + ${col + 1} + '번째 품목'" th:name="'itemNames[' + ${idx} + ']'" th:value="${doc.itemName(idx)}"
+					<input th:if="${editable}" th:aria-label="${row + 1} + '행 ' + ${col + 1} + '번째 품목'" th:name="'itemNames[' + ${idx} + ']'" th:value="${doc.itemName(idx)}" th:style="${doc != null and doc.needsReview('itemNames[' + idx + ']')} ? 'background:#fff1b8' : null" th:attr="data-review=${doc != null and doc.needsReview('itemNames[' + idx + ']')} ? 'Y' : null"
 						   class="block h-[3.1cqw] w-full min-w-0 overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-center text-[1.25cqw] font-semibold outline-none focus:bg-white">
 					<span th:unless="${editable}" th:utext="${#strings.isEmpty(doc.itemName(idx))} ? '&nbsp;' : ${#strings.escapeXml(doc.itemName(idx))}" data-copy
 						  class="select-text flex h-[3.1cqw] min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-[1.25cqw] font-semibold"></span>
-					<input th:if="${editable}" th:aria-label="${row + 1} + '행 ' + ${col + 1} + '번째 수량'" th:name="'itemQuantities[' + ${idx} + ']'" th:value="${doc.itemQuantity(idx)}"
+					<input th:if="${editable}" th:aria-label="${row + 1} + '행 ' + ${col + 1} + '번째 수량'" th:name="'itemQuantities[' + ${idx} + ']'" th:value="${doc.itemQuantity(idx)}" th:style="${doc != null and doc.needsReview('itemQuantities[' + idx + ']')} ? 'background:#fff1b8' : null" th:attr="data-review=${doc != null and doc.needsReview('itemQuantities[' + idx + ']')} ? 'Y' : null"
 						   class="block h-[3.1cqw] w-full min-w-0 overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-center text-[1.25cqw] font-semibold outline-none focus:bg-white">
 					<span th:unless="${editable}" th:utext="${#strings.isEmpty(doc.itemQuantity(idx))} ? '&nbsp;' : ${#strings.escapeXml(doc.itemQuantity(idx))}" data-copy
 						  class="select-text flex h-[3.1cqw] min-w-0 flex-1 items-center justify-center overflow-hidden whitespace-nowrap border-b border-r border-black bg-white px-[.55cqw] text-[1.25cqw] font-semibold"></span>

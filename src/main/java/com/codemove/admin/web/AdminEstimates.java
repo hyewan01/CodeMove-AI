@@ -2,9 +2,6 @@ package com.codemove.admin.web;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
 
 import com.codemove.common.Fmt;
 import com.codemove.move.EstimateDoc;
@@ -15,7 +12,7 @@ import lombok.Data;
 
 /**
  * 견적 관리 목록 행 · 견적서 등록 단계 (SCR-A-001~004).
- * 사진·PDF 인식은 AI 모듈 연동 전이라 시연값을 채우고, 관리자가 고친 뒤 등록하면 TBL_QUOTE 에 저장합니다.
+ * 사진·PDF 는 AI(SheetReader)가 대표님 수기 견적서를 읽어 칸을 채우고, 관리자가 고친 뒤 등록하면 TBL_QUOTE 에 저장합니다.
  */
 public final class AdminEstimates {
 
@@ -89,49 +86,13 @@ public final class AdminEstimates {
 		private String filePath;
 		private int step = 1;
 		private EstimateDoc doc;
+		/** AI가 수기 견적서를 읽었는지 (PDF 도 읽었으면 사진처럼 수정 단계로) */
+		private boolean recognized;
+		/** 수정 화면 위 안내 (AI 결과 · 실패 이유) */
+		private String notice;
 		private String name = "";
 		private String date = "";
 		private String status = "견적 검토";
-	}
-
-	private static final String[][] RECOGNIZED_ITEMS = { { "모니터", "6" }, { "컴퓨터", "3" }, { "공기청정기", "1" },
-			{ "소형 냉장고", "1" }, { "전자레인지", "1" }, { "프린터/복합기", "1" }, { "TV", "1" }, { "의자", "6" }, { "테이블", "2" },
-			{ "원형 테이블", "1" }, { "파티션", "3" }, { "대형 캐비넷", "2" }, { "책상", "2" }, { "데스크 수납함", "3" }, { "보조 서랍장", "3" } };
-
-	/** 사진 견적서 AI 인식 결과 (프로토타입 analyzeDocument → registrationDocumentData, 목업) */
-	public static EstimateDoc recognizePhoto() {
-		Random random = new Random();
-		String[] customers = { "김민준", "이서연", "박도윤", "최지우", "정하린" };
-		EstimateDoc d = new EstimateDoc();
-		d.setCompanyName("명품익스프레스");
-		d.setCustomer(customers[random.nextInt(customers.length)]);
-		d.setPhone(String.format("010-%04d-%04d", 1000 + random.nextInt(9000), 1000 + random.nextInt(9000)));
-		d.setEstimateDate(today());
-		d.setMoveDate(today());
-		d.setTransportDate(today());
-		d.setOrigin("출발지 미인식");
-		d.setDestination("도착지 미인식");
-		d.setVolume("3.5톤");
-		d.setNote("이미지에서 인식된 견적 정보입니다.");
-		d.setMovingCost("0");
-		d.setExtraCost("0");
-		d.setTotal("1,320,000");
-		d.setDeposit("132,000");
-		d.setBalance("1,188,000");
-		d.setDepartureLadder("0");
-		d.setDestinationLadder("0");
-		d.setLadderSubtotal("0");
-		d.setOptionCosts(new ArrayList<>(Collections.nCopies(8, "0")));
-		List<String> names = new ArrayList<>();
-		List<String> quantities = new ArrayList<>();
-		for (String[] item : RECOGNIZED_ITEMS) {
-			names.add(item[0]);
-			quantities.add(item[1]);
-		}
-		d.setItemNames(names);
-		d.setItemQuantities(quantities);
-		d.setItemRowCount(Math.max(8, (int) Math.ceil(RECOGNIZED_ITEMS.length / 4.0)));
-		return d.normalized();
 	}
 
 	/**

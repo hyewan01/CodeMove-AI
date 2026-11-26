@@ -123,14 +123,14 @@ public class GeminiVideoAnalyzer {
 			String uri = file.path("uri").asString();
 			int n = Math.max(1, times);
 			if (n == 1) {
-				return List.of(generateOnce(uri, mimeType, prompt, schema, fallbackOnBusy, uploadMs));
+				return List.of(generateOnce(fileParts(uri, mimeType), prompt, schema, fallbackOnBusy, uploadMs));
 			}
 			List<Response> ok = new java.util.ArrayList<>();
 			AnalyzerException first = null;
 			try (var pool = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
 				List<java.util.concurrent.Future<Response>> futures = new java.util.ArrayList<>();
 				for (int i = 0; i < n; i++) {
-					futures.add(pool.submit(() -> generateOnce(uri, mimeType, prompt, schema, fallbackOnBusy, uploadMs)));
+					futures.add(pool.submit(() -> generateOnce(fileParts(uri, mimeType), prompt, schema, fallbackOnBusy, uploadMs)));
 				}
 				for (var f : futures) {
 					try {
@@ -154,8 +154,29 @@ public class GeminiVideoAnalyzer {
 		}
 	}
 
-	/** 올려 둔 영상으로 한 번 질문 (주 모델 → 혼잡·한도면 예비 모델 차례로) */
-	private Response generateOnce(String uri, String mimeType, String prompt, Map<String, Object> schema,
+	/**
+	 * 사진 여러 장(JPEG)을 올리지 않고 요청에 바로 담아 한 번 질문합니다(손글씨 견적서용).
+	 * 이 모델은 사진 한 장을 크기와 상관없이 약 1,100 토큰으로 줄여 보므로(해상도 설정도 무시, 2026-11-27 확인),
+	 * 글씨를 크게 보이려면 사진을 조각내 여러 장으로 보냅니다.
+	 */
+	public Response analyzeImages(List<byte[]> jpegs, String prompt, Map<String, Object> schema) {
+		if (!configured()) {
+			throw new AnalyzerException(VideoAnalysis.ERR_NO_KEY, "GEMINI_API_KEY 가 설정되지 않았습니다");
+		}
+		List<Map<String, Object>> parts = new java.util.ArrayList<>();
+		for (byte[] j : jpegs) {
+			parts.add(Map.of("inline_data",
+					Map.of("mime_type", "image/jpeg", "data", java.util.Base64.getEncoder().encodeToString(j))));
+		}
+		return generateOnce(parts, prompt, schema, true, 0);
+	}
+
+	private static List<Map<String, Object>> fileParts(String uri, String mimeType) {
+		return List.of(Map.of("file_data", Map.of("mime_type", mimeType, "file_uri", uri)));
+	}
+
+	/** 올려 둔 영상(또는 사진 묶음)으로 한 번 질문 (주 모델 → 혼잡·한도면 예비 모델 차례로) */
+	private Response generateOnce(List<Map<String, Object>> media, String prompt, Map<String, Object> schema,
 			boolean fallbackOnBusy, long uploadMs) {
 		long t1 = System.currentTimeMillis();
 		JsonNode res = null;
@@ -166,7 +187,7 @@ public class GeminiVideoAnalyzer {
 		models.addAll(fallbackModels);
 		for (String m : models) {
 			try {
-				res = generate(m, uri, mimeType, prompt, schema);
+				res = generate(m, media, prompt, schema);
 				used = m;
 				break;
 			} catch (AnalyzerException e) {
@@ -263,11 +284,11 @@ public class GeminiVideoAnalyzer {
 
 	/* ---------- generateContent ---------- */
 
-	private JsonNode generate(String model, String fileUri, String mimeType, String prompt, Map<String, Object> schema) {
+	private JsonNode generate(String model, List<Map<String, Object>> media, String prompt, Map<String, Object> schema) {
+		List<Map<String, Object>> parts = new java.util.ArrayList<>(media);
+		parts.add(Map.of("text", prompt));
 		Map<String, Object> body = Map.of(
-				"contents", List.of(Map.of("role", "user", "parts", List.of(
-						Map.of("file_data", Map.of("mime_type", mimeType, "file_uri", fileUri)),
-						Map.of("text", prompt)))),
+				"contents", List.of(Map.of("role", "user", "parts", parts)),
 				"generationConfig", generationConfig(schema));
 		HttpRequest req = HttpRequest.newBuilder(URI.create(BASE + "/v1beta/models/" + model + ":generateContent"))
 				.timeout(timeout).header("x-goog-api-key", apiKey).header("Content-Type", "application/json")

@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.codemove.admin.web.AdminEstimates.EstimateRecord;
 import com.codemove.admin.web.AdminEstimates.Registration;
 import com.codemove.common.FileStore;
+import com.codemove.estimate.SheetReader;
 import com.codemove.move.EstimateDoc;
 import com.codemove.move.Quote;
 import com.codemove.move.QuoteService;
@@ -30,11 +31,14 @@ public class AdminEstimateController {
 	private final QuoteService quotes;
 	private final NotificationService notifications;
 	private final FileStore files;
+	private final SheetReader sheets;
 
-	public AdminEstimateController(QuoteService quotes, NotificationService notifications, FileStore files) {
+	public AdminEstimateController(QuoteService quotes, NotificationService notifications, FileStore files,
+			SheetReader sheets) {
 		this.quotes = quotes;
 		this.notifications = notifications;
 		this.files = files;
+		this.sheets = sheets;
 	}
 
 	private List<EstimateRecord> records() {
@@ -140,28 +144,46 @@ public class AdminEstimateController {
 	public String registration(@RequestParam(required = false) Integer step, HttpSession session, Model model) {
 		Registration reg = AdminState.of(session).getRegistration();
 		int current = step != null && reg.getDoc() != null ? step : (reg.getDoc() == null ? 1 : reg.getStep());
-		if (current == 2 && "pdf".equals(reg.getKind())) {
+		boolean pdfMode = "pdf".equals(reg.getKind()) && !reg.isRecognized();
+		if (current == 2 && pdfMode) {
 			current = 3;
 		}
 		reg.setStep(current);
 		model.addAttribute("reg", reg);
 		model.addAttribute("step", current);
-		model.addAttribute("pdfMode", "pdf".equals(reg.getKind()));
+		model.addAttribute("pdfMode", pdfMode);
 		model.addAttribute("doc", reg.getDoc());
+		// 사진 견적서에 고객 이름 · 날짜가 없으면(대표님 견적서는 견적일 칸이 대부분 빈칸) 4단계에서 직접 입력
+		EstimateDoc d = reg.getDoc();
+		model.addAttribute("askNameDate", pdfMode || d != null && (blank(d.getCustomer()) || blank(registerDate(d))));
+		model.addAttribute("askDate", d == null ? "" : registerDate(d));
 		model.addAttribute("optionRows", EstimateDoc.OPTION_ROWS);
 		return "admin/estimate-new";
 	}
 
-	/** Step 1 → 첨부 저장 · 분석 (사진: 인식 시연값 후 Step 2, PDF: Step 3) */
+	/**
+	 * Step 1 → 첨부 저장 · AI가 수기 견적서 읽기 → Step 2(수정).
+	 * PDF 를 AI가 못 읽으면 예전처럼 Step 3(미리보기) → Step 4 에서 이름 · 날짜를 직접 입력.
+	 */
 	@PostMapping("/new/analyze")
 	public String analyze(@RequestParam String kind, @RequestParam(defaultValue = "") String fileName,
 			@RequestParam(required = false) MultipartFile document, HttpSession session) {
 		Registration reg = new Registration();
-		reg.setKind("pdf".equals(kind) ? "pdf" : "photo");
+		boolean pdf = "pdf".equals(kind);
+		reg.setKind(pdf ? "pdf" : "photo");
 		reg.setFileName(fileName);
 		reg.setFilePath(files.save("quotes", document));
-		reg.setDoc("pdf".equals(kind) ? AdminEstimates.pdfDocument() : AdminEstimates.recognizePhoto());
-		reg.setStep("pdf".equals(kind) ? 3 : 2);
+		SheetReader.Result read = reg.getFilePath() == null ? null
+				: sheets.read(files.root().resolve(reg.getFilePath().substring(FileStore.URL_PREFIX.length())).normalize(),
+						document.getOriginalFilename());
+		reg.setRecognized(read != null && read.success());
+		reg.setNotice(read == null ? "첨부한 파일이 없어요. 칸을 직접 채워 주세요." : read.notice());
+		if (reg.isRecognized()) {
+			reg.setDoc(read.doc());
+		} else {
+			reg.setDoc(pdf ? AdminEstimates.pdfDocument() : read == null ? new EstimateDoc().normalized() : read.doc());
+		}
+		reg.setStep(pdf && !reg.isRecognized() ? 3 : 2);
 		AdminState.of(session).setRegistration(reg);
 		return "redirect:/admin/estimates/new?step=" + reg.getStep();
 	}
@@ -171,6 +193,15 @@ public class AdminEstimateController {
 	public String draft(@ModelAttribute EstimateDoc doc, HttpSession session) {
 		AdminState.of(session).getRegistration().setDoc(doc.normalized());
 		return "redirect:/admin/estimates/new?step=3";
+	}
+
+	private static boolean blank(String s) {
+		return s == null || s.isBlank();
+	}
+
+	/** 등록 날짜: 견적일, 비어 있으면 포장일(작업일) */
+	private static String registerDate(EstimateDoc d) {
+		return blank(d.getEstimateDate()) ? (d.getMoveDate() == null ? "" : d.getMoveDate().trim()) : d.getEstimateDate().trim();
 	}
 
 	/** 첨부부터 다시 */
@@ -190,17 +221,16 @@ public class AdminEstimateController {
 		if (doc == null) {
 			return "redirect:/admin/estimates/new";
 		}
-		boolean pdf = "pdf".equals(reg.getKind());
-		String finalName = pdf ? name.trim() : doc.getCustomer();
-		String finalDate = pdf ? date.trim() : doc.getEstimateDate();
+		boolean pdf = "pdf".equals(reg.getKind()) && !reg.isRecognized();
+		// 4단계에서 직접 적은 이름 · 날짜가 있으면 그것, 없으면 견적서에서 읽은 값 (견적일이 비면 포장일)
+		String finalName = pdf || !name.isBlank() ? name.trim() : doc.getCustomer();
+		String finalDate = pdf || !date.isBlank() ? date.trim() : registerDate(doc);
 		if (finalName.isEmpty() || finalDate.isEmpty()) {
 			return "redirect:/admin/estimates/new?step=4";
 		}
-		if (pdf) {
-			doc.setCustomer(finalName);
-			doc.setEstimateDate(finalDate);
-		}
-		Quote q = quotes.register(doc, pdf ? "03" : "02", reg.getFilePath(), QuoteService.statusCode(status),
+		doc.setCustomer(finalName);
+		doc.setEstimateDate(finalDate);
+		Quote q = quotes.register(doc, "pdf".equals(reg.getKind()) ? "03" : "02", reg.getFilePath(), QuoteService.statusCode(status),
 				AdminSession.adminId(session));
 		state.setRegistration(new Registration());
 		state.toast(notifications.fire("견적서 등록 · 견적서를 등록했을 시", q.getMemberId(), q.getContactName()));

@@ -85,6 +85,9 @@ codemove:
       price-in-per-1m: 1.50
       price-out-per-1m: 7.50
       price-date: 2026-11-23
+    # 관리자 수기 견적서 등록: AI가 대표님 견적서 사진을 몇 번 동시에 읽어 합칠지 (3이면 장당 약 $0.13, 1이면 약 $0.045)
+    sheet:
+      reads: 3
     # 분석 기록(토큰·비용·결과 JSON) 폴더, Git 제외
     log-dir: ai-logs
     # 테스트 영상 폴더 (관리자 AI 테스트 화면). 개인 경로라 application-local.yml 에 적습니다.
