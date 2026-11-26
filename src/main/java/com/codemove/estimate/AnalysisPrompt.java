@@ -23,11 +23,12 @@ public final class AnalysisPrompt {
 	 * v4: 대표님 견적서 적는 방식(홈에 들어간 냉장고 · 거실장=TV장 · 화장대 · 작은 가구는 바구니).
 	 * v5: 냉장 가전 하나면 냉장고 · 허리 높이 이상 화분만.
 	 * v6: 아기 침대는 침대가 아니라 바구니 2개(대표님 견적서 두 곳 모두 적지 않음).
+	 * v7: 11-26 대표님 통화(선반은 칸마다 바구니 1 · 이어 붙인 책장은 1개 · 앵글 선반은 바구니 · 자개장=옷장 · 1인 소파 각각 · 정수기는 메모 · 누운 영상).
 	 */
-	public static final String VERSION = "v6";
+	public static final String VERSION = "v7";
 
 	/** 관리자 테스트 화면에서 고를 수 있는 버전 (최신이 먼저) */
-	public static final List<String> VERSIONS = List.of("v6", "v5", "v4", "v3", "v2", "v1");
+	public static final List<String> VERSIONS = List.of("v7", "v6", "v5", "v4", "v3", "v2", "v1");
 
 	private static final Map<String, String> TEMPLATES = new java.util.concurrent.ConcurrentHashMap<>();
 
