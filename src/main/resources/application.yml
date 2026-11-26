@@ -76,6 +76,8 @@ codemove:
       # gemini-2.5-flash 는 신규 사용자에게 막힘(2026-11-23 확인). 3.8-flash 는 무료 등급 503 혼잡이 잦음
       model: gemini-4-hydrogen
       thinking-level: low
+      # 같은 영상을 몇 번 분석해 다수결할지. 3이면 흔들림이 줄고 비용은 3배(영상 1개 약 $0.07 → $0.2), 시간은 거의 같음. 1이면 한 번만
+      votes: 3
       # 주 모델이 혼잡(503)·한도(429)일 때 차례로 시도. 비용은 주 모델 단가로 계산되므로 기록의 모델명을 확인
       fallback-models: gemini-3.5-flash,gemini-flash-latest,gemini-3.8-flash
       timeout-sec: 180

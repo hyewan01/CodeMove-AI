@@ -52,11 +52,19 @@ public class VideoAnalysisService {
 	/** V4 적용 후 DB 기록 (없으면 파일) */
 	private final AnalysisLogMapper logs;
 	private final V4Schema schema;
+	/** 같은 영상을 몇 번 분석해 다수결할지 (1 이면 한 번만) */
+	private final int votes;
 
 	/** 파일 기록만 쓰는 생성자 (실제 API 테스트용) */
 	public VideoAnalysisService(GeminiVideoAnalyzer ai, FileStore files, JsonMapper json, double priceIn,
 			double priceOut, String priceDate, String logDir) {
-		this(ai, files, json, priceIn, priceOut, priceDate, logDir, null, null);
+		this(ai, files, json, priceIn, priceOut, priceDate, logDir, 1);
+	}
+
+	/** 파일 기록만 쓰고 다수결 횟수를 정하는 생성자 (실제 API 테스트용) */
+	public VideoAnalysisService(GeminiVideoAnalyzer ai, FileStore files, JsonMapper json, double priceIn,
+			double priceOut, String priceDate, String logDir, int votes) {
+		this(ai, files, json, priceIn, priceOut, priceDate, logDir, votes, null, null);
 	}
 
 	@Autowired
@@ -64,7 +72,9 @@ public class VideoAnalysisService {
 			@Value("${codemove.ai.gemini.price-in-per-1m:1.50}") double priceIn,
 			@Value("${codemove.ai.gemini.price-out-per-1m:7.50}") double priceOut,
 			@Value("${codemove.ai.gemini.price-date:2026-11-23}") String priceDate,
-			@Value("${codemove.ai.log-dir:ai-logs}") String logDir, AnalysisLogMapper logs, V4Schema schema) {
+			@Value("${codemove.ai.log-dir:ai-logs}") String logDir,
+			@Value("${codemove.ai.gemini.votes:3}") int votes, AnalysisLogMapper logs, V4Schema schema) {
+		this.votes = Math.max(1, votes);
 		this.logs = logs;
 		this.schema = schema;
 		this.ai = ai;
@@ -104,8 +114,8 @@ public class VideoAnalysisService {
 		while (true) {
 			try {
 				// 혼잡하면 주 모델로 다시 해 보고, 마지막 시도에서만 예비 모델 허용
-				GeminiVideoAnalyzer.Response res = ai.analyze(video, mime, prompt, AnalysisPrompt.schema(),
-						retries >= MAX_BUSY_RETRIES);
+				List<GeminiVideoAnalyzer.Response> res = ai.analyzeVotes(video, mime, prompt, AnalysisPrompt.schema(),
+						retries >= MAX_BUSY_RETRIES, votes);
 				return save(interpret(id, res, t0, retries, version), video);
 			} catch (AnalyzerException e) {
 				boolean busy = VideoAnalysis.ERR_BUSY.equals(e.code());
@@ -148,12 +158,53 @@ public class VideoAnalysisService {
 
 	/** 모델 응답 글자 → 검사 · 매핑 */
 	Result interpret(String id, GeminiVideoAnalyzer.Response res, long t0, int retries, String version) {
-		RawResult raw;
-		try {
-			raw = parse(res.text());
-		} catch (RuntimeException e) {
-			throw new AnalyzerException(VideoAnalysis.ERR_JSON, "AI 응답 JSON 을 읽지 못했습니다: " + e.getMessage());
+		return interpret(id, List.of(res), t0, retries, version);
+	}
+
+	/**
+	 * 응답 여러 개(다수결) → 검사 · 매핑. JSON 을 못 읽은 응답은 표에서 빼고, 모두 못 읽으면 오류.
+	 * 비용 · 토큰은 모든 응답의 합, 원본은 "분석 1/2/3" 으로 이어 붙여 둡니다.
+	 */
+	Result interpret(String id, List<GeminiVideoAnalyzer.Response> responses, long t0, int retries, String version) {
+		// 일부만 한도 초과로 예비 모델이 답했으면 예비 모델 답은 투표에서 뺌 (예비 모델은 짐을 많이 빠뜨림)
+		String primary = ai == null ? null : ai.model();
+		List<GeminiVideoAnalyzer.Response> mine = responses.stream().filter(r -> primary == null || primary.equals(r.model()))
+				.toList();
+		List<GeminiVideoAnalyzer.Response> voters = mine.isEmpty() ? responses : mine;
+		List<RawResult> raws = new ArrayList<>();
+		List<GeminiVideoAnalyzer.Response> parsed = new ArrayList<>();
+		RuntimeException bad = null;
+		for (GeminiVideoAnalyzer.Response r : voters) {
+			try {
+				raws.add(parse(r.text()));
+				parsed.add(r);
+			} catch (RuntimeException e) {
+				bad = e;
+			}
 		}
+		if (raws.isEmpty()) {
+			throw new AnalyzerException(VideoAnalysis.ERR_JSON,
+					"AI 응답 JSON 을 읽지 못했습니다: " + (bad == null ? "" : bad.getMessage()));
+		}
+		VoteMerger.Merged merged = VoteMerger.merge(raws);
+		RawResult raw = merged.result();
+		GeminiVideoAnalyzer.Response base = parsed.get(merged.baseIndex());
+		Usage usage = new Usage(sum(responses, Usage::inputTokens), sum(responses, Usage::outputTokens),
+				sum(responses, Usage::thoughtTokens), sum(responses, Usage::totalTokens));
+		long apiMs = responses.stream().mapToLong(GeminiVideoAnalyzer.Response::apiMs).max().orElse(0);
+		String usedModel = voters.stream().map(GeminiVideoAnalyzer.Response::model)
+				.filter(m -> m != null && !m.equals(ai.model())).findFirst().orElse(base.model());
+		String rawText = base.text();
+		if (responses.size() > 1) {
+			StringBuilder b = new StringBuilder();
+			for (int i = 0; i < responses.size(); i++) {
+				b.append(i == 0 ? "" : "\n\n").append("== 분석 ").append(i + 1).append('/').append(responses.size())
+						.append(" (").append(responses.get(i).model()).append(") ==\n").append(responses.get(i).text());
+			}
+			rawText = b.toString();
+		}
+		GeminiVideoAnalyzer.Response res = new GeminiVideoAnalyzer.Response(rawText, usage, base.uploadMs(), apiMs,
+				usedModel);
 		double cost = cost(res.usage());
 		long total = System.currentTimeMillis() - t0;
 		if (!raw.videoOk() || raw.items().isEmpty()) {
@@ -168,6 +219,10 @@ public class VideoAnalysisService {
 		}
 		return new Result(id, true, null, null, res.model(), version, ItemMatcher.map(raw.items()),
 				raw.rooms(), withFallbackNote(raw.memo(), res.model(), ai.model()), res.usage(), cost, res.uploadMs(), res.apiMs(), total, retries, res.text());
+	}
+
+	private static long sum(List<GeminiVideoAnalyzer.Response> rs, java.util.function.ToLongFunction<Usage> f) {
+		return rs.stream().mapToLong(r -> f.applyAsLong(r.usage())).sum();
 	}
 
 	/** 응답 JSON → RawResult. 품목 한 줄이 이상하면 그 줄만 확인 필요로 */
@@ -327,7 +382,7 @@ public class VideoAnalysisService {
 		row.setModelName(r.model());
 		row.setPromptVersion(r.promptVersion());
 		row.setFileMb((Double) rec.get("videoMb"));
-		row.setProcessOption("thinking=" + ai.thinkingLevel());
+		row.setProcessOption("thinking=" + ai.thinkingLevel() + " votes=" + votes);
 		row.setInputTokens(r.usage().inputTokens());
 		row.setOutputTokens(r.usage().outputTokens());
 		row.setTotalTokens(r.usage().totalTokens());
@@ -375,6 +430,7 @@ public class VideoAnalysisService {
 			rec.put("costUsd", r.costUsd());
 			rec.put("ms", Map.of("upload", r.uploadMs(), "api", r.apiMs(), "total", r.totalMs()));
 			rec.put("retries", r.retries());
+			rec.put("votes", votes);
 			rec.put("itemCount", r.items().size());
 			rec.put("reviewCount", r.reviewCount());
 			rec.put("unmappedCount",

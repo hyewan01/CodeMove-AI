@@ -102,6 +102,15 @@ public class GeminiVideoAnalyzer {
 	 */
 	public Response analyze(Path video, String mimeType, String prompt, Map<String, Object> schema,
 			boolean fallbackOnBusy) {
+		return analyzeVotes(video, mimeType, prompt, schema, fallbackOnBusy, 1).get(0);
+	}
+
+	/**
+	 * 영상을 한 번 올리고 같은 질문을 times 번 동시에 보냅니다(다수결용). 걸리는 시간은 1번과 거의 같고 비용은 times 배.
+	 * 일부만 실패하면 성공한 응답만 돌려주고, 모두 실패하면 첫 오류를 던집니다.
+	 */
+	public List<Response> analyzeVotes(Path video, String mimeType, String prompt, Map<String, Object> schema,
+			boolean fallbackOnBusy, int times) {
 		if (!configured()) {
 			throw new AnalyzerException(VideoAnalysis.ERR_NO_KEY, "GEMINI_API_KEY 가 설정되지 않았습니다");
 		}
@@ -111,49 +120,82 @@ public class GeminiVideoAnalyzer {
 		try {
 			file = waitActive(file);
 			long uploadMs = System.currentTimeMillis() - t0;
-			long t1 = System.currentTimeMillis();
-			// 주 모델 → 혼잡·한도면 예비 모델 차례로 (영상은 한 번만 올림)
-			JsonNode res = null;
-			String used = null;
-			AnalyzerException last = null;
-			List<String> models = new java.util.ArrayList<>();
-			models.add(model);
-			models.addAll(fallbackModels);
-			for (String m : models) {
-				try {
-					res = generate(m, file.path("uri").asString(), mimeType, prompt, schema);
-					used = m;
-					break;
-				} catch (AnalyzerException e) {
-					boolean quota = VideoAnalysis.ERR_QUOTA.equals(e.code());
-					boolean busy = VideoAnalysis.ERR_BUSY.equals(e.code()) && (fallbackOnBusy || !m.equals(model));
-					if (!busy && !quota) {
-						throw e;
+			String uri = file.path("uri").asString();
+			int n = Math.max(1, times);
+			if (n == 1) {
+				return List.of(generateOnce(uri, mimeType, prompt, schema, fallbackOnBusy, uploadMs));
+			}
+			List<Response> ok = new java.util.ArrayList<>();
+			AnalyzerException first = null;
+			try (var pool = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+				List<java.util.concurrent.Future<Response>> futures = new java.util.ArrayList<>();
+				for (int i = 0; i < n; i++) {
+					futures.add(pool.submit(() -> generateOnce(uri, mimeType, prompt, schema, fallbackOnBusy, uploadMs)));
+				}
+				for (var f : futures) {
+					try {
+						ok.add(f.get());
+					} catch (java.util.concurrent.ExecutionException e) {
+						AnalyzerException a = e.getCause() instanceof AnalyzerException ae ? ae
+								: new AnalyzerException(VideoAnalysis.ERR_API, String.valueOf(e.getCause()));
+						first = first == null ? a : first;
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+						throw new AnalyzerException(VideoAnalysis.ERR_TIMEOUT, "중단됨");
 					}
-					last = e;
 				}
 			}
-			if (res == null) {
-				throw last != null ? last : new AnalyzerException(VideoAnalysis.ERR_API, "분석할 모델이 없습니다");
+			if (ok.isEmpty()) {
+				throw first;
 			}
-			long apiMs = System.currentTimeMillis() - t1;
-			StringBuilder text = new StringBuilder();
-			for (JsonNode part : res.path("candidates").path(0).path("content").path("parts")) {
-				if (!part.path("thought").asBoolean(false)) {
-					text.append(part.path("text").asString(""));
-				}
-			}
-			if (text.isEmpty()) {
-				String reason = res.path("candidates").path(0).path("finishReason").asString("");
-				throw new AnalyzerException(VideoAnalysis.ERR_JSON, "빈 응답 (finishReason=" + reason + ")");
-			}
-			JsonNode u = res.path("usageMetadata");
-			Usage usage = new Usage(u.path("promptTokenCount").asLong(0), u.path("candidatesTokenCount").asLong(0),
-					u.path("thoughtsTokenCount").asLong(0), u.path("totalTokenCount").asLong(0));
-			return new Response(text.toString(), usage, uploadMs, apiMs, used);
+			return ok;
 		} finally {
 			delete(name);
 		}
+	}
+
+	/** 올려 둔 영상으로 한 번 질문 (주 모델 → 혼잡·한도면 예비 모델 차례로) */
+	private Response generateOnce(String uri, String mimeType, String prompt, Map<String, Object> schema,
+			boolean fallbackOnBusy, long uploadMs) {
+		long t1 = System.currentTimeMillis();
+		JsonNode res = null;
+		String used = null;
+		AnalyzerException last = null;
+		List<String> models = new java.util.ArrayList<>();
+		models.add(model);
+		models.addAll(fallbackModels);
+		for (String m : models) {
+			try {
+				res = generate(m, uri, mimeType, prompt, schema);
+				used = m;
+				break;
+			} catch (AnalyzerException e) {
+				boolean quota = VideoAnalysis.ERR_QUOTA.equals(e.code());
+				boolean busy = VideoAnalysis.ERR_BUSY.equals(e.code()) && (fallbackOnBusy || !m.equals(model));
+				if (!busy && !quota) {
+					throw e;
+				}
+				last = e;
+			}
+		}
+		if (res == null) {
+			throw last != null ? last : new AnalyzerException(VideoAnalysis.ERR_API, "분석할 모델이 없습니다");
+		}
+		long apiMs = System.currentTimeMillis() - t1;
+		StringBuilder text = new StringBuilder();
+		for (JsonNode part : res.path("candidates").path(0).path("content").path("parts")) {
+			if (!part.path("thought").asBoolean(false)) {
+				text.append(part.path("text").asString(""));
+			}
+		}
+		if (text.isEmpty()) {
+			String reason = res.path("candidates").path(0).path("finishReason").asString("");
+			throw new AnalyzerException(VideoAnalysis.ERR_JSON, "빈 응답 (finishReason=" + reason + ")");
+		}
+		JsonNode u = res.path("usageMetadata");
+		Usage usage = new Usage(u.path("promptTokenCount").asLong(0), u.path("candidatesTokenCount").asLong(0),
+				u.path("thoughtsTokenCount").asLong(0), u.path("totalTokenCount").asLong(0));
+		return new Response(text.toString(), usage, uploadMs, apiMs, used);
 	}
 
 	/* ---------- Files API ---------- */

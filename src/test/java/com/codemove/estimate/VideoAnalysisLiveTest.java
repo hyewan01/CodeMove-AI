@@ -16,6 +16,7 @@ import tools.jackson.databind.json.JsonMapper;
  * 실제 Gemini 호출 테스트 (가이드 7단계 반복 테스트용). 키와 영상이 있을 때만 실행됩니다.
  * <pre>
  * $env:GEMINI_API_KEY="..."; $env:CODEMOVE_TEST_VIDEO="C:\...\집 영상.mp4"
+ * (선택) $env:GEMINI_VOTES="3"  → 같은 영상을 3번 분석해 다수결 (앱 기본값과 같음)
  * .\gradlew.bat test --tests "*VideoAnalysisLiveTest" -i
  * </pre>
  * 결과 기록은 build/ai-live/ai-logs/날짜/분석ID.json 에 남습니다.
@@ -36,7 +37,8 @@ class VideoAnalysisLiveTest {
 		Path out = Path.of("build", "ai-live");
 		Files.createDirectories(out);
 		VideoAnalysisService service = new VideoAnalysisService(ai, new FileStore(out.toString()), json, 1.50, 7.50,
-				"2026-11-23", out.resolve("ai-logs").toString());
+				"2026-11-23", out.resolve("ai-logs").toString(),
+				Integer.parseInt(System.getenv().getOrDefault("GEMINI_VOTES", "1")));
 
 		String prompt = System.getenv().getOrDefault("GEMINI_PROMPT", AnalysisPrompt.VERSION);
 		VideoAnalysis.Result r = service.analyze(Path.of(System.getenv("CODEMOVE_TEST_VIDEO")), prompt);
