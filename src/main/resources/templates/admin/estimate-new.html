@@ -70,10 +70,15 @@
 		</div>
 
 		<div class="absolute inset-0 z-20 grid place-items-center rounded-[22px] bg-white/92 backdrop-blur-sm" data-loading hidden>
-			<div class="text-center">
-				<span class="mx-auto block h-9 w-9 animate-spin rounded-full border-2 border-[#dce7dd] border-t-[#346538]"></span>
+			<!-- 진행률 (고객 영상 분석과 같은 방식): 올리기 0~20% 는 실제 보낸 양, 20~96% 는 보통 걸리는 시간(20~30초)으로 어림, 끝나면 100% -->
+			<div class="w-full px-8 text-center">
+				<b class="block font-black text-[#346538]" style="font-size:34px;line-height:1" data-progress-pct>0%</b>
+				<div class="mx-auto mt-3 h-2 w-full max-w-[260px] overflow-hidden rounded-full" style="background:#dce7dd"
+					 role="progressbar" aria-label="견적서 분석 진행률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-progress-meter>
+					<i class="block h-full rounded-full" style="width:0%;background:#346538;transition:width .4s ease" data-progress-bar></i>
+				</div>
 				<p class="mt-3 text-[15px] font-bold text-[#346538]">AI가 견적서를 분석하고 있습니다</p>
-				<p class="mt-1 text-[13px] text-[#929994]">30초쯤 걸려요. 완료되면 Step 2로 이동합니다.</p>
+				<p class="mt-1 text-[13px] text-[#929994]" data-progress-text>견적서를 올리고 있어요</p>
 			</div>
 		</div>
 	</form>
@@ -83,10 +88,49 @@
 			const form = document.querySelector('[data-upload]');
 			const q = (s) => form.querySelector(s);
 			const chooser = q('[data-toggle-target="chooser"]');
+			/* 진행률: 올리기는 실제로 보낸 양, AI 읽기는 보통 걸리는 시간으로 어림 (고객 영상 분석 quote.js 와 같은 방식) */
+			const UPLOAD_SHARE = 20;
+			const STAGES = ['견적서를 올리고 있어요', '손글씨를 크게 나눠 읽고 있어요', '세 번 읽은 결과를 맞춰 보고 있어요',
+				'견적서 칸에 옮겨 적고 있어요', '거의 다 됐어요. 조금만 기다려 주세요'];
+			const setProgress = (pct) => {
+				const v = Math.max(0, Math.min(100, Math.round(pct)));
+				q('[data-progress-pct]').textContent = `${v}%`;
+				q('[data-progress-bar]').style.width = `${v}%`;
+				q('[data-progress-meter]').setAttribute('aria-valuenow', String(v));
+				const i = v < UPLOAD_SHARE ? 0 : v < 45 ? 1 : v < 70 ? 2 : v < 88 ? 3 : 4;
+				q('[data-progress-text]').textContent = v >= 100 ? '다 읽었어요. 수정 화면으로 이동합니다' : STAGES[i];
+			};
 			const analyze = (kind) => {
 				q('[data-kind]').value = kind;
 				q('[data-loading]').hidden = false;
-				form.submit();
+				setProgress(0);
+				let timer = null;
+				const xhr = new XMLHttpRequest();
+				xhr.open('POST', form.action);
+				xhr.upload.onprogress = (e) => { if (e.lengthComputable) setProgress((e.loaded / e.total) * UPLOAD_SHARE); };
+				xhr.upload.onload = () => {
+					const since = Date.now();
+					setProgress(UPLOAD_SHARE);
+					timer = setInterval(() => {
+						const sec = (Date.now() - since) / 1000;
+						setProgress(UPLOAD_SHARE + (96 - UPLOAD_SHARE) * (1 - Math.exp(-sec / 12)));
+					}, 400);
+				};
+				xhr.onload = () => {
+					clearInterval(timer);
+					if (xhr.status >= 400) { fail('견적서를 읽지 못했어요. 잠시 후 다시 시도해 주세요.'); return; }
+					setProgress(100);
+					// 서버가 수정 단계(step=2) 또는 미리보기로 보냄 → 그 주소로 이동
+					setTimeout(() => { location.href = xhr.responseURL || '/admin/estimates/new'; }, 300);
+				};
+				// 다시 보내면 AI 를 한 번 더 돌려 비용이 두 번 들 수 있어 자동으로 다시 보내지 않음
+				const fail = (msg) => {
+					clearInterval(timer);
+					q('[data-progress-text]').textContent = msg;
+					setTimeout(() => { q('[data-loading]').hidden = true; }, 2500);
+				};
+				xhr.onerror = () => fail('인터넷 연결이 불안정해요. 다시 시도해 주세요.');
+				xhr.send(new FormData(form));
 			};
 			form.querySelectorAll('[data-pick]').forEach((input) => input.addEventListener('change', () => {
 				const file = input.files && input.files[0];
