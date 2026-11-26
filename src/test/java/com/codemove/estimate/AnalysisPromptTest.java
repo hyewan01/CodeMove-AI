@@ -21,11 +21,11 @@ class AnalysisPromptTest {
 	@Test
 	void defaultIsTheNewestVersion() {
 		assertEquals(AnalysisPrompt.VERSIONS.get(0), AnalysisPrompt.VERSION);
-		assertTrue(AnalysisPrompt.text().contains("선반이 있는 벽 면 수"), "v3 의 선반 세는 법");
+		assertTrue(AnalysisPrompt.text().contains("가로 칸 수 × 단 수"), "대표님 선반 세는 법(칸마다 바구니 1개)");
 	}
 
 	@Test
 	void unknownVersionIsRefused() {
-		assertThrows(IllegalArgumentException.class, () -> AnalysisPrompt.text("v9"));
+		assertThrows(IllegalArgumentException.class, () -> AnalysisPrompt.text("v99"));
 	}
 }
