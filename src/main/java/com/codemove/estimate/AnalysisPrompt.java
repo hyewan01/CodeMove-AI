@@ -20,11 +20,13 @@ public final class AnalysisPrompt {
 	/**
 	 * v1: 품목표 + 세는 규칙. v2: 대표님 견적 방식(바구니 환산 · 서랍 속 짐 · 렌탈 · 고가품 · 벽걸이 TV 인치).
 	 * v3: 놓친 짐 줄이기(선반 칸 세기 · 어두운 방 · 의자 하나씩 · 방마다 다시 훑기 · 비슷한 가전 구분).
+	 * v4: 대표님 견적서 적는 방식(홈에 들어간 냉장고 · 거실장=TV장 · 화장대 · 작은 가구는 바구니).
+	 * v5: 냉장 가전 하나면 냉장고 · 허리 높이 이상 화분만.
 	 */
-	public static final String VERSION = "v3";
+	public static final String VERSION = "v5";
 
 	/** 관리자 테스트 화면에서 고를 수 있는 버전 (최신이 먼저) */
-	public static final List<String> VERSIONS = List.of("v3", "v2", "v1");
+	public static final List<String> VERSIONS = List.of("v5", "v4", "v3", "v2", "v1");
 
 	private static final Map<String, String> TEMPLATES = new java.util.concurrent.ConcurrentHashMap<>();
 
