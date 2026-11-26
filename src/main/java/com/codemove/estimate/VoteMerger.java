@@ -84,7 +84,8 @@ final class VoteMerger {
 	static Map<String, Integer> totals(RawResult r) {
 		Map<String, Integer> t = new LinkedHashMap<>();
 		for (RawItem i : r.items()) {
-			t.merge(key(i), Math.max(0, i.quantity()), Integer::sum);
+			String k = key(i);
+			t.put(k, t.getOrDefault(k, 0) + Math.max(0, i.quantity()));
 		}
 		return t;
 	}

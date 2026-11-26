@@ -2,6 +2,7 @@ package com.codemove.admin.web;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 
 import com.codemove.common.Fmt;
 import com.codemove.move.EstimateDoc;
@@ -76,6 +77,63 @@ public final class AdminEstimates {
 	}
 
 	/* ---------- 견적서 등록 (SCR-A-003~004) ---------- */
+
+	/** 확인이 필요한 칸 버튼 한 개: 화면 이름 · 폼 칸 이름(누르면 그 칸으로 이동) */
+	public record ReviewChip(String label, String field) {
+	}
+
+	private static final java.util.Map<String, String> FIELD_LABELS = java.util.Map.ofEntries(
+			java.util.Map.entry("customer", "고객명"), java.util.Map.entry("phone", "연락처"),
+			java.util.Map.entry("estimateDate", "견적일"), java.util.Map.entry("moveDate", "포장일"),
+			java.util.Map.entry("transportDate", "운송일"), java.util.Map.entry("origin", "출발지"),
+			java.util.Map.entry("destination", "도착지"), java.util.Map.entry("volume", "이사물량"),
+			java.util.Map.entry("movingCost", "이사비용"), java.util.Map.entry("total", "총비용"),
+			java.util.Map.entry("deposit", "계약금"), java.util.Map.entry("balance", "잔금"),
+			java.util.Map.entry("departureFloor", "출발지 층"), java.util.Map.entry("destinationFloor", "도착지 층"),
+			java.util.Map.entry("departureLadder", "출발지 사다리"), java.util.Map.entry("destinationLadder", "도착지 사다리"),
+			java.util.Map.entry("ladderSubtotal", "사다리 소계"), java.util.Map.entry("workMethod", "작업내용"),
+			java.util.Map.entry("note", "비고"));
+
+	/**
+	 * AI가 글씨가 흐리다고 본 칸 → 수정 화면 위 "확인이 필요한 칸" 버튼 (고객 영상 분석의 "확인이 필요한 품목"과 같은 역할).
+	 * 품목은 이름 · 수량 두 칸을 한 버튼으로(수량 칸으로 이동).
+	 */
+	public static List<ReviewChip> reviewChips(EstimateDoc d) {
+		List<ReviewChip> out = new ArrayList<>();
+		if (d == null || d.getReviewFields() == null) {
+			return out;
+		}
+		java.util.Set<Integer> items = new java.util.LinkedHashSet<>();
+		for (String f : d.getReviewFields()) {
+			java.util.regex.Matcher m = java.util.regex.Pattern.compile("item(?:Names|Quantities)\\[(\\d+)]").matcher(f);
+			if (m.matches()) {
+				items.add(Integer.parseInt(m.group(1)));
+			} else if (FIELD_LABELS.containsKey(f)) {
+				out.add(new ReviewChip(FIELD_LABELS.get(f) + (blank(d, f) ? "(빈칸)" : ""), f));
+			}
+		}
+		for (int i : items) {
+			String name = d.itemName(i).isBlank() ? (i / 4 + 1) + "행 품목" : d.itemName(i);
+			out.add(new ReviewChip(name, "itemQuantities[" + i + "]"));
+		}
+		return out;
+	}
+
+	/** 견적에 꼭 필요한 칸이 비었는지 (SheetReader 가 빈 필수 칸을 확인 대상에 넣음) */
+	private static boolean blank(EstimateDoc d, String f) {
+		String v = switch (f) {
+			case "customer" -> d.getCustomer();
+			case "volume" -> d.getVolume();
+			case "total" -> d.getTotal();
+			default -> "x";
+		};
+		return v == null || v.isBlank();
+	}
+
+	/** 수정 화면 위 요약: 품목 수 (이름이 있는 칸) */
+	public static long itemCount(EstimateDoc d) {
+		return d == null ? 0 : d.getItemNames().stream().filter(n -> n != null && !n.isBlank()).count();
+	}
 
 	/** 등록 진행 상태: kind photo|pdf, step 1~4 */
 	@Data

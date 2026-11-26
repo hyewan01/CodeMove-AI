@@ -75,6 +75,7 @@ class SheetReaderTest {
 		assertTrue(d.needsReview("total"));
 		assertTrue(d.needsReview("itemQuantities[4]"), "흐린 품목 칸");
 		assertFalse(d.needsReview("customer"));
+		assertTrue(d.needsReview("volume") == d.getVolume().isBlank(), "못 읽은 필수 칸은 확인 대상");
 		assertFalse(d.needsReview("없는칸"));
 	}
 
@@ -147,6 +148,7 @@ class SheetReaderTest {
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	void mergeFillsBlanksByMajorityAndFlagsDisagreement() {
 		Map<String, Object> a = map("""
 				{"readable":true,"origin":"","total":"1,800,000","pack_date":"26.11.24",

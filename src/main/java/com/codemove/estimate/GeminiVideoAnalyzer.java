@@ -146,7 +146,7 @@ public class GeminiVideoAnalyzer {
 				}
 			}
 			if (ok.isEmpty()) {
-				throw first;
+				throw first != null ? first : new AnalyzerException(VideoAnalysis.ERR_API, "분석 응답이 없습니다");
 			}
 			return ok;
 		} finally {

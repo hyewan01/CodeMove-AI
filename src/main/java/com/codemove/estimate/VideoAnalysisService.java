@@ -189,10 +189,10 @@ public class VideoAnalysisService {
 		VoteMerger.Merged merged = VoteMerger.merge(raws);
 		RawResult raw = merged.result();
 		GeminiVideoAnalyzer.Response base = parsed.get(merged.baseIndex());
-		Usage usage = new Usage(sum(responses, Usage::inputTokens), sum(responses, Usage::outputTokens),
-				sum(responses, Usage::thoughtTokens), sum(responses, Usage::totalTokens));
-		long apiMs = responses.stream().mapToLong(GeminiVideoAnalyzer.Response::apiMs).max().orElse(0);
-		String usedModel = voters.stream().map(GeminiVideoAnalyzer.Response::model)
+		Usage usage = new Usage(sum(responses, u -> u.inputTokens()), sum(responses, u -> u.outputTokens()),
+				sum(responses, u -> u.thoughtTokens()), sum(responses, u -> u.totalTokens()));
+		long apiMs = responses.stream().mapToLong(r -> r.apiMs()).max().orElse(0);
+		String usedModel = voters.stream().map(r -> r.model())
 				.filter(m -> m != null && !m.equals(ai.model())).findFirst().orElse(base.model());
 		String rawText = base.text();
 		if (responses.size() > 1) {

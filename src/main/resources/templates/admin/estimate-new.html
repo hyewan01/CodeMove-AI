@@ -171,9 +171,72 @@
 		<div><p class="text-[13px] font-extrabold tracking-[.12em] text-[#7a927d]">STEP 2</p><h2 class="mt-1 text-[22px] font-extrabold text-[#346538]">견적서 수정</h2></div>
 		<button class="h-9 rounded-xl bg-[#346538] px-4 text-[15px] font-extrabold text-white" type="submit">다음</button>
 	</div>
-	<p th:if="${reg.notice}" class="mb-4 rounded-xl px-4 py-3 text-[14px] font-semibold leading-6" role="status" data-ai-notice
+	<!-- AI가 읽은 결과 요약 + 확인이 필요한 칸 (고객 영상 분석 결과 화면과 같은 구성) -->
+	<section th:if="${reg.recognized}" class="mb-4 rounded-2xl bg-white px-4 py-4" style="box-shadow:0 5px 18px rgba(36,58,39,.06)" data-ai-summary>
+		<span class="rounded-full text-[12px] font-extrabold" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#edf3ed;color:#346538">
+			<svg aria-hidden="true" viewBox="0 0 16 16" width="13" height="13"><path d="M3.5 8.5 6.5 11.5 12.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			AI 읽기 완료
+		</span>
+		<div class="mt-2 flex items-end gap-1.5">
+			<strong th:unless="${#strings.isEmpty(doc.volume)}" class="font-black" style="font-size:30px;line-height:1;color:#29312b" th:text="${doc.volume}">5톤</strong>
+			<strong th:if="${#strings.isEmpty(doc.volume)}" class="font-black" style="font-size:20px;line-height:1.2;color:#b9574f">못 읽음</strong>
+			<span class="pb-0.5 text-[13px] font-bold text-[#8a918c]">이사물량</span>
+		</div>
+		<p class="mt-1.5 text-[13px] text-[#687069]">품목 <b th:text="${itemCount}">0</b>개 · 총비용 <b th:text="${#strings.isEmpty(doc.total)} ? '못 읽음' : ${doc.total} + '원'">0</b></p>
+		<p class="mt-1.5 text-[12px] leading-5 text-[#8a918c]" th:text="${reg.notice}" data-ai-notice>AI 안내</p>
+		<div th:if="${!reviewChips.isEmpty()}" class="mt-3 rounded-xl px-3 py-3" style="background:#fff4e5" data-review-banner>
+			<div class="flex items-start gap-2">
+				<i class="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[12px] font-black not-italic text-white" style="background:#e08a2c" aria-hidden="true">!</i>
+				<div class="min-w-0">
+					<strong class="block text-[14px]" style="color:#8a4b0f">확인이 필요한 칸 <span data-review-left th:text="${reviewChips.size()}">0</span>개</strong>
+					<span class="block text-[12px]" style="color:#a4652a" data-review-hint>눌러서 그 칸으로 이동해요. 고치면 노란색이 없어져요</span>
+				</div>
+			</div>
+			<div class="mt-2.5 flex flex-wrap gap-1.5">
+				<button th:each="c : ${reviewChips}" type="button" class="rounded-full px-2.5 py-1 text-[12px] font-bold"
+						style="background:#fff;color:#8a4b0f;border:1px solid #f1c38f" th:data-review-go="${c.field}" th:text="${c.label}">연락처</button>
+			</div>
+		</div>
+	</section>
+	<p th:if="${reg.notice != null and !reg.recognized}" class="mb-4 rounded-xl px-4 py-3 text-[14px] font-semibold leading-6" role="status" data-ai-notice
 	   th:style="${reg.recognized} ? 'background:#fff8db;color:#6b5a12' : 'background:#fbefed;color:#9b4a43'" th:text="${reg.notice}">AI 안내</p>
 	<div th:replace="~{admin/fragments/estimate-sheet :: viewer(${doc}, true, false, ~{})}"></div>
+	<script>
+		/* 확인이 필요한 칸: 버튼을 누르면 그 칸으로 이동, 고치면 노란색을 지우고 남은 개수를 줄임 */
+		(function () {
+			const banner = document.querySelector('[data-review-banner]');
+			if (!banner) return;
+			const sheet = document.querySelector('[data-estimate-sheet]');
+			const cell = (name) => sheet.querySelector(`[name="${CSS.escape(name)}"]`);
+			const pairOf = (name) => name.replace(/^item(Names|Quantities)/, (m, k) => (k === 'Names' ? 'itemQuantities' : 'itemNames'));
+			const refresh = () => {
+				const left = banner.querySelectorAll('[data-review-go]:not([data-done])').length;
+				banner.querySelector('[data-review-left]').textContent = left;
+				if (left === 0) banner.querySelector('[data-review-hint]').textContent = '모두 확인했어요';
+			};
+			banner.querySelectorAll('[data-review-go]').forEach((b) => b.addEventListener('click', () => {
+				const el = cell(b.dataset.reviewGo);
+				if (!el) return;
+				// 100% 에서는 칸 글씨가 아주 작아 250% 로 확대한 뒤 그 칸으로
+				document.querySelector('[data-doc-viewer]').dispatchEvent(new CustomEvent('doc-zoom-to', { detail: 250 }));
+				el.scrollIntoView({ block: 'center', inline: 'center' });
+				el.focus({ preventScroll: true });
+				el.style.outline = '2px solid #e08a2c';
+				setTimeout(() => { el.style.outline = ''; }, 1600);
+			}));
+			sheet.querySelectorAll('[data-review="Y"]').forEach((el) => el.addEventListener('input', () => {
+				[el, cell(pairOf(el.name))].forEach((x) => { if (x && x.dataset.review === 'Y') { x.style.background = ''; x.dataset.review = 'done'; } });
+				banner.querySelectorAll('[data-review-go]').forEach((b) => {
+					if (b.dataset.reviewGo === el.name || b.dataset.reviewGo === pairOf(el.name)) {
+						b.dataset.done = '';
+						b.style.opacity = '.45';
+						b.style.textDecoration = 'line-through';
+					}
+				});
+				refresh();
+			}, { once: true }));
+		})();
+	</script>
 </form>
 
 <!-- Step 3: 미리보기 -->

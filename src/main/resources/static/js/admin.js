@@ -260,6 +260,8 @@
 		};
 		$$('[data-zoom-step]', viewer).forEach((b) => b.addEventListener('click', () => setZoom(zoom + Number(b.dataset.zoomStep))));
 		label.addEventListener('click', () => setZoom(100));
+		/* 다른 화면 스크립트가 확대를 요청 (견적서 등록: 확인이 필요한 칸으로 이동할 때 그 칸이 보이게) */
+		viewer.addEventListener('doc-zoom-to', (e) => { if (zoom < e.detail) setZoom(e.detail); });
 		/* 견적서 위에서 휠을 굴리면 화면 대신 견적서만 움직임 */
 		viewport.addEventListener('wheel', (e) => {
 			e.preventDefault();

@@ -141,7 +141,7 @@ public class SheetReader {
 			rec.put("costUsd", cost(usage));
 			rec.put("ms", System.currentTimeMillis() - t0);
 			String rawAll = answers.size() == 1 ? res.text()
-					: String.join("\n\n== 다음 회차 ==\n", answers.stream().map(GeminiVideoAnalyzer.Response::text).toList());
+					: String.join("\n\n== 다음 회차 ==\n", answers.stream().map(a -> a.text()).toList());
 			if (!n.path("readable").asBoolean(true)) {
 				String reason = n.path("reject_reason").asString("");
 				rec.put("success", false);
@@ -197,7 +197,7 @@ public class SheetReader {
 			}
 		}
 		if (ok.isEmpty()) {
-			throw first;
+			throw first != null ? first : new IllegalStateException("AI 응답이 없어요");
 		}
 		return ok;
 	}
@@ -244,7 +244,7 @@ public class SheetReader {
 			for (Map<String, Object> r : readable) {
 				String v = r.get(k) == null ? "" : String.valueOf(r.get(k)).strip();
 				if (!v.isEmpty() && !"없음".equals(v)) {
-					votes.merge(v, 1, Integer::sum);
+					votes.put(v, votes.getOrDefault(v, 0) + 1);
 				}
 			}
 			if (votes.isEmpty()) {
@@ -410,7 +410,7 @@ public class SheetReader {
 				free.add(cell);
 			}
 		}
-		int rows = Math.max(8, cols.stream().mapToInt(List::size).max().orElse(0));
+		int rows = Math.max(8, cols.stream().mapToInt(c -> c.size()).max().orElse(0));
 		List<String> names = new ArrayList<>();
 		List<String> qtys = new ArrayList<>();
 		for (int r = 0; r < rows; r++) {
@@ -441,6 +441,16 @@ public class SheetReader {
 			if (field != null) {
 				review.add(field);
 			}
+		}
+		// 견적에 꼭 필요한데 못 읽은 칸(고객명 · 이사물량 · 총비용)도 노랗게 → 관리자가 채우면 확인 끝
+		if (d.getCustomer().isBlank()) {
+			review.add("customer");
+		}
+		if (d.getVolume().isBlank()) {
+			review.add("volume");
+		}
+		if (d.getTotal().isBlank()) {
+			review.add("total");
 		}
 		d.setReviewFields(review);
 		return d.normalized();

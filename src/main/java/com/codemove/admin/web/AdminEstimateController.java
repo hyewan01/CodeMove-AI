@@ -157,6 +157,8 @@ public class AdminEstimateController {
 		EstimateDoc d = reg.getDoc();
 		model.addAttribute("askNameDate", pdfMode || d != null && (blank(d.getCustomer()) || blank(registerDate(d))));
 		model.addAttribute("askDate", d == null ? "" : registerDate(d));
+		model.addAttribute("reviewChips", AdminEstimates.reviewChips(d));
+		model.addAttribute("itemCount", AdminEstimates.itemCount(d));
 		model.addAttribute("optionRows", EstimateDoc.OPTION_ROWS);
 		return "admin/estimate-new";
 	}
@@ -176,12 +178,13 @@ public class AdminEstimateController {
 		SheetReader.Result read = reg.getFilePath() == null ? null
 				: sheets.read(files.root().resolve(reg.getFilePath().substring(FileStore.URL_PREFIX.length())).normalize(),
 						document.getOriginalFilename());
-		reg.setRecognized(read != null && read.success());
-		reg.setNotice(read == null ? "첨부한 파일이 없어요. 칸을 직접 채워 주세요." : read.notice());
-		if (reg.isRecognized()) {
-			reg.setDoc(read.doc());
+		if (read == null) {
+			reg.setNotice("첨부한 파일이 없어요. 칸을 직접 채워 주세요.");
+			reg.setDoc(pdf ? AdminEstimates.pdfDocument() : new EstimateDoc().normalized());
 		} else {
-			reg.setDoc(pdf ? AdminEstimates.pdfDocument() : read == null ? new EstimateDoc().normalized() : read.doc());
+			reg.setRecognized(read.success());
+			reg.setNotice(read.notice());
+			reg.setDoc(read.success() || !pdf ? read.doc() : AdminEstimates.pdfDocument());
 		}
 		reg.setStep(pdf && !reg.isRecognized() ? 3 : 2);
 		AdminState.of(session).setRegistration(reg);
